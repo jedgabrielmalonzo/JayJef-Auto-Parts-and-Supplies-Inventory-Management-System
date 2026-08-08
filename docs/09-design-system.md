@@ -172,13 +172,20 @@ React.
 ## Signature Detail: The Bold Rule
 
 The one recurring, memorable device: a **thick 4px solid rule** (black by
-default, red when marking the active/selected state) directly under page
-titles and the active nav item. It echoes the chunky, confident weight of
-the logo's lettering and doubles as a wayfinding cue — you always know
-which section/tab is active at a glance, no color legend required. The same
-rule appears under the shop name on the PDF invoice letterhead (see
+default, red when marking the active/selected state) directly under every
+page title. It echoes the chunky, confident weight of the logo's lettering
+and doubles as a wayfinding cue. The same rule appears under the shop name
+on the PDF invoice letterhead (see
 [Invoice/PDF Template](#invoicepdf-template)), tying the printed document
 back to the on-screen brand.
+
+Navigation lives in a **left sidebar**, not a top tab bar, so the active-
+section indicator is a **3px red left border + `--red-50` background tint**
+on the current nav item — the same treatment as a
+[selected table row](#table-row-product-lists-movement-history), reused
+here instead of a second distinct pattern. Between the two devices (rule
+under the title, left-border on the sidebar), staff always know both which
+section they're in and which page they're on, no color legend required.
 
 ## Component States
 
@@ -320,7 +327,7 @@ unique against whatever palette the scene's boxes use.
 | Color is never the only signal | Status badges always carry a text label; low stock is a labeled badge, not just a colored dot; positive/negative stock changes use `+`/`−` prefixes in addition to color. |
 | Focus always visible | `focus-visible` rings are never suppressed; distinct ring colors for actions (red) vs. fields (black) as described above. |
 | Touch targets | Minimum 40px height on buttons and tappable rows — this runs on shop-floor tablets/touchscreens where staff may be moving quickly or wearing gloves, not just a desktop mouse. |
-| Reduced motion | Respect `prefers-reduced-motion`; the 3D camera fly-to in [07](./07-3d-navigation.md#flow) should snap instead of animate when set. |
+| Reduced motion | Respect `prefers-reduced-motion`; the 3D camera fly-to in [07](./07-3d-navigation.md#flow) should snap instead of animate when set. Modal/dialog fade-in and scale-in entrances are gated behind `motion-safe:` for the same reason. |
 
 ## Assumptions / Decisions to Confirm
 
