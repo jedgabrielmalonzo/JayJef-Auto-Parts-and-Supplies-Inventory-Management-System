@@ -1,0 +1,25 @@
+node_modules/
+dist/
+build/
+.env
+.env.local
+
+# OCR service
+ocr-service/.venv/
+ocr-service/__pycache__/
+ocr-service/**/__pycache__/
+ocr-service/storage/*
+!ocr-service/storage/.gitkeep
+
+# Backend-side receipt image storage (docs/03-ocr-receipt-capture.md)
+backend/uploads/
+
+# Editor/OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
