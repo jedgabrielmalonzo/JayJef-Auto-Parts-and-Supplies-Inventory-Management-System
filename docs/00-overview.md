@@ -83,10 +83,10 @@ JayJef-Auto-Parts-and-Supplies-Inventory-Management-System/
 ├── frontend/                    # React + Tailwind app
 │   ├── src/
 │   │   ├── components/          # Shared UI components (buttons, tables, modals)
-│   │   ├── pages/                # Route-level pages (Products, Inventory, OCR Capture, Orders)
-│   │   ├── features/             # Feature-specific logic/hooks (products, inventory, ocr, orders)
+│   │   ├── pages/                # Route-level pages (Products, Inventory, Orders, OCR Capture, Suppliers, Shop Map)
+│   │   ├── features/             # Feature-specific logic/hooks (products, inventory, ocr, orders, shop-map)
 │   │   ├── api/                  # API client functions (fetch wrappers per resource)
-│   │   ├── App.tsx / main.tsx
+│   │   ├── App.jsx / main.jsx
 │   │   └── ...
 │   ├── public/
 │   └── package.json
