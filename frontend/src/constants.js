@@ -39,3 +39,9 @@ export const OCR_STATUS_BADGE = {
   confirmed: 'success',
   rejected: 'destructive',
 };
+
+export function availability(p) {
+  if (p.stock_quantity <= 0) return { label: 'Out of stock', variant: 'destructive' };
+  if (p.stock_quantity <= p.reorder_threshold) return { label: 'Low stock', variant: 'warning' };
+  return { label: 'In stock', variant: 'success' };
+}

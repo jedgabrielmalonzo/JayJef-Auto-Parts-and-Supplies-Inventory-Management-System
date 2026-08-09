@@ -91,6 +91,22 @@ export async function findById(id) {
   return { ...orderResult.rows[0], items: itemsResult.rows };
 }
 
+/** A product's own purchase/sale history, for its detail page's Purchases tab. */
+export async function itemHistoryForProduct(productId) {
+  const result = await pool.query(
+    `SELECT i.quantity, i.unit_price, i.line_total,
+            o.id AS order_id, o.order_number, o.type, o.status, o.order_date,
+            s.name AS supplier_name, o.party_name
+     FROM purchase_order_items i
+     JOIN purchase_orders o ON o.id = i.purchase_order_id
+     LEFT JOIN suppliers s ON s.id = o.supplier_id
+     WHERE i.product_id = $1
+     ORDER BY o.order_date DESC, o.id DESC`,
+    [productId]
+  );
+  return result.rows;
+}
+
 async function replaceItems(client, orderId, items) {
   const { lineItems, subtotal, total } = computeTotals(items);
 

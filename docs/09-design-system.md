@@ -319,6 +319,20 @@ so it needs to stay unique against whatever palette the cabinets use (the
 cabinet color picker in edit mode only offers non-red options for exactly
 this reason).
 
+### Charts (Dashboard, Reports)
+Bar/line series use the same non-red brand palette as everywhere else —
+`--blue-600` and `--green-600` for the two-series comparisons (e.g.
+purchase vs. sales), `--amber-700` as a third accent where needed (e.g.
+profit). Never red — same reservation as the shop map's cabinet colors
+above, and doubly true here since red would misread as an alert on a
+chart. Grid lines use `--gray-200`, axis labels use `caption`-weight
+`Inter`, tooltips use standard Card tokens (white surface, `--gray-200`
+border, `--shadow-md`). Stat-card numbers use `display-md`/`Archivo Black`
+same as the existing Inventory Dashboard KPI convention above; each stat's
+icon sits in a small tinted circle using the same non-red palette,
+distinguishing categories at a glance without relying on color alone (every
+number still carries a text label).
+
 ## Accessibility
 
 | Rule | Detail |

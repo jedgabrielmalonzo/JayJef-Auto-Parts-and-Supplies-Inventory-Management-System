@@ -12,7 +12,7 @@ export async function list({ search, category, supplierId, isActive, lowStock, p
 
   if (search) {
     params.push(`%${search}%`);
-    conditions.push(`(sku ILIKE $${params.length} OR name ILIKE $${params.length} OR brand ILIKE $${params.length})`);
+    conditions.push(`(sku ILIKE $${params.length} OR name ILIKE $${params.length} OR brand ILIKE $${params.length} OR compatible_vehicles ILIKE $${params.length})`);
   }
   if (category) {
     params.push(category);

@@ -1,10 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, ClipboardList, Loader2, PlusCircle, Search } from 'lucide-react';
+import { AlertTriangle, ClipboardList, Loader2, Package, PlusCircle, Search, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 import { lowStock, listMovements, createMovement } from '../api/inventory.js';
+import { getOverview } from '../api/dashboard.js';
 import { MOVEMENT_REASON_LABELS, formatCategory } from '../constants.js';
 import { Badge } from '../components/ui/badge.jsx';
+import StatCard from '../components/StatCard.jsx';
 import { Button } from '../components/ui/button.jsx';
 import { Input } from '../components/ui/input.jsx';
 import { Label } from '../components/ui/label.jsx';
@@ -113,6 +115,7 @@ function AdjustStockModal({ open, onClose, onSaved }) {
 export default function InventoryPage() {
   const [lowStockItems, setLowStockItems] = useState([]);
   const [movements, setMovements] = useState([]);
+  const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [adjustOpen, setAdjustOpen] = useState(false);
 
@@ -130,10 +133,17 @@ export default function InventoryPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { getOverview().then(setSummary).catch(() => {}); }, []);
+
+  function handleAdjusted() {
+    setAdjustOpen(false);
+    load();
+    getOverview().then(setSummary).catch(() => {});
+  }
 
   return (
     <div>
-      <AdjustStockModal open={adjustOpen} onClose={() => setAdjustOpen(false)} onSaved={() => { setAdjustOpen(false); load(); }} />
+      <AdjustStockModal open={adjustOpen} onClose={() => setAdjustOpen(false)} onSaved={handleAdjusted} />
 
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -145,6 +155,19 @@ export default function InventoryPage() {
           Adjust Stock
         </Button>
       </div>
+
+      {summary && (
+        <div className="mb-6">
+          <StatCard
+            title="Inventory Summary"
+            items={[
+              { icon: Package, value: summary.inventory.quantityInHand, label: 'Quantity in Hand', tint: '#3A6EA5' },
+              { icon: Truck, value: summary.inventory.toBeReceived, label: 'To be received', tint: '#946200' },
+              { icon: AlertTriangle, value: lowStockItems.length, label: 'Low Stock', tint: '#6B6B6B' },
+            ]}
+          />
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center gap-2 py-16 text-black-500">

@@ -7,6 +7,9 @@ import inventoryRouter from './routes/inventory.js';
 import ordersRouter from './routes/orders.js';
 import ocrRouter from './routes/ocr.js';
 import shopLayoutRouter from './routes/shopLayout.js';
+import dashboardRouter from './routes/dashboard.js';
+import reportsRouter from './routes/reports.js';
+import shopSettingsRouter from './routes/shopSettings.js';
 import { uploadsDir } from './services/uploads.js';
 import { productUploadsDir } from './services/productUploads.js';
 
@@ -31,6 +34,9 @@ app.use('/api/inventory', inventoryRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/ocr', ocrRouter);
 app.use('/api/shop-layout', shopLayoutRouter);
+app.use('/api/dashboard', dashboardRouter);
+app.use('/api/reports', reportsRouter);
+app.use('/api/shop-settings', shopSettingsRouter);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });

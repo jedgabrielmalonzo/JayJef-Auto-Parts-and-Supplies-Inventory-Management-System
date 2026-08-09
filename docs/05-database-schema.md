@@ -85,6 +85,22 @@ developer.
 | `created_at` | timestamptz | NOT NULL, default now() |
 | `updated_at` | timestamptz | NOT NULL, default now() |
 
+## `shop_settings`
+
+Shop info (name/address/phone) shown on the Manage Store page. Single-row
+table by design — JayJef is one shop, not a multi-branch chain (see
+[07-3d-navigation.md](./07-3d-navigation.md)'s sibling decision on the shop
+map). `CHECK (id = 1)` is the standard Postgres pattern for enforcing
+exactly one row.
+
+| Column | Type | Constraints |
+|---|---|---|
+| `id` | integer | PK, default 1, CHECK (id = 1) |
+| `name` | text | NOT NULL |
+| `address` | text | nullable |
+| `phone` | text | nullable |
+| `updated_at` | timestamptz | NOT NULL, default now() |
+
 ## `stock_movements`
 
 Append-only log. Rows are never updated or deleted once written.

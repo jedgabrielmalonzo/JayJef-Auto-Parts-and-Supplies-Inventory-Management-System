@@ -1,4 +1,5 @@
 import * as productModel from '../models/productModel.js';
+import * as orderModel from '../models/orderModel.js';
 import { createMovementStandalone } from '../services/stockMovements.js';
 
 const REQUIRED_ON_CREATE = ['sku', 'name', 'category'];
@@ -52,6 +53,14 @@ export async function getProduct(req, res, next) {
     const product = await productModel.findById(req.params.id);
     if (!product) return res.status(404).json({ error: 'Product not found' });
     res.json(product);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getProductPurchases(req, res, next) {
+  try {
+    res.json(await orderModel.itemHistoryForProduct(req.params.id));
   } catch (err) {
     next(err);
   }

@@ -12,6 +12,10 @@ export function getProduct(id) {
   return request(`/products/${id}`);
 }
 
+export function getProductPurchases(id) {
+  return request(`/products/${id}/purchases`);
+}
+
 // `data.image` (a File, optional) rides along as multipart/form-data — same
 // pattern as uploadReceipt() in api/ocr.js. Only `undefined`/`null` fields
 // are omitted — an empty string is a legitimate "clear this text field"

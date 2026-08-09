@@ -1,14 +1,16 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
-import { FileText, Loader2, Plus } from 'lucide-react';
+import { FileText, Loader2, Plus, ShoppingBag, Receipt, ShoppingCart, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { listOrders } from '../api/orders.js';
+import { getOverview } from '../api/dashboard.js';
 import { ORDER_STATUS_BADGE } from '../constants.js';
 import { Badge } from '../components/ui/badge.jsx';
 import { Button } from '../components/ui/button.jsx';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.jsx';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.jsx';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table.jsx';
+import StatCard from '../components/StatCard.jsx';
 import OrderFormPage from './OrderFormPage.jsx';
 import OrderDetailPage from './OrderDetailPage.jsx';
 
@@ -25,6 +27,7 @@ function OrdersListView({ modal }) {
   const [status, setStatus] = useState('_all');
   const [orders, setOrders] = useState([]);
   const [total, setTotal] = useState(0);
+  const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -41,6 +44,7 @@ function OrdersListView({ modal }) {
   }, [type, status]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { getOverview().then(setSummary).catch(() => {}); }, []);
 
   useEffect(() => {
     if (location.pathname === '/orders') load();
@@ -60,6 +64,20 @@ function OrdersListView({ modal }) {
           New Order
         </Button>
       </div>
+
+      {summary && (
+        <div className="mb-6">
+          <StatCard
+            title="Overall Orders"
+            items={[
+              { icon: ShoppingBag, value: summary.purchases.count, label: 'Purchases Fulfilled', tint: '#3A6EA5' },
+              { icon: Receipt, value: peso(summary.purchases.cost), label: 'Purchase Cost', tint: '#946200' },
+              { icon: ShoppingCart, value: summary.sales.count, label: 'Sales Fulfilled', tint: '#1E7B34' },
+              { icon: Wallet, value: peso(summary.sales.revenue), label: 'Sales Revenue', tint: '#6B6B6B' },
+            ]}
+          />
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <Tabs value={type} onValueChange={setType}>
