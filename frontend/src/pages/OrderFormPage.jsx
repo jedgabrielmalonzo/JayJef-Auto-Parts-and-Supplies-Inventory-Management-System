@@ -1,15 +1,29 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { getOrder, createOrder, updateOrder } from '../api/orders.js';
 import { listSuppliers } from '../api/suppliers.js';
-import Button from '../components/Button.jsx';
-import Field, { inputClasses } from '../components/Field.jsx';
-import Modal from '../components/Modal.jsx';
+import { Button } from '../components/ui/button.jsx';
+import { Input } from '../components/ui/input.jsx';
+import { Label } from '../components/ui/label.jsx';
+import { Textarea } from '../components/ui/textarea.jsx';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.jsx';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table.jsx';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.jsx';
 import ProductPicker from '../components/ProductPicker.jsx';
 
 function peso(n) {
   return `₱${Number(n || 0).toFixed(2)}`;
+}
+
+function Field({ label, children }) {
+  return (
+    <div className="space-y-1.5">
+      <Label>{label}</Label>
+      {children}
+    </div>
+  );
 }
 
 export default function OrderFormPage() {
@@ -29,7 +43,7 @@ export default function OrderFormPage() {
 
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
+  const [itemsError, setItemsError] = useState(null);
 
   useEffect(() => {
     listSuppliers({ page_size: 500 }).then((r) => setSuppliers(r.items)).catch(() => {});
@@ -50,7 +64,7 @@ export default function OrderFormPage() {
           quantity: i.quantity, unit_price: i.unit_price,
         })));
       })
-      .catch((err) => setError(err.message))
+      .catch((err) => toast.error(err.message))
       .finally(() => setLoading(false));
   }, [id, isEdit]);
 
@@ -58,6 +72,7 @@ export default function OrderFormPage() {
     if (items.some((i) => i.product_id === product.id)) return;
     const unitPrice = type === 'purchase' ? product.cost_price : product.selling_price;
     setItems((list) => [...list, { product_id: product.id, sku: product.sku, name: product.name, quantity: 1, unit_price: unitPrice }]);
+    setItemsError(null);
   }
 
   function updateItem(productId, field, value) {
@@ -77,11 +92,10 @@ export default function OrderFormPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     if (items.length === 0) {
-      setError('Add at least one line item.');
+      setItemsError('Add at least one line item.');
       return;
     }
     setSaving(true);
-    setError(null);
 
     const payload = {
       type,
@@ -94,29 +108,34 @@ export default function OrderFormPage() {
     };
 
     try {
-      if (isEdit) await updateOrder(id, payload);
-      else await createOrder(payload);
+      if (isEdit) {
+        await updateOrder(id, payload);
+        toast.success('Order saved');
+      } else {
+        await createOrder(payload);
+        toast.success('Order created');
+      }
       close();
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <Modal open title={isEdit ? 'Edit Order' : 'New Order'} onClose={close} maxWidth="max-w-3xl">
-      {loading ? (
-        <div className="flex items-center justify-center gap-2 py-10 text-black-500">
-          <Loader2 size={16} className="animate-spin" />
-          Loading...
-        </div>
-      ) : (
-        <>
-          {error && (
-            <div className="mb-4 rounded border border-red-600 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
-          )}
+    <Dialog open onOpenChange={(v) => !v && close()}>
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? 'Edit Order' : 'New Order'}</DialogTitle>
+        </DialogHeader>
 
+        {loading ? (
+          <div className="flex items-center justify-center gap-2 py-10 text-black-500">
+            <Loader2 size={16} className="animate-spin" />
+            Loading...
+          </div>
+        ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
             {!isEdit && (
               <Field label="Type">
@@ -140,66 +159,74 @@ export default function OrderFormPage() {
             <div className="grid grid-cols-2 gap-4">
               {type === 'purchase' ? (
                 <Field label="Supplier">
-                  <select className={inputClasses(false)} value={supplierId} onChange={(e) => setSupplierId(e.target.value)}>
-                    <option value="">No catalog supplier (use party name)</option>
-                    {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
+                  <Select value={supplierId} onValueChange={setSupplierId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="No catalog supplier (use party name)">
+                        {(v) => suppliers.find((s) => String(s.id) === v)?.name}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {suppliers.map((s) => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </Field>
               ) : (
                 <Field label="Customer Name">
-                  <input className={inputClasses(false)} placeholder="e.g. Juan Dela Cruz" value={partyName} onChange={(e) => setPartyName(e.target.value)} />
+                  <Input placeholder="e.g. Juan Dela Cruz" value={partyName} onChange={(e) => setPartyName(e.target.value)} />
                 </Field>
               )}
               <Field label={type === 'purchase' ? 'Supplier Contact (if no catalog supplier)' : 'Customer Contact'}>
-                <input className={inputClasses(false)} placeholder="Phone or email" value={partyContact} onChange={(e) => setPartyContact(e.target.value)} />
+                <Input placeholder="Phone or email" value={partyContact} onChange={(e) => setPartyContact(e.target.value)} />
               </Field>
             </div>
 
             <Field label="Order Date">
-              <input type="date" className={inputClasses(false)} value={orderDate} onChange={(e) => setOrderDate(e.target.value)} />
+              <Input type="date" value={orderDate} onChange={(e) => setOrderDate(e.target.value)} />
             </Field>
 
             <Field label="Add Product">
               <ProductPicker selected={null} onSelect={addItem} placeholder="Search SKU or name to add a line..." />
             </Field>
 
+            {itemsError && <p className="text-sm text-red-700">{itemsError}</p>}
+
             <div className="rounded-lg border border-gray-200">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-black-500">
-                    <th className="px-3 py-2 font-medium">Item</th>
-                    <th className="px-3 py-2 font-medium w-24">Qty</th>
-                    <th className="px-3 py-2 font-medium w-28">Unit Price</th>
-                    <th className="px-3 py-2 font-medium w-28 text-right">Line Total</th>
-                    <th className="px-3 py-2 w-10"></th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Item</TableHead>
+                    <TableHead className="w-24">Qty</TableHead>
+                    <TableHead className="w-28">Unit Price</TableHead>
+                    <TableHead className="w-28 text-right">Line Total</TableHead>
+                    <TableHead className="w-10"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {items.length === 0 && (
-                    <tr><td colSpan={5} className="px-3 py-6 text-center text-black-500">No line items yet — search above to add one.</td></tr>
+                    <TableRow><TableCell colSpan={5} className="py-6 text-center text-black-500">No line items yet — search above to add one.</TableCell></TableRow>
                   )}
                   {items.map((i) => (
-                    <tr key={i.product_id} className="border-b border-gray-200 last:border-b-0">
-                      <td className="px-3 py-2">
+                    <TableRow key={i.product_id}>
+                      <TableCell>
                         <p className="text-black-900">{i.name}</p>
                         <p className="font-mono text-xs text-black-500">{i.sku}</p>
-                      </td>
-                      <td className="px-3 py-2">
-                        <input type="number" min="1" className={`${inputClasses(false)} h-9 tabular-nums`} value={i.quantity} onChange={(e) => updateItem(i.product_id, 'quantity', e.target.value)} />
-                      </td>
-                      <td className="px-3 py-2">
-                        <input type="number" min="0" step="0.01" className={`${inputClasses(false)} h-9 tabular-nums`} value={i.unit_price} onChange={(e) => updateItem(i.product_id, 'unit_price', e.target.value)} />
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums text-black-900">{peso(i.quantity * i.unit_price)}</td>
-                      <td className="px-3 py-2 text-right">
-                        <button type="button" onClick={() => removeItem(i.product_id)} className="inline-flex h-8 w-8 items-center justify-center rounded text-black-500 hover:bg-red-50 hover:text-red-600 transition-colors">
+                      </TableCell>
+                      <TableCell>
+                        <Input type="number" min="1" className="h-9 tabular-nums" value={i.quantity} onChange={(e) => updateItem(i.product_id, 'quantity', e.target.value)} />
+                      </TableCell>
+                      <TableCell>
+                        <Input type="number" min="0" step="0.01" className="h-9 tabular-nums" value={i.unit_price} onChange={(e) => updateItem(i.product_id, 'unit_price', e.target.value)} />
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-black-900">{peso(i.quantity * i.unit_price)}</TableCell>
+                      <TableCell className="text-right">
+                        <Button type="button" variant="ghost" size="icon-sm" title="Remove" className="hover:bg-red-50 hover:text-red-600" onClick={() => removeItem(i.product_id)}>
                           <Trash2 size={15} />
-                        </button>
-                      </td>
-                    </tr>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
 
             <div className="flex justify-end">
@@ -210,7 +237,7 @@ export default function OrderFormPage() {
             </div>
 
             <Field label="Notes">
-              <textarea className={`${inputClasses(false)} h-20`} placeholder="Delivery instructions, payment terms, etc." value={notes} onChange={(e) => setNotes(e.target.value)} />
+              <Textarea placeholder="Delivery instructions, payment terms, etc." value={notes} onChange={(e) => setNotes(e.target.value)} />
             </Field>
 
             <div className="flex gap-3 pt-1">
@@ -224,8 +251,8 @@ export default function OrderFormPage() {
               </span>
             </div>
           </form>
-        </>
-      )}
-    </Modal>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

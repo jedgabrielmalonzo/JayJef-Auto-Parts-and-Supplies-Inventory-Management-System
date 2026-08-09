@@ -6,13 +6,19 @@ import usersRouter from './routes/users.js';
 import inventoryRouter from './routes/inventory.js';
 import ordersRouter from './routes/orders.js';
 import ocrRouter from './routes/ocr.js';
+import shopLayoutRouter from './routes/shopLayout.js';
 import { uploadsDir } from './services/uploads.js';
+import { productUploadsDir } from './services/productUploads.js';
 
 export const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static(uploadsDir));
+// Each resource's images live in their own uploads subdirectory; the mount
+// prefix matches the stored image_path convention (/uploads/<resource>/...)
+// exactly so served URLs and DB-stored paths never drift apart.
+app.use('/uploads/receipts', express.static(uploadsDir));
+app.use('/uploads/products', express.static(productUploadsDir));
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
@@ -24,6 +30,7 @@ app.use('/api/users', usersRouter);
 app.use('/api/inventory', inventoryRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/ocr', ocrRouter);
+app.use('/api/shop-layout', shopLayoutRouter);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });

@@ -1,10 +1,15 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link, Routes, Route, useLocation } from 'react-router-dom';
 import { Search, Plus, Pencil, Trash2, Truck, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { listSuppliers, deleteSupplier } from '../api/suppliers.js';
-import Button from '../components/Button.jsx';
-import ConfirmDialog from '../components/ConfirmDialog.jsx';
-import { inputClasses } from '../components/Field.jsx';
+import { Button } from '../components/ui/button.jsx';
+import { Input } from '../components/ui/input.jsx';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table.jsx';
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
+} from '../components/ui/alert-dialog.jsx';
 import SupplierFormPage from './SupplierFormPage.jsx';
 
 export default function SuppliersPage() {
@@ -13,18 +18,16 @@ export default function SuppliersPage() {
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [pendingDelete, setPendingDelete] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
       const result = await listSuppliers({ search });
       setSuppliers(result.items);
       setTotal(result.total);
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
@@ -42,10 +45,11 @@ export default function SuppliersPage() {
   async function handleDelete() {
     try {
       await deleteSupplier(pendingDelete.id);
+      toast.success(`"${pendingDelete.name}" deleted`);
       setPendingDelete(null);
       load();
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
       setPendingDelete(null);
     }
   }
@@ -62,7 +66,7 @@ export default function SuppliersPage() {
           <h1 className="font-display text-3xl text-black-900">Suppliers</h1>
           <div className="h-1 w-16 bg-black-900 mt-2" />
         </div>
-        <Button as={Link} to="/suppliers/new">
+        <Button render={<Link to="/suppliers/new" />} nativeButton={false}>
           <Plus size={16} strokeWidth={2.5} />
           Add Supplier
         </Button>
@@ -70,91 +74,86 @@ export default function SuppliersPage() {
 
       <div className="relative mb-4 w-64">
         <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-black-500" />
-        <input
-          className={`${inputClasses(false)} pl-9`}
+        <Input
+          className="pl-9"
           placeholder="Search suppliers..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
 
-      {error && (
-        <div className="mb-4 rounded border border-red-600 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
-      )}
-
       <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-black-500">
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Contact</th>
-              <th className="px-4 py-3 font-medium">Phone</th>
-              <th className="px-4 py-3 font-medium">Email</th>
-              <th className="px-4 py-3 font-medium"></th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Contact</TableHead>
+              <TableHead>Phone</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {loading && (
-              <tr>
-                <td colSpan={5} className="px-4 py-12 text-center text-black-500">
+              <TableRow>
+                <TableCell colSpan={5} className="py-12 text-center text-black-500">
                   <div className="flex items-center justify-center gap-2">
                     <Loader2 size={16} className="animate-spin" />
                     Loading...
                   </div>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
             {!loading && suppliers.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-4 py-14 text-center text-black-500">
+              <TableRow>
+                <TableCell colSpan={5} className="py-14 text-center text-black-500">
                   <div className="flex flex-col items-center gap-2">
                     <Truck size={28} className="text-black-300" strokeWidth={1.5} />
                     <span>{search ? 'No suppliers match this search.' : 'No suppliers yet — add one to assign to parts and orders.'}</span>
                   </div>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
             {!loading && suppliers.map((s) => (
-              <tr key={s.id} className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition-colors">
-                <td className="px-4 py-3 text-black-900">{s.name}</td>
-                <td className="px-4 py-3 text-black-700">{s.contact_person || '—'}</td>
-                <td className="px-4 py-3 text-black-700">{s.phone || '—'}</td>
-                <td className="px-4 py-3 text-black-700">{s.email || '—'}</td>
-                <td className="px-4 py-3 text-right whitespace-nowrap">
+              <TableRow key={s.id}>
+                <TableCell className="text-black-900">{s.name}</TableCell>
+                <TableCell className="text-black-700">{s.contact_person || '—'}</TableCell>
+                <TableCell className="text-black-700">{s.phone || '—'}</TableCell>
+                <TableCell className="text-black-700">{s.email || '—'}</TableCell>
+                <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
-                    <Link
-                      to={`/suppliers/${s.id}/edit`}
-                      title="Edit"
-                      className="inline-flex h-8 w-8 items-center justify-center rounded text-black-500 hover:bg-gray-100 hover:text-black-900 transition-colors"
-                    >
+                    <Button render={<Link to={`/suppliers/${s.id}/edit`} />} nativeButton={false} variant="ghost" size="icon-sm" title="Edit">
                       <Pencil size={16} />
-                    </Link>
-                    <button
-                      title="Delete"
-                      className="inline-flex h-8 w-8 items-center justify-center rounded text-black-500 hover:bg-red-50 hover:text-red-600 transition-colors"
-                      onClick={() => setPendingDelete(s)}
-                    >
+                    </Button>
+                    <Button variant="ghost" size="icon-sm" title="Delete" className="hover:bg-red-50 hover:text-red-600" onClick={() => setPendingDelete(s)}>
                       <Trash2 size={16} />
-                    </button>
+                    </Button>
                   </div>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
       {!loading && total > 0 && (
         <p className="mt-3 text-xs text-black-500">{total} supplier{total === 1 ? '' : 's'}</p>
       )}
 
-      <ConfirmDialog
-        open={!!pendingDelete}
-        title="Delete this supplier?"
-        description={pendingDelete ? `"${pendingDelete.name}" will be removed. This can't be undone. Suppliers linked to products or orders can't be deleted — remove those links first.` : ''}
-        onConfirm={handleDelete}
-        onCancel={() => setPendingDelete(null)}
-      />
+      <AlertDialog open={!!pendingDelete} onOpenChange={(open) => !open && setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this supplier?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDelete ? `"${pendingDelete.name}" will be removed. This can't be undone. Suppliers linked to products or orders can't be deleted — remove those links first.` : ''}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

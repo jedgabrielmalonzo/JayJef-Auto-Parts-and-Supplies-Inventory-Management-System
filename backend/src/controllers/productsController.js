@@ -66,6 +66,7 @@ export async function createProduct(req, res, next) {
         fields: Object.fromEntries(missing.map((f) => [f, 'required'])),
       });
     }
+    if (req.file) req.body.image_path = `/uploads/products/${req.file.filename}`;
     let product = await productModel.create(req.body);
 
     const initialStock = Number(req.body.initial_stock);
@@ -93,6 +94,7 @@ export async function updateProduct(req, res, next) {
   try {
     const existing = await productModel.findById(req.params.id);
     if (!existing) return res.status(404).json({ error: 'Product not found' });
+    if (req.file) req.body.image_path = `/uploads/products/${req.file.filename}`;
     const product = await productModel.update(req.params.id, req.body);
     res.json(product);
   } catch (err) {

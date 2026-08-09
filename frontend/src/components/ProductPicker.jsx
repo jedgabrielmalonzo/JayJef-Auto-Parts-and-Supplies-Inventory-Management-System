@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Search, X } from 'lucide-react';
 import { listProducts } from '../api/products.js';
-import { inputClasses } from './Field.jsx';
+
+const inputClasses = 'h-10 w-full min-w-0 rounded border border-input bg-white px-3 py-1 text-base outline-none transition-colors focus-visible:border-black-900 focus-visible:ring-2 focus-visible:ring-black-900/15';
 
 /** Search-and-pick control shared by any form that attaches a product to a line item. */
 export default function ProductPicker({ selected, onSelect, onClear, placeholder = 'Search SKU or name...' }) {
@@ -33,7 +34,7 @@ export default function ProductPicker({ selected, onSelect, onClear, placeholder
     <div className="relative">
       <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-black-500" />
       <input
-        className={`${inputClasses(false)} pl-9`}
+        className={`${inputClasses} pl-9`}
         placeholder={placeholder}
         value={query}
         onChange={(e) => setQuery(e.target.value)}

@@ -309,15 +309,15 @@ row set in `Archivo Black` to stand out. **Default to black & white** —
 many shop printers are monochrome; the red rule/accent only renders if the
 shop's printer is confirmed color-capable (see [Assumptions](#assumptions--decisions-to-confirm)).
 
-### 3D Navigation Surrounding UI ([07](./07-3d-navigation.md))
-The search bar and product info panel (the 2D UI framing the 3D canvas, not
-the scene itself) use standard Input/Card tokens on a white surface. The
-info panel for the currently-highlighted product gets the same 3px red
-left-border treatment as a selected table row, visually tying the panel to
-the pin in the scene. Because of this, **category color-coding on cabinets
-inside the 3D scene should avoid red** — red is reserved as the single
-"you're looking for this one" highlight signal, so it needs to stay
-unique against whatever palette the scene's boxes use.
+### Shop Map ([07](./07-3d-navigation.md))
+The search bar and product info panel use standard Input/Card tokens on a
+white surface. The info panel for the currently-highlighted product gets a
+red left-border accent, visually tying it to the highlighted cabinet on the
+map. Because of this, **cabinet colors on the map should avoid red** — red
+is reserved as the single "you're looking for this one" highlight signal,
+so it needs to stay unique against whatever palette the cabinets use (the
+cabinet color picker in edit mode only offers non-red options for exactly
+this reason).
 
 ## Accessibility
 
@@ -327,7 +327,7 @@ unique against whatever palette the scene's boxes use.
 | Color is never the only signal | Status badges always carry a text label; low stock is a labeled badge, not just a colored dot; positive/negative stock changes use `+`/`−` prefixes in addition to color. |
 | Focus always visible | `focus-visible` rings are never suppressed; distinct ring colors for actions (red) vs. fields (black) as described above. |
 | Touch targets | Minimum 40px height on buttons and tappable rows — this runs on shop-floor tablets/touchscreens where staff may be moving quickly or wearing gloves, not just a desktop mouse. |
-| Reduced motion | Respect `prefers-reduced-motion`; the 3D camera fly-to in [07](./07-3d-navigation.md#flow) should snap instead of animate when set. Modal/dialog fade-in and scale-in entrances are gated behind `motion-safe:` for the same reason. |
+| Reduced motion | Respect `prefers-reduced-motion`; modal/dialog fade-in and scale-in entrances are gated behind `motion-safe:` for the same reason. |
 
 ## Assumptions / Decisions to Confirm
 

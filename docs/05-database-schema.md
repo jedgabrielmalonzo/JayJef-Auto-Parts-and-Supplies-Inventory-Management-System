@@ -50,9 +50,7 @@ actions. See [assumptions](#assumptions--decisions-to-confirm).
 | `location_aisle` | text | nullable |
 | `location_shelf` | text | nullable |
 | `location_bin` | text | nullable |
-| `location_x` | numeric(10,3) | nullable |
-| `location_y` | numeric(10,3) | nullable |
-| `location_z` | numeric(10,3) | nullable |
+| `image_path` | text | nullable — added in `0002_add_product_image.sql` |
 | `notes` | text | nullable |
 | `is_active` | boolean | NOT NULL, default true |
 | `created_at` | timestamptz | NOT NULL, default now() |
@@ -61,7 +59,31 @@ actions. See [assumptions](#assumptions--decisions-to-confirm).
 > Location columns live directly on `products` rather than a separate
 > `locations` table — see
 > [01-product-crud.md#location-field-structure](./01-product-crud.md#location-field-structure)
-> for the reasoning. Used by the [3D navigation feature](./07-3d-navigation.md).
+> for the reasoning. `location_aisle` is matched against
+> [`shop_layout_cabinets`](#shop_layout_cabinets) to place/highlight a product
+> on the [shop map](./07-3d-navigation.md). (`location_x`/`location_y`/`location_z`
+> existed briefly for a 3D map and were dropped in `0003_shop_layout_cabinets.sql` —
+> nothing ever set them.)
+
+## `shop_layout_cabinets`
+
+The shop map's geometry — one row per cabinet/shelf unit shown on the map.
+Unlike the rest of the schema, this table is edited by shop staff directly
+through the app (drag-and-drop, see [07](./07-3d-navigation.md)), not by a
+developer.
+
+| Column | Type | Constraints |
+|---|---|---|
+| `id` | BIGSERIAL | PK |
+| `location_aisle` | text | NOT NULL, UNIQUE — matched against `products.location_aisle` |
+| `label` | text | NOT NULL — shown on the map (e.g. "Aisle A1") |
+| `x` | numeric(10,2) | NOT NULL — top-left position on the map canvas |
+| `y` | numeric(10,2) | NOT NULL |
+| `width` | numeric(10,2) | NOT NULL, default 120 |
+| `height` | numeric(10,2) | NOT NULL, default 80 |
+| `color` | text | NOT NULL, default `#3A6EA5` — hex; the UI restricts choices to a non-red palette, since red is reserved as the map's "you're looking for this" highlight signal |
+| `created_at` | timestamptz | NOT NULL, default now() |
+| `updated_at` | timestamptz | NOT NULL, default now() |
 
 ## `stock_movements`
 
@@ -183,8 +205,8 @@ stock_movements.reference_(type,id) --(app-level, not FK)--> purchase_orders | o
 - **`compatible_vehicles` is free text**, not a normalized
   product↔make/model/year table. Faster to ship; revisit if "filter parts
   by exact vehicle" becomes a real, frequently-used feature.
-- **Product location fields (`location_aisle/shelf/bin`, `location_x/y/z`)
-  are plain columns, not a `locations` table**, and the 3D shop layout
-  geometry itself (room/aisle/cabinet boxes) is **not stored in the database
-  at all** — it's a static frontend config, since it's defined once and
-  rarely changes. See [07-3d-navigation.md](./07-3d-navigation.md).
+- **Product location fields (`location_aisle/shelf/bin`) are plain columns,
+  not a `locations` table.** The shop map's own geometry lives in
+  `shop_layout_cabinets` (not a static frontend file) specifically because,
+  unlike most of this schema, it's meant to be edited by shop staff through
+  the app rather than by a developer — see [07-3d-navigation.md](./07-3d-navigation.md).

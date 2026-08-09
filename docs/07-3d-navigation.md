@@ -1,100 +1,95 @@
-# 07 — 3D Shop Navigation
+# 07 — Shop Map
 
 ## Feature
 
-A simple 3D map of the shop that helps staff physically locate a product on
-a wide or complex shop floor. This is a **visual lookup tool, not a
-simulation** — it answers "where do I walk to find this part," nothing more.
+A simple top-down map of the shop that helps staff physically locate a
+product on a wide or complex shop floor. This is a **visual lookup tool, not
+a simulation** — it answers "where do I walk to find this part," nothing
+more.
+
+Unlike almost every other feature in this app, the map's own layout is
+**edited by shop staff directly through the app** — dragging cabinets into
+place — not by a developer. Nobody outside the shop knows the real floor
+plan, so it can't be a fixed config a developer hand-authors.
 
 ## Visual Style: Simple, Not Photorealistic
 
-The scene is built from basic primitives — boxes for cabinets/shelves/walls,
-planes for the floor — roughly positioned and sized to match the real shop
-layout. No textures, materials, or lighting effort beyond making shapes
-readable and distinguishable (e.g. color-coding cabinets by category). This
-keeps the scene cheap to build, cheap to render on modest shop hardware, and
-cheap to update when the shop rearranges a shelf.
+The map is a flat 2D top-down view — plain colored rectangles for cabinets,
+labeled, on a light grid background. No textures, no perspective, no
+lighting effort beyond making shapes readable and distinguishable
+(color-coded per cabinet). This keeps it cheap to build, cheap to render on
+modest shop hardware, and — the whole point of this feature — trivial for a
+non-developer to rearrange when the shop actually rearranges a shelf.
 
-## Library Choice
+## Data Model
 
-- **react-three-fiber** — React renderer for Three.js; lets the 3D scene be
-  built declaratively as React components, consistent with the rest of the
-  frontend.
-- **@react-three/drei** — helper components on top of r3f, used here
-  specifically for:
-  - `OrbitControls` — lets staff rotate, pan, and zoom the view with mouse/
-    touch, so they can orient themselves relative to the real shop.
-  - Basic helpers (e.g. `Text` for aisle/shelf labels floating in the scene,
-    `Html` for a tooltip on the highlighted product) as needed.
+The map's geometry lives in the `shop_layout_cabinets` table (see
+[05-database-schema.md#shop_layout_cabinets](./05-database-schema.md#shop_layout_cabinets)),
+**not** a static frontend file — a deliberate reversal of the usual "static
+config, developer edits it" pattern used elsewhere (e.g. the product
+category list), because this specific piece of data is something only shop
+staff know and need to change themselves.
 
-No physics engine, no lighting/shadow library, no asset pipeline (GLTF
-models, textures) — boxes and planes with flat colors are enough to convey
-"which cabinet."
-
-## Static Shop Layout
-
-The room/aisle/cabinet geometry (the walls, floor, and shelf boxes that make
-up the scene) is **manually defined once** as a static frontend config —
-e.g. `frontend/src/features/shop-map/layout.ts`, an array of simple objects
-like `{ id, type: 'cabinet' | 'wall' | 'floor', position: [x,y,z], size: [w,h,d], color, label }`.
-
-This is intentionally **not** a database table or an admin-editable feature:
-- The physical shop layout changes rarely (renovation-level changes, not
-  day-to-day).
-- It has no relational structure to speak of — it's scene-graph data, not
-  business data.
-- Editing a hardcoded config when the shop is rearranged is a trivial,
-  occasional dev task; building a layout editor UI would be effort spent on
-  something used maybe once a year.
-
-Each cabinet/shelf entry in this static layout has a `location_aisle` /
-`location_shelf` code, matching the codes stored on products (see
+Each cabinet row has a `location_aisle` code, matched against the same
+`location_aisle` code stored on products (see
 [01-product-crud.md#location-field-structure](./01-product-crud.md#location-field-structure)),
-so the frontend can map "product's stored location" → "which box in the
-scene to highlight" without a database join.
-
-## Product Location Data
-
-Each product optionally has a stored physical location — see the fields
-added in [01-product-crud.md](./01-product-crud.md#location-field-structure)
-and [05-database-schema.md](./05-database-schema.md#products):
-`location_aisle`, `location_shelf`, `location_bin` (human-readable codes)
-and `location_x`/`location_y`/`location_z` (the coordinates used to place a
-pin in the 3D scene, matching the shelf's position in the static layout
-above).
+so the frontend can map "product's stored aisle" → "which cabinet to
+highlight" with a simple lookup, no join needed (both come from separate
+API calls, matched client-side).
 
 ## Flow
 
-1. Staff opens the 3D map view and searches for a product (reusing the same
-   product search used elsewhere in the app), or arrives here from a
-   product's detail page via a "show on map" action.
-2. Frontend fetches the product's location via `GET /products/locations`
-   (or already has it from the product detail response — see
-   [06-api-endpoints.md](./06-api-endpoints.md#products)).
-3. If the product has no location set, show a plain "location not set for
-   this product" message instead of the 3D view — nothing to highlight.
-4. If it does, the 3D scene renders with:
-   - A highlighted/pinned marker at the product's `location_x/y/z`,
-     typically the relevant cabinet box changing color or gaining an
-     outline, plus a floating label (aisle/shelf/bin text).
-   - Optionally, the camera animates ("fly-to") from its current position
-     to frame that marker, rather than jump-cutting — makes the spatial
-     relationship ("it's over there, past the middle aisle") easier to
-     read than an instant cut.
-5. Staff can freely rotate/pan/zoom via `OrbitControls` at any time to get
-   oriented, independent of the highlighted product.
+### Viewing (default mode)
+
+1. Staff opens the Shop Map and searches for a product (reusing the same
+   product search used elsewhere in the app).
+2. Frontend fetches matching products' locations via
+   `GET /products/locations` (see
+   [06-api-endpoints.md](./06-api-endpoints.md#products)) and the full
+   cabinet list via `GET /shop-layout`.
+3. Selecting a product looks up the cabinet whose `location_aisle` matches
+   the product's — if found, that cabinet is highlighted (red, the map's
+   single reserved "you're looking for this one" signal) and an info card
+   shows the product's SKU/name/aisle-shelf-bin.
+4. If the product has no `location_aisle` set, or it doesn't match any
+   cabinet currently on the map, a plain "not on the map yet" message shows
+   instead — expected for new/unsorted stock or an out-of-date layout, not
+   an error state.
+
+### Editing the layout
+
+1. Staff toggles "Edit Layout". Cabinets become draggable; an "Add Cabinet"
+   button appears.
+2. **Reposition**: drag a cabinet anywhere on the canvas. Position saves on
+   release (`PUT /shop-layout/:id` with the new `x`/`y`) — no separate
+   "Save" step, matching how the rest of the app gives immediate feedback
+   rather than batching changes.
+3. **Add**: opens a small form (label, aisle code, size, color) →
+   `POST /shop-layout`. The aisle code must be unique — attempting to reuse
+   one already on the map returns a field-level error, same convention as
+   duplicate SKUs on products.
+4. **Edit details**: the same form, prefilled, for changing a cabinet's
+   label/aisle/size/color without moving it.
+5. **Delete**: behind a confirmation dialog (same pattern as deleting a
+   product or supplier). Products keep their `location_aisle` value even
+   after the cabinet is deleted — they just stop being highlightable until
+   a cabinet with that aisle code exists again.
 
 ## Scope Boundaries
 
-Deliberately out of scope for this feature:
-- No real-time sensors, beacons, or indoor positioning — the map is a static
-  reference, not a live tracking system.
-- No physics (collision, gravity) — nothing moves in the scene except the
-  camera and the highlight state.
-- No per-bin-level 3D geometry — bins are represented as data
-  (`location_bin`) shown in a label/tooltip, not as individually modeled 3D
-  objects; modeling every bin would add a lot of scene complexity for very
-  little navigational benefit over "go to this shelf, then look for the bin
-  label."
-- No mobile AR / camera overlay — this is a top-down/orbit 3D view on a
-  screen, not an augmented-reality feature.
+Deliberately out of scope:
+- No real-time sensors, beacons, or indoor positioning — the map is a
+  static reference, not a live tracking system.
+- No per-bin-level geometry — bins are represented as data
+  (`location_bin`) shown in a label/tooltip, not as individually modeled
+  shapes; modeling every bin would add a lot of layout complexity for very
+  little navigational benefit over "go to this cabinet, then look for the
+  bin label."
+- No real image/photo sprites for cabinets — flat colored rectangles are
+  enough to convey "which cabinet," consistent with the "simple, not
+  photorealistic" rule above. Could be revisited later if the shop wants a
+  more literal look.
+- No access control on editing — anyone using the app can toggle edit mode
+  and rearrange the map, same as every other feature (see
+  [05-database-schema.md#assumptions--decisions-to-confirm](./05-database-schema.md#assumptions--decisions-to-confirm)
+  on `users` having no real authentication).

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-dom';
 import { Wrench, Package, ClipboardList, FileText, ScanLine, Truck, Map } from 'lucide-react';
+import { Toaster } from './components/ui/sonner.jsx';
 import ProductsPage from './pages/ProductsPage.jsx';
 import InventoryPage from './pages/InventoryPage.jsx';
 import OrdersPage from './pages/OrdersPage.jsx';
@@ -66,6 +67,7 @@ export default function App() {
           </Routes>
         </main>
       </div>
+      <Toaster position="top-right" />
     </BrowserRouter>
   );
 }

@@ -1,40 +1,53 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, CheckCircle2, Download, Loader2, Pencil, PackageCheck, XCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { getOrder, confirmOrder, fulfillOrder, cancelOrder, orderPdfUrl } from '../api/orders.js';
 import { ORDER_STATUS_BADGE } from '../constants.js';
-import Badge from '../components/Badge.jsx';
-import Button from '../components/Button.jsx';
-import ConfirmDialog from '../components/ConfirmDialog.jsx';
+import { Badge } from '../components/ui/badge.jsx';
+import { Button } from '../components/ui/button.jsx';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table.jsx';
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
+} from '../components/ui/alert-dialog.jsx';
 
 function peso(n) {
   return `₱${Number(n).toFixed(2)}`;
+}
+
+function formatActionError(err) {
+  return err.details
+    ? `${err.message}: ${err.details.map((d) => `${d.sku} (have ${d.available}, need ${d.requested})`).join(', ')}`
+    : err.message;
 }
 
 export default function OrderDetailPage() {
   const { id } = useParams();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [actionError, setActionError] = useState(null);
+  const [loadError, setLoadError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
-    getOrder(id).then(setOrder).catch((err) => setError(err.message)).finally(() => setLoading(false));
+    getOrder(id).then(setOrder).catch((err) => setLoadError(err.message)).finally(() => setLoading(false));
   }, [id]);
 
   useEffect(() => { load(); }, [load]);
 
-  async function runAction(action) {
+  async function runAction(action, successMessage) {
     setBusy(true);
-    setActionError(null);
     try {
-      const updated = await action();
-      setOrder(updated);
+      // confirm/fulfill/cancel return the order without `items` (docs/06) —
+      // re-fetch the full shape rather than rendering the partial response.
+      await action();
+      const fresh = await getOrder(id);
+      setOrder(fresh);
+      toast.success(successMessage);
     } catch (err) {
-      setActionError(err.details ? `${err.message}: ${err.details.map((d) => `${d.sku} (have ${d.available}, need ${d.requested})`).join(', ')}` : err.message);
+      toast.error(formatActionError(err));
     } finally {
       setBusy(false);
       setConfirmCancel(false);
@@ -50,10 +63,10 @@ export default function OrderDetailPage() {
     );
   }
 
-  if (error || !order) {
+  if (loadError || !order) {
     return (
       <div className="rounded border border-red-600 bg-red-50 px-4 py-3 text-sm text-red-700">
-        {error || 'Order not found.'}
+        {loadError || 'Order not found.'}
       </div>
     );
   }
@@ -79,21 +92,17 @@ export default function OrderDetailPage() {
         </div>
         <div className="flex gap-2">
           {order.status === 'draft' && (
-            <Button as={Link} to={`/orders/${order.id}/edit`} variant="secondary">
+            <Button render={<Link to={`/orders/${order.id}/edit`} />} nativeButton={false} variant="secondary">
               <Pencil size={16} />
               Edit
             </Button>
           )}
-          <Button as="a" href={orderPdfUrl(order.id)} target="_blank" rel="noreferrer" variant="secondary">
+          <Button render={<a href={orderPdfUrl(order.id)} target="_blank" rel="noreferrer" />} nativeButton={false} variant="secondary">
             <Download size={16} />
             PDF
           </Button>
         </div>
       </div>
-
-      {actionError && (
-        <div className="mb-4 rounded border border-red-600 bg-red-50 px-4 py-3 text-sm text-red-700">{actionError}</div>
-      )}
 
       <div className="grid grid-cols-2 gap-6 mb-6">
         <div>
@@ -108,28 +117,28 @@ export default function OrderDetailPage() {
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm mb-4">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-black-500">
-              <th className="px-4 py-3 font-medium">SKU</th>
-              <th className="px-4 py-3 font-medium">Item</th>
-              <th className="px-4 py-3 font-medium">Qty</th>
-              <th className="px-4 py-3 font-medium">Unit Price</th>
-              <th className="px-4 py-3 font-medium text-right">Line Total</th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>SKU</TableHead>
+              <TableHead>Item</TableHead>
+              <TableHead>Qty</TableHead>
+              <TableHead>Unit Price</TableHead>
+              <TableHead className="text-right">Line Total</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {order.items.map((i) => (
-              <tr key={i.id} className="border-b border-gray-200 last:border-b-0">
-                <td className="px-4 py-3 font-mono text-black-900">{i.product_sku}</td>
-                <td className="px-4 py-3 text-black-900">{i.product_name}</td>
-                <td className="px-4 py-3 tabular-nums text-black-900">{i.quantity} {i.product_unit}</td>
-                <td className="px-4 py-3 tabular-nums text-black-900">{peso(i.unit_price)}</td>
-                <td className="px-4 py-3 tabular-nums text-black-900 text-right">{peso(i.line_total)}</td>
-              </tr>
+              <TableRow key={i.id}>
+                <TableCell className="font-mono text-black-900">{i.product_sku}</TableCell>
+                <TableCell className="text-black-900">{i.product_name}</TableCell>
+                <TableCell className="tabular-nums text-black-900">{i.quantity} {i.product_unit}</TableCell>
+                <TableCell className="tabular-nums text-black-900">{peso(i.unit_price)}</TableCell>
+                <TableCell className="tabular-nums text-black-900 text-right">{peso(i.line_total)}</TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
       <div className="flex justify-end mb-6">
@@ -148,13 +157,13 @@ export default function OrderDetailPage() {
 
       <div className="flex gap-3 border-t border-gray-200 pt-5">
         {order.status === 'draft' && (
-          <Button disabled={busy} onClick={() => runAction(() => confirmOrder(order.id))}>
+          <Button disabled={busy} onClick={() => runAction(() => confirmOrder(order.id), 'Order confirmed')}>
             {busy ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
             Confirm
           </Button>
         )}
         {order.status === 'confirmed' && (
-          <Button disabled={busy} onClick={() => runAction(() => fulfillOrder(order.id))}>
+          <Button disabled={busy} onClick={() => runAction(() => fulfillOrder(order.id), 'Order marked fulfilled')}>
             {busy ? <Loader2 size={16} className="animate-spin" /> : <PackageCheck size={16} />}
             Mark Fulfilled
           </Button>
@@ -167,14 +176,20 @@ export default function OrderDetailPage() {
         )}
       </div>
 
-      <ConfirmDialog
-        open={confirmCancel}
-        title="Cancel this order?"
-        description="This order will be marked cancelled. No stock movements will be created. This can't be undone."
-        confirmLabel="Cancel Order"
-        onConfirm={() => runAction(() => cancelOrder(order.id))}
-        onCancel={() => setConfirmCancel(false)}
-      />
+      <AlertDialog open={confirmCancel} onOpenChange={(v) => !v && setConfirmCancel(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel this order?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This order will be marked cancelled. No stock movements will be created. This can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Order</AlertDialogCancel>
+            <AlertDialogAction onClick={() => runAction(() => cancelOrder(order.id), 'Order cancelled')}>Cancel Order</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

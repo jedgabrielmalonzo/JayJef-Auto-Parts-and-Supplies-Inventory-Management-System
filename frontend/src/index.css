@@ -5,12 +5,104 @@
 @import '@fontsource/inter/500.css';
 @import '@fontsource/inter/700.css';
 @import '@fontsource/jetbrains-mono/500.css';
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96) translateY(4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* docs/09-design-system.md is the source of truth for every token below. */
+@theme {
+  --color-red-50: #FDF1F1;
+  --color-red-100: #FBE4E3;
+  --color-red-300: #E88685;
+  --color-red-500: #E23F3C;
+  --color-red-600: #D7211E; /* Shop Red — brand primary */
+  --color-red-700: #B01917;
+  --color-red-800: #8A1210;
+
+  --color-black-900: #111111; /* Shop Black — primary text */
+  --color-black-700: #3A3A3A;
+  --color-black-500: #6B6B6B;
+  --color-black-300: #9B9B9B;
+
+  --color-gray-50: #FAFAFA;
+  --color-gray-100: #F2F2F2;
+  --color-gray-200: #E4E4E4;
+  --color-gray-300: #D1D1D1;
+
+  --color-green-100: #E3F3E6;
+  --color-green-600: #1E7B34;
+  --color-green-700: #155F28;
+
+  --color-amber-100: #FBEEDA;
+  --color-amber-700: #946200;
+
+  --color-blue-100: #E7EEF5;
+  --color-blue-600: #3A6EA5;
+
+  /* Semantic tokens consumed by shadcn/base-ui components (button.jsx, etc.)
+     — mapped straight to brand colors, no oklch/dark-mode indirection since
+     this is a light-theme-only app (see docs/09 Assumptions). */
+  --color-background: #FFFFFF;
+  --color-foreground: #111111;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #111111;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #111111;
+  --color-primary: #D7211E;
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: #F2F2F2;
+  --color-secondary-foreground: #111111;
+  --color-muted: #FAFAFA;
+  --color-muted-foreground: #6B6B6B;
+  --color-accent: #F2F2F2;
+  --color-accent-foreground: #111111;
+  --color-destructive: #D7211E;
+  --color-border: #E4E4E4;
+  --color-input: #D1D1D1;
+  --color-ring: #111111;
+
+  --color-sidebar: #FFFFFF;
+  --color-sidebar-foreground: #111111;
+  --color-sidebar-primary: #D7211E;
+  --color-sidebar-primary-foreground: #FFFFFF;
+  --color-sidebar-accent: #FDF1F1;
+  --color-sidebar-accent-foreground: #111111;
+  --color-sidebar-border: #E4E4E4;
+  --color-sidebar-ring: #111111;
+
+  --font-display: "Archivo Black", sans-serif;
+  --font-heading: Archivo, sans-serif;
+  --font-sans: Inter, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* v4's default --radius-sm (4px) doesn't match docs/09's 2px badge/chip
+     radius; --radius-lg (8px) and bare `rounded` (4px, hardcoded) already
+     match by default so they're left alone. */
+  --radius-sm: 0.125rem;
+
+  --animate-fade-in: fadeIn 180ms ease-out;
+  --animate-scale-in: scaleIn 180ms ease-out;
+}
 
 body {
   @apply bg-white text-black-900 font-sans;
   font-variant-numeric: tabular-nums;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+  }
 }

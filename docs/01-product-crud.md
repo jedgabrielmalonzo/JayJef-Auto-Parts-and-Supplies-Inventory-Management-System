@@ -25,7 +25,7 @@ seals, refrigerant, etc.), including the current on-hand quantity.
 | `location_aisle` | text, nullable | Human-readable aisle label (e.g. "A2"). Shown to staff as text, and doubles as the search/filter key for "where is this part." |
 | `location_shelf` | text, nullable | Shelf/cabinet label within the aisle (e.g. "S3"). |
 | `location_bin` | text, nullable | Bin/slot label within the shelf, if the shop subdivides shelves that far (e.g. "B2"). |
-| `location_x` / `location_y` / `location_z` | numeric, nullable | Position in the 3D shop map's coordinate space, used to place/highlight a pin for this product. See [07-3d-navigation.md](./07-3d-navigation.md). |
+| `image_path` | text, nullable | Local filesystem path to a product photo (e.g. `/uploads/products/product-...jpg`), shown in the catalog's card view and product detail. Same storage pattern as `ocr_receipts.image_path` — a static-served file path, not a binary blob in Postgres. Optional; products without a photo show a placeholder. |
 | `notes` | text | Free-form notes (e.g. "check compressor clutch type before selling"). |
 | `is_active` | boolean, default true | Soft-delete flag — see [Delete Strategy](#delete-strategy). |
 | `created_at` | timestamp | Record creation time. |
@@ -34,25 +34,25 @@ seals, refrigerant, etc.), including the current on-hand quantity.
 ### Location Field Structure
 
 Each product optionally stores where it physically sits in the shop, used by
-the [3D navigation feature](./07-3d-navigation.md) to point staff to it:
+the [shop map feature](./07-3d-navigation.md) to point staff to it:
 
 - **`location_aisle` / `location_shelf` / `location_bin`** — human-readable
   codes, the same labels staff would use verbally ("aisle 2, shelf 3"). These
   are what's shown in the UI and what a staff member types when assigning a
-  location, since nobody thinks in x/y/z coordinates.
-- **`location_x` / `location_y` / `location_z`** — the actual coordinates
-  used to place a pin in the 3D scene. In practice these are set once by
-  whoever positions that shelf's marker in the 3D layout (see 07), and every
-  product assigned to that shelf reuses the same coordinates — a shelf isn't
-  going to have sub-meter precision per product.
-- All six fields are plain nullable columns directly on `products` (not a
-  separate `locations` table) — a shop's shelf layout is small and mostly
-  static, so a join adds indirection without real benefit. If the shop later
-  wants to manage locations as reusable entities (e.g. renaming a shelf in
-  one place instead of on every product), promoting these into a `locations`
-  table is a straightforward follow-up.
-- A product with no location set simply isn't shown on the 3D map — this is
-  expected for new/unsorted stock, not an error state.
+  location.
+- These are plain nullable columns directly on `products` (not a separate
+  `locations` table) — a shop's shelf layout is small and mostly static, so
+  a join adds indirection without real benefit.
+- The product itself doesn't store map coordinates — `location_aisle` is
+  matched against the `shop_layout_cabinets` table's own `location_aisle`
+  column to find where that aisle sits on the map (see
+  [05-database-schema.md#shop_layout_cabinets](./05-database-schema.md#shop_layout_cabinets)).
+  A shop's shelf positions are edited once (by dragging on the map, see 07),
+  and every product assigned to that aisle reuses the same on-map position —
+  a shelf isn't going to have sub-cabinet precision per product.
+- A product with no `location_aisle` set, or one that doesn't match any
+  cabinet on the map, simply isn't highlighted — this is expected for
+  new/unsorted stock, not an error state.
 
 ## User Flows
 

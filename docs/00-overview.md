@@ -84,7 +84,7 @@ JayJef-Auto-Parts-and-Supplies-Inventory-Management-System/
 │   ├── src/
 │   │   ├── components/          # Shared UI components (buttons, tables, modals)
 │   │   ├── pages/                # Route-level pages (Products, Inventory, Orders, OCR Capture, Suppliers, Shop Map)
-│   │   ├── features/             # Feature-specific logic/hooks (products, inventory, ocr, orders, shop-map)
+│   │   ├── features/             # Feature-specific logic/hooks (products, inventory, ocr, orders)
 │   │   ├── api/                  # API client functions (fetch wrappers per resource)
 │   │   ├── App.jsx / main.jsx
 │   │   └── ...

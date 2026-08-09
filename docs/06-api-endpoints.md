@@ -10,15 +10,31 @@ returns a binary stream). Base path: `/api`.
 |---|---|---|---|
 | GET | `/products` | Query params: `search`, `category`, `supplier_id`, `is_active`, `low_stock` (bool), `page`, `page_size` | `{ items: Product[], total, page, page_size }` |
 | GET | `/products/:id` | — | `Product` |
-| POST | `/products` | `{ sku, name, brand?, category, compatible_vehicles?, unit, cost_price, selling_price, reorder_threshold, supplier_id?, location_aisle?, location_shelf?, location_bin?, location_x?, location_y?, location_z?, notes? }` | `Product` (201) |
-| PUT | `/products/:id` | Same shape as POST, partial allowed | `Product` |
+| POST | `/products` | `multipart/form-data`: `{ sku, name, brand?, category, compatible_vehicles?, unit, cost_price, selling_price, reorder_threshold, supplier_id?, location_aisle?, location_shelf?, location_bin?, notes?, image? }` — `image` is an optional file field (same upload pattern as OCR receipts, see [03](./03-ocr-receipt-capture.md)); plain JSON without a file also still works | `Product` (201) |
+| PUT | `/products/:id` | Same shape as POST (multipart or JSON), partial allowed | `Product` |
 | DELETE | `/products/:id` | Query param `hard=true` for hard delete attempt (default soft) | `204`, or `409` if hard delete blocked by existing history |
 | POST | `/products/:id/reactivate` | — | `Product` — sets `is_active = true` |
-| GET | `/products/locations` | Query params: `search?` (filter by SKU/name, for the 3D map's product picker) | `{ id, sku, name, location_aisle, location_shelf, location_bin, location_x, location_y, location_z }[]` — lightweight bulk list (only located, active products) for populating pins in the [3D navigation view](./07-3d-navigation.md) without fetching full product records |
+| GET | `/products/locations` | Query params: `search?` (filter by SKU/name, for the shop map's product picker) | `{ id, sku, name, location_aisle, location_shelf, location_bin }[]` — lightweight bulk list (only products with `location_aisle` set, active only) for the [shop map](./07-3d-navigation.md) to match against `shop_layout_cabinets` without fetching full product records |
 
 `Product` shape includes all columns from
 [05-database-schema.md#products](./05-database-schema.md#products),
 including the read-only `stock_quantity` and the `location_*` fields.
+
+## Shop Layout
+
+The [shop map's](./07-3d-navigation.md) cabinet geometry — edited by staff
+directly through the app (drag-and-drop), not by a developer, so unlike most
+resources here there's no soft-delete or history protection.
+
+| Method | Path | Request | Response |
+|---|---|---|---|
+| GET | `/shop-layout` | — | `ShopLayoutCabinet[]` — full list, no pagination (a shop floor has a handful of cabinets, not thousands) |
+| POST | `/shop-layout` | `{ location_aisle, label, x, y, width?, height?, color? }` | `ShopLayoutCabinet` (201) |
+| PUT | `/shop-layout/:id` | Partial | `ShopLayoutCabinet` — used both for drag-to-reposition (`{ x, y }`) and editing details (label/aisle/size/color) |
+| DELETE | `/shop-layout/:id` | — | `204` |
+
+`ShopLayoutCabinet` shape includes all columns from
+[05-database-schema.md#shop_layout_cabinets](./05-database-schema.md#shop_layout_cabinets).
 
 ## Inventory / Stock Movements
 

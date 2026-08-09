@@ -3,8 +3,7 @@ import { pool } from '../db/pool.js';
 const WRITABLE_FIELDS = [
   'sku', 'name', 'brand', 'category', 'compatible_vehicles', 'unit',
   'cost_price', 'selling_price', 'reorder_threshold', 'supplier_id',
-  'location_aisle', 'location_shelf', 'location_bin',
-  'location_x', 'location_y', 'location_z', 'notes',
+  'location_aisle', 'location_shelf', 'location_bin', 'notes', 'image_path',
 ];
 
 export async function list({ search, category, supplierId, isActive, lowStock, page = 1, pageSize = 25 }) {
@@ -50,16 +49,16 @@ export async function findById(id) {
   return result.rows[0] || null;
 }
 
-/** Lightweight bulk list for the 3D map's product picker (docs/06#products). */
+/** Lightweight bulk list for the shop map's product picker (docs/06#products). */
 export async function locations({ search }) {
-  const conditions = ['is_active = true', 'location_x IS NOT NULL', 'location_y IS NOT NULL', 'location_z IS NOT NULL'];
+  const conditions = ['is_active = true', 'location_aisle IS NOT NULL'];
   const params = [];
   if (search) {
     params.push(`%${search}%`);
     conditions.push(`(sku ILIKE $${params.length} OR name ILIKE $${params.length})`);
   }
   const result = await pool.query(
-    `SELECT id, sku, name, location_aisle, location_shelf, location_bin, location_x, location_y, location_z
+    `SELECT id, sku, name, location_aisle, location_shelf, location_bin
      FROM products WHERE ${conditions.join(' AND ')} ORDER BY name ASC`,
     params
   );

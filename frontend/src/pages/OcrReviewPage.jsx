@@ -1,14 +1,20 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, CheckCircle2, Loader2, Plus, Trash2, XCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { getReceipt, updateReceiptItems, confirmReceipt, rejectReceipt } from '../api/ocr.js';
 import { API_ORIGIN } from '../api/client.js';
 import { OCR_STATUS_BADGE } from '../constants.js';
-import Badge from '../components/Badge.jsx';
-import Button from '../components/Button.jsx';
-import ConfirmDialog from '../components/ConfirmDialog.jsx';
+import { Badge } from '../components/ui/badge.jsx';
+import { Button } from '../components/ui/button.jsx';
+import { Input } from '../components/ui/input.jsx';
+import { Checkbox } from '../components/ui/checkbox.jsx';
+import { Label } from '../components/ui/label.jsx';
 import ProductPicker from '../components/ProductPicker.jsx';
-import { inputClasses } from '../components/Field.jsx';
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
+} from '../components/ui/alert-dialog.jsx';
 
 let tempKeySeq = 0;
 
@@ -17,7 +23,7 @@ export default function OcrReviewPage() {
   const [receipt, setReceipt] = useState(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [loadError, setLoadError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [confirmReject, setConfirmReject] = useState(false);
@@ -29,7 +35,7 @@ export default function OcrReviewPage() {
         setReceipt(r);
         setItems(r.items.map((i) => ({ ...i, _key: i.id })));
       })
-      .catch((err) => setError(err.message))
+      .catch((err) => setLoadError(err.message))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -50,9 +56,10 @@ export default function OcrReviewPage() {
     }]);
   }
 
-  async function saveChanges() {
+  // `announce` is false when called internally from handleConfirm, so the
+  // "changes saved" toast doesn't fire redundantly alongside "receipt confirmed".
+  async function saveChanges(announce = true) {
     setSaving(true);
-    setError(null);
     try {
       const payload = items.map((i) => ({
         id: i.id,
@@ -64,9 +71,10 @@ export default function OcrReviewPage() {
       }));
       const updated = await updateReceiptItems(id, payload);
       setItems(updated.map((i) => ({ ...i, _key: i.id })));
+      if (announce) toast.success('Changes saved');
       return true;
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
       return false;
     } finally {
       setSaving(false);
@@ -75,14 +83,14 @@ export default function OcrReviewPage() {
 
   async function handleConfirm() {
     setConfirming(true);
-    setError(null);
     try {
-      if (!(await saveChanges())) return;
+      if (!(await saveChanges(false))) return;
       const updated = await confirmReceipt(id);
       setReceipt(updated);
       setItems(updated.items.map((i) => ({ ...i, _key: i.id })));
+      toast.success('Receipt confirmed — stock updated');
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     } finally {
       setConfirming(false);
     }
@@ -92,8 +100,9 @@ export default function OcrReviewPage() {
     try {
       const updated = await rejectReceipt(id);
       setReceipt(updated);
+      toast.success('Receipt rejected');
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     } finally {
       setConfirmReject(false);
     }
@@ -109,7 +118,7 @@ export default function OcrReviewPage() {
   }
 
   if (!receipt) {
-    return <div className="rounded border border-red-600 bg-red-50 px-4 py-3 text-sm text-red-700">{error || 'Receipt not found.'}</div>;
+    return <div className="rounded border border-red-600 bg-red-50 px-4 py-3 text-sm text-red-700">{loadError || 'Receipt not found.'}</div>;
   }
 
   const isPending = receipt.status === 'pending_review';
@@ -129,9 +138,6 @@ export default function OcrReviewPage() {
 
       {receipt.ocr_warning && (
         <div className="mb-4 rounded border border-amber-700 bg-amber-100 px-4 py-3 text-sm text-amber-700">{receipt.ocr_warning}</div>
-      )}
-      {error && (
-        <div className="mb-4 rounded border border-red-600 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
       )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -169,20 +175,19 @@ export default function OcrReviewPage() {
               return (
                 <div key={item._key} className="rounded-lg border border-gray-200 p-3">
                   <div className="grid grid-cols-[1fr_auto_auto] gap-2 items-start mb-2">
-                    <input
-                      className={inputClasses(false)}
+                    <Input
                       placeholder="Item name"
                       value={item.parsed_name || ''}
                       disabled={!isPending}
                       onChange={(e) => updateItem(item._key, 'parsed_name', e.target.value)}
                     />
-                    <input
-                      type="number" min="0" className={`${inputClasses(false)} w-20 tabular-nums`} placeholder="Qty"
+                    <Input
+                      type="number" min="0" className="w-20 tabular-nums" placeholder="Qty"
                       value={item.parsed_quantity ?? ''} disabled={!isPending}
                       onChange={(e) => updateItem(item._key, 'parsed_quantity', e.target.value)}
                     />
-                    <input
-                      type="number" min="0" step="0.01" className={`${inputClasses(false)} w-24 tabular-nums`} placeholder="Price"
+                    <Input
+                      type="number" min="0" step="0.01" className="w-24 tabular-nums" placeholder="Price"
                       value={item.parsed_price ?? ''} disabled={!isPending}
                       onChange={(e) => updateItem(item._key, 'parsed_price', e.target.value)}
                     />
@@ -203,16 +208,14 @@ export default function OcrReviewPage() {
                     </div>
                     {isPending && (
                       <>
-                        <label className="flex items-center gap-1.5 text-xs font-medium text-black-700 select-none whitespace-nowrap">
-                          <input
-                            type="checkbox"
-                            className="h-4 w-4 rounded-sm border-gray-300 text-red-600 transition-colors focus:ring-2 focus:ring-red-600/30"
+                        <Label className="flex items-center gap-1.5 text-xs normal-case tracking-normal text-black-700 whitespace-nowrap">
+                          <Checkbox
                             checked={item.is_confirmed}
                             disabled={!item.matched_product_id || !item.parsed_quantity}
-                            onChange={(e) => updateItem(item._key, 'is_confirmed', e.target.checked)}
+                            onCheckedChange={(v) => updateItem(item._key, 'is_confirmed', !!v)}
                           />
                           Include in stock update
-                        </label>
+                        </Label>
                         <button type="button" title="Dismiss" onClick={() => dismissItem(item._key)} className="text-black-500 hover:text-red-600 transition-colors">
                           <Trash2 size={15} />
                         </button>
@@ -226,7 +229,7 @@ export default function OcrReviewPage() {
 
           {isPending && (
             <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-gray-200 pt-5">
-              <Button type="button" variant="secondary" disabled={saving} onClick={saveChanges}>
+              <Button type="button" variant="secondary" disabled={saving} onClick={() => saveChanges(true)}>
                 {saving && <Loader2 size={16} className="animate-spin" />}
                 Save Changes
               </Button>
@@ -243,14 +246,20 @@ export default function OcrReviewPage() {
         </div>
       </div>
 
-      <ConfirmDialog
-        open={confirmReject}
-        title="Reject this receipt?"
-        description="No stock movements will be created and this receipt will be marked rejected. This can't be undone."
-        confirmLabel="Reject Receipt"
-        onConfirm={handleReject}
-        onCancel={() => setConfirmReject(false)}
-      />
+      <AlertDialog open={confirmReject} onOpenChange={(v) => !v && setConfirmReject(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reject this receipt?</AlertDialogTitle>
+            <AlertDialogDescription>
+              No stock movements will be created and this receipt will be marked rejected. This can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleReject}>Reject Receipt</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,11 +1,14 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { FileText, Loader2, Plus } from 'lucide-react';
+import { toast } from 'sonner';
 import { listOrders } from '../api/orders.js';
 import { ORDER_STATUS_BADGE } from '../constants.js';
-import Badge from '../components/Badge.jsx';
-import Button from '../components/Button.jsx';
-import { inputClasses } from '../components/Field.jsx';
+import { Badge } from '../components/ui/badge.jsx';
+import { Button } from '../components/ui/button.jsx';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.jsx';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.jsx';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table.jsx';
 import OrderFormPage from './OrderFormPage.jsx';
 import OrderDetailPage from './OrderDetailPage.jsx';
 
@@ -13,25 +16,25 @@ function peso(n) {
   return `₱${Number(n).toFixed(2)}`;
 }
 
+const STATUS_LABELS = { _all: 'All statuses', draft: 'Draft', confirmed: 'Confirmed', fulfilled: 'Fulfilled', cancelled: 'Cancelled' };
+
 function OrdersListView({ modal }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [type, setType] = useState('purchase');
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState('_all');
   const [orders, setOrders] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
-      const result = await listOrders({ type, status: status || undefined });
+      const result = await listOrders({ type, status: status === '_all' ? undefined : status });
       setOrders(result.items);
       setTotal(result.total);
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
@@ -59,72 +62,64 @@ function OrdersListView({ modal }) {
       </div>
 
       <div className="flex flex-wrap items-center gap-3 mb-4">
-        <div className="flex rounded border border-gray-300 p-0.5">
-          {[['purchase', 'Purchase Orders'], ['sale', 'Sales Invoices']].map(([value, label]) => (
-            <button
-              key={value}
-              onClick={() => setType(value)}
-              className={`rounded px-3 py-1.5 text-sm font-medium transition-colors ${
-                type === value ? 'bg-black-900 text-white' : 'text-black-700 hover:bg-gray-100'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        <select className={`${inputClasses(false)} max-w-[180px]`} value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="">All statuses</option>
-          <option value="draft">Draft</option>
-          <option value="confirmed">Confirmed</option>
-          <option value="fulfilled">Fulfilled</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
+        <Tabs value={type} onValueChange={setType}>
+          <TabsList>
+            <TabsTrigger value="purchase">Purchase Orders</TabsTrigger>
+            <TabsTrigger value="sale">Sales Invoices</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <Select value={status} onValueChange={setStatus}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue>{(v) => STATUS_LABELS[v]}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(STATUS_LABELS).map(([value, label]) => (
+              <SelectItem key={value} value={value}>{label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      {error && (
-        <div className="mb-4 rounded border border-red-600 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
-      )}
-
       <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-black-500">
-              <th className="px-4 py-3 font-medium">Order #</th>
-              <th className="px-4 py-3 font-medium">{type === 'purchase' ? 'Supplier' : 'Customer'}</th>
-              <th className="px-4 py-3 font-medium">Date</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium text-right">Total</th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Order #</TableHead>
+              <TableHead>{type === 'purchase' ? 'Supplier' : 'Customer'}</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Total</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {loading && (
-              <tr><td colSpan={5} className="px-4 py-12 text-center text-black-500">
+              <TableRow><TableCell colSpan={5} className="py-12 text-center text-black-500">
                 <div className="flex items-center justify-center gap-2"><Loader2 size={16} className="animate-spin" />Loading...</div>
-              </td></tr>
+              </TableCell></TableRow>
             )}
             {!loading && orders.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-14 text-center text-black-500">
+              <TableRow><TableCell colSpan={5} className="py-14 text-center text-black-500">
                 <div className="flex flex-col items-center gap-2">
                   <FileText size={28} className="text-black-300" strokeWidth={1.5} />
                   No {type === 'purchase' ? 'purchase orders' : 'sales invoices'} yet.
                 </div>
-              </td></tr>
+              </TableCell></TableRow>
             )}
             {!loading && orders.map((o) => (
-              <tr
+              <TableRow
                 key={o.id}
-                className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition-colors cursor-pointer"
+                className="cursor-pointer"
                 onClick={() => navigate(`/orders/${o.id}`)}
               >
-                <td className="px-4 py-3 font-mono text-black-900">{o.order_number}</td>
-                <td className="px-4 py-3 text-black-900">{o.supplier_name || o.party_name || '—'}</td>
-                <td className="px-4 py-3 text-black-700">{new Date(o.order_date).toLocaleDateString()}</td>
-                <td className="px-4 py-3"><Badge variant={ORDER_STATUS_BADGE[o.status]}>{o.status}</Badge></td>
-                <td className="px-4 py-3 tabular-nums text-black-900 text-right">{peso(o.total)}</td>
-              </tr>
+                <TableCell className="font-mono text-black-900">{o.order_number}</TableCell>
+                <TableCell className="text-black-900">{o.supplier_name || o.party_name || '—'}</TableCell>
+                <TableCell className="text-black-700">{new Date(o.order_date).toLocaleDateString()}</TableCell>
+                <TableCell><Badge variant={ORDER_STATUS_BADGE[o.status]}>{o.status}</Badge></TableCell>
+                <TableCell className="tabular-nums text-black-900 text-right">{peso(o.total)}</TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
       {!loading && total > 0 && (
