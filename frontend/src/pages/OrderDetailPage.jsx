@@ -157,13 +157,13 @@ export default function OrderDetailPage() {
 
       <div className="flex gap-3 border-t border-gray-200 pt-5">
         {order.status === 'draft' && (
-          <Button disabled={busy} onClick={() => runAction(() => confirmOrder(order.id), 'Order confirmed')}>
+          <Button disabled={busy} onClick={() => runAction(() => confirmOrder(order.id), 'Order confirmed')} className="bg-red-600 hover:bg-red-700 text-white font-semibold">
             {busy ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
-            Confirm
+            Confirm Order
           </Button>
         )}
         {order.status === 'confirmed' && (
-          <Button disabled={busy} onClick={() => runAction(() => fulfillOrder(order.id), 'Order marked fulfilled')}>
+          <Button disabled={busy} onClick={() => runAction(() => fulfillOrder(order.id), 'Order marked fulfilled')} className="bg-red-600 hover:bg-red-700 text-white font-semibold">
             {busy ? <Loader2 size={16} className="animate-spin" /> : <PackageCheck size={16} />}
             Mark Fulfilled
           </Button>

@@ -215,9 +215,12 @@ export default function OrderFormPage() {
                         <Input type="number" min="1" className="h-9 tabular-nums" value={i.quantity} onChange={(e) => updateItem(i.product_id, 'quantity', e.target.value)} />
                       </TableCell>
                       <TableCell>
-                        <Input type="number" min="0" step="0.01" className="h-9 tabular-nums" value={i.unit_price} onChange={(e) => updateItem(i.product_id, 'unit_price', e.target.value)} />
+                        <div className="relative flex items-center">
+                          <span className="absolute left-2.5 text-xs font-bold text-gray-500">₱</span>
+                          <Input type="number" min="0" step="0.01" className="h-9 pl-6 tabular-nums" value={i.unit_price} onChange={(e) => updateItem(i.product_id, 'unit_price', e.target.value)} />
+                        </div>
                       </TableCell>
-                      <TableCell className="text-right tabular-nums text-black-900">{peso(i.quantity * i.unit_price)}</TableCell>
+                      <TableCell className="text-right tabular-nums text-black-900 font-bold">{peso(i.quantity * i.unit_price)}</TableCell>
                       <TableCell className="text-right">
                         <Button type="button" variant="ghost" size="icon-sm" title="Remove" className="hover:bg-red-50 hover:text-red-600" onClick={() => removeItem(i.product_id)}>
                           <Trash2 size={15} />
@@ -231,8 +234,8 @@ export default function OrderFormPage() {
 
             <div className="flex justify-end">
               <div className="w-48 text-right">
-                <p className="text-xs uppercase tracking-wide text-black-500">Total</p>
-                <p className="font-display text-xl text-black-900">{peso(subtotal)}</p>
+                <p className="text-xs uppercase tracking-wide text-gray-500 font-semibold">Total</p>
+                <p className="font-display text-2xl font-bold text-gray-900">{peso(subtotal)}</p>
               </div>
             </div>
 
@@ -241,7 +244,7 @@ export default function OrderFormPage() {
             </Field>
 
             <div className="flex gap-3 pt-1">
-              <Button type="submit" disabled={saving}>
+              <Button type="submit" disabled={saving} className="bg-red-600 hover:bg-red-700 text-white font-semibold">
                 {saving && <Loader2 size={16} className="animate-spin" />}
                 {saving ? 'Saving...' : 'Save Draft'}
               </Button>

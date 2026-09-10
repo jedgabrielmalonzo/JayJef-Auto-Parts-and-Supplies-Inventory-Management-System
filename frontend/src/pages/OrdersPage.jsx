@@ -11,7 +11,7 @@ import { Button } from '../components/ui/button.jsx';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.jsx';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.jsx';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table.jsx';
-import StatCard from '../components/StatCard.jsx';
+import MicroStatCard from '../components/MicroStatCard.jsx';
 import OrderFormPage from './OrderFormPage.jsx';
 import OrderDetailPage from './OrderDetailPage.jsx';
 
@@ -66,25 +66,44 @@ function OrdersListView({ modal }) {
 
       <motion.div custom={0} variants={sectionVariants} initial="hidden" animate="visible" className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900">Orders and Receipts</h1>
+          <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900">Orders & Receipts</h1>
           <p className="text-sm text-gray-500 mt-1">Manage purchase orders, sales invoices, and supplier receipts</p>
         </div>
-        <Button onClick={() => navigate(`/orders/new?type=${type}`)} className="bg-red-600 hover:bg-red-700">
+        <Button onClick={() => navigate(`/orders/new?type=${type}`)} className="bg-red-600 hover:bg-red-700 font-semibold shadow-xs">
           <Plus size={16} strokeWidth={2.5} />
           New Order
         </Button>
       </motion.div>
 
       {summary && (
-        <motion.div custom={1} variants={sectionVariants} initial="hidden" animate="visible">
-          <StatCard
-            title="Overall Orders"
-            items={[
-              { icon: ShoppingBag, value: summary.purchases.count, label: 'Purchases Fulfilled', tint: '#3A6EA5' },
-              { icon: Receipt, value: peso(summary.purchases.cost), label: 'Purchase Cost', tint: '#946200' },
-              { icon: ShoppingCart, value: summary.sales.count, label: 'Sales Fulfilled', tint: '#1E7B34' },
-              { icon: Wallet, value: peso(summary.sales.revenue), label: 'Sales Revenue', tint: '#6B6B6B' },
-            ]}
+        <motion.div custom={1} variants={sectionVariants} initial="hidden" animate="visible" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <MicroStatCard
+            title="Purchases Fulfilled"
+            subtitle="Completed purchase orders"
+            value={summary.purchases.count || 0}
+            change="+8.2%"
+            type="bar"
+          />
+          <MicroStatCard
+            title="Total Purchase Cost"
+            subtitle="Supplier expenditures"
+            value={peso(summary.purchases.cost || 0)}
+            change="+12.4%"
+            type="area"
+          />
+          <MicroStatCard
+            title="Sales Fulfilled"
+            subtitle="Completed customer orders"
+            value={summary.sales.count || 0}
+            change="+15.3%"
+            type="dots"
+          />
+          <MicroStatCard
+            title="Sales Revenue"
+            subtitle="Gross customer revenue"
+            value={peso(summary.sales.revenue || 0)}
+            change="+18.7%"
+            type="step"
           />
         </motion.div>
       )}

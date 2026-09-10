@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Loader2, ImagePlus, X } from 'lucide-react';
+import { Loader2, ImagePlus, X, DollarSign, Tag, PackageCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { getProduct, createProduct, updateProduct } from '../api/products.js';
 import { listSuppliers } from '../api/suppliers.js';
@@ -11,12 +11,25 @@ import { Input } from '../components/ui/input.jsx';
 import { Label } from '../components/ui/label.jsx';
 import { Textarea } from '../components/ui/textarea.jsx';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.jsx';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.jsx';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog.jsx';
+
+const STANDARD_UNITS = [
+  { value: 'pc', label: 'Piece (pc)' },
+  { value: 'set', label: 'Set (set)' },
+  { value: 'pair', label: 'Pair (pair)' },
+  { value: 'box', label: 'Box (box)' },
+  { value: 'liter', label: 'Liter (liter)' },
+  { value: 'can', label: 'Can (can)' },
+  { value: 'bottle', label: 'Bottle (bottle)' },
+  { value: 'meter', label: 'Meter (meter)' },
+  { value: 'roll', label: 'Roll (roll)' },
+  { value: 'kg', label: 'Kilogram (kg)' },
+];
 
 function Section({ title, children }) {
   return (
-    <section className="border-t border-gray-200 pt-5 first:border-t-0 first:pt-0">
-      <h3 className="font-heading font-bold text-xs uppercase tracking-wide text-black-500 mb-3">{title}</h3>
+    <section className="border-t border-gray-100 pt-5 first:border-t-0 first:pt-0">
+      <h3 className="font-heading font-bold text-xs uppercase tracking-wider text-gray-400 mb-3">{title}</h3>
       <div className="space-y-4">{children}</div>
     </section>
   );
@@ -25,12 +38,12 @@ function Section({ title, children }) {
 function Field({ label, error, required, children }) {
   return (
     <div className="space-y-1.5">
-      <Label>
+      <Label className="text-xs font-semibold text-gray-700">
         {label}
-        {required && <span className="text-red-600">*</span>}
+        {required && <span className="text-red-600 ml-0.5">*</span>}
       </Label>
       {children}
-      {error && <p className="text-sm text-red-700">{error}</p>}
+      {error && <p className="text-xs font-medium text-red-600">{error}</p>}
     </div>
   );
 }
@@ -84,7 +97,6 @@ export default function ProductFormPage() {
       .finally(() => setLoading(false));
   }, [id, isEdit]);
 
-  // Revoke the object URL for a locally-picked file when it's replaced/unmounted.
   useEffect(() => {
     if (!imageFile) return;
     const url = URL.createObjectURL(imageFile);
@@ -129,10 +141,10 @@ export default function ProductFormPage() {
     try {
       if (isEdit) {
         await updateProduct(id, payload);
-        toast.success('Product saved');
+        toast.success('Product updated successfully');
       } else {
         await createProduct(payload);
-        toast.success('Product added');
+        toast.success('New product added to catalog');
       }
       close();
     } catch (err) {
@@ -147,48 +159,53 @@ export default function ProductFormPage() {
 
   return (
     <Dialog open onOpenChange={(open) => !open && close()}>
-      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? 'Edit Product' : 'Add Product'}</DialogTitle>
+      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl p-6 shadow-2xl border border-gray-200">
+        <DialogHeader className="pb-3 border-b border-gray-100">
+          <DialogTitle className="font-heading text-xl font-bold text-gray-900">
+            {isEdit ? 'Edit Product' : 'Add New Auto Part'}
+          </DialogTitle>
+          <DialogDescription className="text-xs text-gray-500">
+            Fill in auto part specs, Philippine Peso (₱) pricing, stock thresholds, and location code.
+          </DialogDescription>
         </DialogHeader>
 
         {loading ? (
-          <div className="flex items-center justify-center gap-2 py-10 text-black-500">
-            <Loader2 size={16} className="animate-spin" />
-            Loading...
+          <div className="flex items-center justify-center gap-2 py-12 text-gray-500">
+            <Loader2 size={18} className="animate-spin text-red-600" />
+            <span>Loading product specifications...</span>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <Section title="Photo">
+          <form onSubmit={handleSubmit} className="space-y-5 pt-2">
+            <Section title="Product Image">
               <div className="flex items-center gap-4">
-                <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded border border-gray-200 bg-gray-100">
+                <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-gray-50 shadow-xs">
                   {displayedImage ? (
                     <img src={displayedImage} alt="" className="h-full w-full object-cover" />
                   ) : (
-                    <ImagePlus size={22} className="text-black-300" strokeWidth={1.5} />
+                    <ImagePlus size={24} className="text-gray-400" strokeWidth={1.5} />
                   )}
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="product-image" className="w-fit cursor-pointer">
-                    <span className="inline-flex h-9 items-center rounded border border-gray-300 bg-white px-3 text-sm font-medium normal-case tracking-normal text-black-900 hover:bg-gray-50">
-                      {displayedImage ? 'Change photo' : 'Upload photo'}
+                    <span className="inline-flex h-9 items-center rounded-xl border border-gray-300 bg-white px-3.5 text-xs font-semibold text-gray-800 shadow-xs hover:bg-gray-50 transition-colors">
+                      {displayedImage ? 'Change Photo' : 'Upload Part Photo'}
                     </span>
                     <input id="product-image" type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
                   </Label>
                   {displayedImage && (
-                    <button type="button" onClick={clearImage} className="inline-flex w-fit items-center gap-1 text-xs text-black-500 hover:text-red-600">
-                      <X size={12} /> Remove photo
+                    <button type="button" onClick={clearImage} className="inline-flex w-fit items-center gap-1 text-xs text-gray-500 hover:text-red-600 transition-colors">
+                      <X size={13} /> Remove Photo
                     </button>
                   )}
                 </div>
               </div>
             </Section>
 
-            <Section title="Basic Info">
+            <Section title="Basic Details">
               <div className="grid grid-cols-2 gap-4">
-                <Field label="SKU" required error={fieldErrors.sku}>
+                <Field label="SKU / Part Code" required error={fieldErrors.sku}>
                   <Input
-                    className="font-mono"
+                    className="font-mono text-sm uppercase rounded-xl border-gray-300 focus:border-red-600"
                     aria-invalid={!!fieldErrors.sku}
                     placeholder="e.g. CMP-1023"
                     value={form.sku}
@@ -198,8 +215,8 @@ export default function ProductFormPage() {
                 </Field>
                 <Field label="Category" required error={fieldErrors.category}>
                   <Select value={form.category} onValueChange={(v) => set('category', v)}>
-                    <SelectTrigger aria-invalid={!!fieldErrors.category}>
-                      <SelectValue placeholder="Select a category">{(v) => v && formatCategory(v)}</SelectValue>
+                    <SelectTrigger className="rounded-xl border-gray-300" aria-invalid={!!fieldErrors.category}>
+                      <SelectValue placeholder="Select Category">{(v) => v && formatCategory(v)}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{formatCategory(c)}</SelectItem>)}
@@ -208,8 +225,9 @@ export default function ProductFormPage() {
                 </Field>
               </div>
 
-              <Field label="Name" required error={fieldErrors.name}>
+              <Field label="Product Title / Name" required error={fieldErrors.name}>
                 <Input
+                  className="rounded-xl border-gray-300 focus:border-red-600"
                   aria-invalid={!!fieldErrors.name}
                   placeholder="e.g. AC Compressor — Denso 10PA17C"
                   value={form.name}
@@ -219,22 +237,33 @@ export default function ProductFormPage() {
               </Field>
 
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Brand">
-                  <Input placeholder="e.g. Denso, Sanden, Valeo" value={form.brand} onChange={(e) => set('brand', e.target.value)} />
+                <Field label="Brand / Manufacturer">
+                  <Input className="rounded-xl border-gray-300" placeholder="e.g. Denso, Sanden, Valeo" value={form.brand} onChange={(e) => set('brand', e.target.value)} />
                 </Field>
-                <Field label="Unit">
-                  <Input value={form.unit} onChange={(e) => set('unit', e.target.value)} placeholder="pc, set, box, liter, kg" />
+                <Field label="Packaging Unit">
+                  <Select value={form.unit} onValueChange={(v) => set('unit', v)}>
+                    <SelectTrigger className="rounded-xl border-gray-300">
+                      <SelectValue placeholder="Select Unit">
+                        {(v) => STANDARD_UNITS.find((u) => u.value === v)?.label || v}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STANDARD_UNITS.map((u) => (
+                        <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </Field>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Compatible Vehicles">
-                  <Input value={form.compatible_vehicles} onChange={(e) => set('compatible_vehicles', e.target.value)} placeholder="e.g. Toyota Vios 2013–2018" />
+                  <Input className="rounded-xl border-gray-300" value={form.compatible_vehicles} onChange={(e) => set('compatible_vehicles', e.target.value)} placeholder="e.g. Toyota Vios 2013–2018" />
                 </Field>
-                <Field label="Supplier">
+                <Field label="Default Supplier">
                   <Select value={form.supplier_id} onValueChange={(v) => set('supplier_id', v)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="No default supplier">
+                    <SelectTrigger className="rounded-xl border-gray-300">
+                      <SelectValue placeholder="Select Supplier">
                         {(v) => suppliers.find((s) => String(s.id) === v)?.name}
                       </SelectValue>
                     </SelectTrigger>
@@ -246,53 +275,78 @@ export default function ProductFormPage() {
               </div>
             </Section>
 
-            <Section title="Pricing & Stock">
-              <div className="grid grid-cols-3 gap-4">
-                <Field label="Cost Price">
-                  <Input type="number" step="0.01" min="0" className="tabular-nums" placeholder="0.00" value={form.cost_price} onChange={(e) => set('cost_price', e.target.value)} />
+            <Section title="Philippine Peso (₱) Pricing &amp; Inventory">
+              <div className="grid grid-cols-3 gap-3">
+                <Field label="Cost Price (₱)">
+                  <div className="relative flex items-center">
+                    <span className="pointer-events-none absolute left-3 font-heading font-bold text-sm text-gray-500">₱</span>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="pl-7 rounded-xl border-gray-300 font-mono text-sm tabular-nums"
+                      placeholder="0.00"
+                      value={form.cost_price}
+                      onChange={(e) => set('cost_price', e.target.value)}
+                    />
+                  </div>
                 </Field>
-                <Field label="Selling Price">
-                  <Input type="number" step="0.01" min="0" className="tabular-nums" placeholder="0.00" value={form.selling_price} onChange={(e) => set('selling_price', e.target.value)} />
+                <Field label="Selling Price (₱)">
+                  <div className="relative flex items-center">
+                    <span className="pointer-events-none absolute left-3 font-heading font-bold text-sm text-red-600">₱</span>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="pl-7 rounded-xl border-gray-300 font-mono font-bold text-sm text-gray-900 tabular-nums"
+                      placeholder="0.00"
+                      value={form.selling_price}
+                      onChange={(e) => set('selling_price', e.target.value)}
+                    />
+                  </div>
                 </Field>
-                <Field label="Reorder Threshold">
-                  <Input type="number" min="0" className="tabular-nums" placeholder="5" value={form.reorder_threshold} onChange={(e) => set('reorder_threshold', e.target.value)} />
+                <Field label="Reorder Alert Qty">
+                  <Input type="number" min="0" className="rounded-xl border-gray-300 font-mono text-sm tabular-nums" placeholder="5" value={form.reorder_threshold} onChange={(e) => set('reorder_threshold', e.target.value)} />
                 </Field>
               </div>
               {!isEdit && (
-                <Field label="Initial Stock" error={fieldErrors.initial_stock}>
-                  <Input type="number" min="0" className="tabular-nums" placeholder="0" value={form.initial_stock} onChange={(e) => set('initial_stock', e.target.value)} />
+                <Field label="Initial Stock Quantity" error={fieldErrors.initial_stock}>
+                  <Input type="number" min="0" className="rounded-xl border-gray-300 font-mono text-sm tabular-nums" placeholder="0" value={form.initial_stock} onChange={(e) => set('initial_stock', e.target.value)} />
                 </Field>
               )}
             </Section>
 
-            <Section title="Location">
-              <div className="grid grid-cols-3 gap-4">
+            <Section title="Shop Storage Location">
+              <div className="grid grid-cols-3 gap-3">
                 <Field label="Aisle">
-                  <Input placeholder="e.g. A1" value={form.location_aisle} onChange={(e) => set('location_aisle', e.target.value)} />
+                  <Input className="rounded-xl border-gray-300 font-mono uppercase" placeholder="e.g. A1" value={form.location_aisle} onChange={(e) => set('location_aisle', e.target.value)} />
                 </Field>
                 <Field label="Shelf">
-                  <Input placeholder="e.g. S2" value={form.location_shelf} onChange={(e) => set('location_shelf', e.target.value)} />
+                  <Input className="rounded-xl border-gray-300 font-mono uppercase" placeholder="e.g. S2" value={form.location_shelf} onChange={(e) => set('location_shelf', e.target.value)} />
                 </Field>
                 <Field label="Bin">
-                  <Input placeholder="e.g. B3" value={form.location_bin} onChange={(e) => set('location_bin', e.target.value)} />
+                  <Input className="rounded-xl border-gray-300 font-mono uppercase" placeholder="e.g. B3" value={form.location_bin} onChange={(e) => set('location_bin', e.target.value)} />
                 </Field>
               </div>
             </Section>
 
-            <Section title="Notes">
+            <Section title="Notes / Specifications">
               <Textarea
-                placeholder="Anything worth flagging — fitment quirks, supplier notes, etc."
+                className="rounded-xl border-gray-300 text-sm"
+                placeholder="Fitment details, OEM interchange part numbers, supplier warranty..."
                 value={form.notes}
                 onChange={(e) => set('notes', e.target.value)}
               />
             </Section>
 
-            <div className="flex gap-3 pt-1">
-              <Button type="submit" disabled={saving}>
+            <div className="flex gap-3 pt-3 border-t border-gray-100">
+              <Button type="submit" disabled={saving} className="rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-md">
                 {saving && <Loader2 size={16} className="animate-spin" />}
                 {saving ? 'Saving...' : 'Save Product'}
               </Button>
-              <Button type="button" variant="secondary" onClick={close}>Cancel</Button>
+              <Button type="button" variant="secondary" onClick={close} className="rounded-xl border border-gray-200">
+                Cancel
+              </Button>
             </div>
           </form>
         )}
@@ -300,3 +354,4 @@ export default function ProductFormPage() {
     </Dialog>
   );
 }
+

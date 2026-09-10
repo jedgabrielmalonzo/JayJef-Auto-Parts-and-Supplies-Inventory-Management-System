@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, Plus, Pencil, Trash2, PackageSearch, Loader2, LayoutGrid, List, LayoutList, Box, Truck as TruckIcon, AlertTriangle, Eye } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, PackageSearch, Loader2, LayoutGrid, List, Eye, Tag, MapPin, Box } from 'lucide-react';
 import { toast } from 'sonner';
 import { listProducts, deleteProduct } from '../api/products.js';
 import { getOverview } from '../api/dashboard.js';
@@ -12,7 +12,7 @@ import { Input } from '../components/ui/input.jsx';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.jsx';
 import { Checkbox } from '../components/ui/checkbox.jsx';
 import { Label } from '../components/ui/label.jsx';
-import { Card, CardContent } from '../components/ui/card.jsx';
+import { Card } from '../components/ui/card.jsx';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table.jsx';
 import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
@@ -21,6 +21,7 @@ import {
 import ProductFormPage from './ProductFormPage.jsx';
 import ProductDetailPage from './ProductDetailPage.jsx';
 import ProductThumb from '../components/ProductThumb.jsx';
+import MicroStatCard from '../components/MicroStatCard.jsx';
 
 const sectionVariants = {
   hidden: { opacity: 0, y: 15 },
@@ -41,7 +42,7 @@ function ProductsListView({ modal }) {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [lowStockOnly, setLowStockOnly] = useState(false);
-  const [view, setView] = useState('list');
+  const [view, setView] = useState('grid');
   const [loading, setLoading] = useState(true);
   const [pendingDelete, setPendingDelete] = useState(null);
 
@@ -107,8 +108,46 @@ function ProductsListView({ modal }) {
         </Button>
       </motion.div>
 
+      {/* LAYER 1: 4 KPI Micro-Stat Cards Matching Dashboard Design */}
+      <motion.section custom={1} variants={sectionVariants} initial="hidden" animate="visible">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <MicroStatCard
+            title="Total Products"
+            subtitle="Active SKUs"
+            value={total.toLocaleString()}
+            change="+8.2%"
+            isNegative={false}
+            type="bar"
+          />
+          <MicroStatCard
+            title="Low Stock Alerts"
+            subtitle="Reorder Threshold"
+            value={lowStockTotal.toLocaleString()}
+            change={lowStockTotal > 0 ? `${lowStockTotal} Urgent` : 'Optimal'}
+            isNegative={lowStockTotal > 0}
+            type="gauge"
+          />
+          <MicroStatCard
+            title="Categories"
+            subtitle="System Groups"
+            value={CATEGORIES.length.toString()}
+            change="Active"
+            isNegative={false}
+            type="area"
+          />
+          <MicroStatCard
+            title="Catalog Health"
+            subtitle="In Stock Ratio"
+            value={total > 0 ? `${Math.round(((total - lowStockTotal) / total) * 100)}%` : '100%'}
+            change="High Availability"
+            isNegative={false}
+            type="dots"
+          />
+        </div>
+      </motion.section>
+
       {/* Modern Filter Toolbar */}
-      <motion.div custom={1} variants={sectionVariants} initial="hidden" animate="visible" className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+      <motion.div custom={2} variants={sectionVariants} initial="hidden" animate="visible" className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-xs">
         <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
           <div className="relative flex-1 min-w-[200px]">
             <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -141,15 +180,6 @@ function ProductsListView({ modal }) {
         {/* View Switcher */}
         <div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-gray-50 p-1">
           <button
-            title="List view"
-            onClick={() => setView('list')}
-            className={`flex h-9 w-9 items-center justify-center rounded-lg transition-all ${
-              view === 'list' ? 'bg-white text-gray-900 shadow-xs font-bold' : 'text-gray-500 hover:text-gray-900'
-            }`}
-          >
-            <List size={18} />
-          </button>
-          <button
             title="Grid view"
             onClick={() => setView('grid')}
             className={`flex h-9 w-9 items-center justify-center rounded-lg transition-all ${
@@ -157,6 +187,15 @@ function ProductsListView({ modal }) {
             }`}
           >
             <LayoutGrid size={18} />
+          </button>
+          <button
+            title="List view"
+            onClick={() => setView('list')}
+            className={`flex h-9 w-9 items-center justify-center rounded-lg transition-all ${
+              view === 'list' ? 'bg-white text-gray-900 shadow-xs font-bold' : 'text-gray-500 hover:text-gray-900'
+            }`}
+          >
+            <List size={18} />
           </button>
         </div>
       </motion.div>
@@ -175,9 +214,93 @@ function ProductsListView({ modal }) {
         </div>
       )}
 
+      {/* Grid Card View (Matching User Reference Image Design) */}
+      {!loading && products.length > 0 && view === 'grid' && (
+        <motion.div custom={3} variants={sectionVariants} initial="hidden" animate="visible" className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {products.map((p) => {
+            const avail = availability(p);
+            return (
+              <motion.div
+                key={p.id}
+                whileHover={{ y: -4 }}
+                className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-gray-200/80 bg-[#f4f4f6]/60 p-3.5 shadow-xs hover:border-gray-300 hover:shadow-md transition-all cursor-pointer"
+                onClick={() => navigate(`/products/${p.id}`)}
+              >
+                {/* Top Image Container with Top-Left Dark Overlay SKU Badge */}
+                <div className="relative h-48 w-full overflow-hidden rounded-2xl bg-gray-200">
+                  <ProductThumb
+                    product={p}
+                    size="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  {/* Floating SKU Pill Badge */}
+                  <span className="absolute top-3 left-3 rounded-lg bg-[#09090b]/90 px-3 py-1 font-mono text-[11px] font-bold text-white shadow-md backdrop-blur-xs border border-white/10">
+                    {p.sku}
+                  </span>
+                </div>
+
+                {/* Content Area Matching Reference Layout */}
+                <div className="mt-4 px-1 space-y-2.5 flex-1 flex flex-col justify-between">
+                  <div>
+                    {/* Category Pill Tag */}
+                    <span className="inline-flex rounded-full bg-[#18181b] px-3 py-1 text-[10px] font-bold text-white uppercase tracking-wider shadow-xs">
+                      {formatCategory(p.category)}
+                    </span>
+
+                    {/* Product Title */}
+                    <h3 className="font-heading text-lg font-bold tracking-tight text-gray-900 line-clamp-1 mt-2">
+                      {p.name}
+                    </h3>
+
+                    {/* Vehicle Fitment / Brand */}
+                    <p className="text-xs text-gray-500 line-clamp-2 mt-1 leading-relaxed">
+                      {p.brand ? `${p.brand} • ` : ''}{p.compatible_vehicles || 'Universal fitment auto part'}
+                    </p>
+                  </div>
+
+                  {/* Metadata Rows with Icons */}
+                  <div className="space-y-1.5 pt-2 text-xs text-gray-600">
+                    <div className="flex items-center gap-2">
+                      <Tag size={14} className="text-gray-400" />
+                      <span className="font-heading text-base font-bold text-gray-900 tabular-nums">
+                        ₱{Number(p.selling_price).toFixed(2)}
+                      </span>
+                      <span className="text-[10px] text-gray-400">/ {p.unit}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Box size={14} className="text-gray-400" />
+                      <span>Stock: <strong className="text-gray-900">{p.stock_quantity}</strong> {p.unit}</span>
+                      {p.location_aisle && (
+                        <span className="ml-auto flex items-center gap-1 font-mono text-[11px] text-gray-500 bg-gray-200/60 px-2 py-0.5 rounded-md">
+                          <MapPin size={10} /> {p.location_aisle}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card Bottom Footer Matching Reference Button */}
+                <div className="mt-4 pt-3 border-t border-gray-200/80 flex items-center justify-between px-1">
+                  <Badge variant={avail.variant}>{avail.label}</Badge>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/products/${p.id}`);
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-[#09090b] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-red-600 transition-colors"
+                  >
+                    <Eye size={13} /> View Part
+                  </button>
+                </div>
+              </motion.div>
+            );
+          })}
+        </motion.div>
+      )}
+
       {/* Table List View */}
       {!loading && products.length > 0 && view === 'list' && (
-        <motion.div custom={2} variants={sectionVariants} initial="hidden" animate="visible" className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <motion.div custom={3} variants={sectionVariants} initial="hidden" animate="visible" className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xs">
           <Table>
             <TableHeader className="bg-gray-50/80">
               <TableRow>
@@ -248,52 +371,6 @@ function ProductsListView({ modal }) {
         </motion.div>
       )}
 
-      {/* Grid Card View */}
-      {!loading && products.length > 0 && view === 'grid' && (
-        <motion.div custom={2} variants={sectionVariants} initial="hidden" animate="visible" className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {products.map((p) => {
-            const avail = availability(p);
-            return (
-              <Card
-                key={p.id}
-                className="cursor-pointer overflow-hidden rounded-2xl border-gray-200 transition-all hover:border-red-500 hover:shadow-md group"
-                onClick={() => navigate(`/products/${p.id}`)}
-              >
-                <ProductThumb product={p} size="h-44 w-full object-cover group-hover:scale-105 transition-transform" />
-                <CardContent className="space-y-3 p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="font-mono text-xs font-bold text-red-600">{p.sku}</p>
-                      <h3 className="font-heading font-bold text-gray-900 truncate mt-0.5">{p.name}</h3>
-                    </div>
-                    <Badge variant="outline">{formatCategory(p.category)}</Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                    <div>
-                      <span className="block text-xs text-gray-500">{p.stock_quantity} in stock</span>
-                      <Badge variant={avail.variant} className="mt-1">{avail.label}</Badge>
-                    </div>
-                    <span className="font-heading font-bold text-lg text-gray-900 tabular-nums">
-                      ₱{Number(p.selling_price).toFixed(2)}
-                    </span>
-                  </div>
-
-                  <div className="flex gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
-                    <Button render={<Link to={`/products/${p.id}/edit`} />} nativeButton={false} variant="secondary" size="sm" className="flex-1">
-                      <Pencil size={14} /> Edit
-                    </Button>
-                    <Button variant="destructive" size="sm" title="Delete" onClick={() => setPendingDelete(p)}>
-                      <Trash2 size={14} />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </motion.div>
-      )}
-
       <AlertDialog open={!!pendingDelete} onOpenChange={(open) => !open && setPendingDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -322,4 +399,5 @@ export default function ProductsPage() {
     </Routes>
   );
 }
+
 

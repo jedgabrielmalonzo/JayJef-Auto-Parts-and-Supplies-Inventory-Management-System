@@ -77,19 +77,11 @@ function HeaderBar({ onToggleMobileSidebar }) {
         </motion.button>
         <span className="flex h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse" />
         <span className="text-xs font-semibold uppercase tracking-wider text-gray-600 truncate">
-          JayJef Auto Parts • Main Branch
+          JayJef Auto Parts
         </span>
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="hidden md:flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-500">
-          <Search size={14} className="text-gray-400" />
-          <span>Quick search products, SKUs...</span>
-          <kbd className="rounded border border-gray-300 bg-white px-1.5 text-[10px] font-bold text-gray-600 shadow-xs">
-            ⌘K
-          </kbd>
-        </div>
-
         <div className="flex items-center gap-2 border-l border-gray-200 pl-4">
           <div className="hidden sm:flex flex-col items-end leading-tight">
             <span className="text-xs font-bold text-gray-900">JayJef Staff</span>
@@ -113,13 +105,12 @@ function NavItem({ to, label, icon: Icon, isSpecial, onClick }) {
       <NavLink
         to={to}
         onClick={onClick}
-        className={`group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors ${
-          isActive
-            ? 'text-white font-bold'
-            : isSpecial
+        className={`group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors ${isActive
+          ? 'text-white font-bold'
+          : isSpecial
             ? 'text-red-600 hover:bg-red-50/70 hover:text-red-700'
             : 'text-gray-600 hover:bg-gray-100/80 hover:text-gray-900'
-        }`}
+          }`}
       >
         {/* Animated Gliding Active Background Pill */}
         {isActive && (
@@ -142,11 +133,10 @@ function NavItem({ to, label, icon: Icon, isSpecial, onClick }) {
 
         {isSpecial && (
           <span
-            className={`relative z-10 rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase ${
-              isActive
-                ? 'bg-white/20 text-white border border-white/30'
-                : 'bg-red-100 border border-red-200 text-red-600'
-            }`}
+            className={`relative z-10 rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase ${isActive
+              ? 'bg-white/20 text-white border border-white/30'
+              : 'bg-red-100 border border-red-200 text-red-600'
+              }`}
           >
             AI
           </span>
@@ -187,9 +177,7 @@ function SidebarContent({ onCloseMobile }) {
         </div>
 
         {/* Navigation Category */}
-        <div className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-gray-400">
-          System Modules
-        </div>
+
         <motion.nav
           variants={navListVariants}
           initial="hidden"
@@ -270,7 +258,7 @@ export default function App() {
 
         {/* Desktop Sidebar (Static Layout) */}
         <aside className="hidden lg:flex inset-y-0 left-0 z-50 h-screen w-64 shrink-0 flex-col border-r border-gray-200 bg-white sticky top-0">
-          <SidebarContent onCloseMobile={() => {}} />
+          <SidebarContent onCloseMobile={() => { }} />
         </aside>
 
         {/* Main Content Area with Header */}

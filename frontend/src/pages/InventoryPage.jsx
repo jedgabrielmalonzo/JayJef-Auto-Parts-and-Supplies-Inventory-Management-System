@@ -8,6 +8,7 @@ import { getOverview } from '../api/dashboard.js';
 import { MOVEMENT_REASON_LABELS, formatCategory } from '../constants.js';
 import { Badge } from '../components/ui/badge.jsx';
 import StatCard from '../components/StatCard.jsx';
+import MicroStatCard from '../components/MicroStatCard.jsx';
 import { Button } from '../components/ui/button.jsx';
 import { Input } from '../components/ui/input.jsx';
 import { Label } from '../components/ui/label.jsx';
@@ -110,7 +111,7 @@ function AdjustStockModal({ open, onClose, onSaved }) {
           </div>
 
           <div className="flex gap-3 pt-1">
-            <Button type="submit" disabled={saving || !product || !quantity}>
+            <Button type="submit" disabled={saving || !product || !quantity} className="bg-red-600 hover:bg-red-700 text-white font-semibold">
               {saving && <Loader2 size={16} className="animate-spin" />}
               {saving ? 'Saving...' : 'Record Movement'}
             </Button>
@@ -151,6 +152,9 @@ export default function InventoryPage() {
     getOverview().then(setSummary).catch(() => {});
   }
 
+  const stockQty = summary?.inventory?.quantityInHand || 0;
+  const toBeReceived = summary?.inventory?.toBeReceived || 0;
+
   return (
     <div className="space-y-6">
       <AdjustStockModal open={adjustOpen} onClose={() => setAdjustOpen(false)} onSaved={handleAdjusted} />
@@ -160,24 +164,49 @@ export default function InventoryPage() {
           <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900">Stock and Movement</h1>
           <p className="text-sm text-gray-500 mt-1">Real-time inventory levels, stock adjustments, and movements history</p>
         </div>
-        <Button onClick={() => setAdjustOpen(true)} className="bg-red-600 hover:bg-red-700">
+        <Button onClick={() => setAdjustOpen(true)} className="bg-red-600 hover:bg-red-700 shadow-md">
           <PlusCircle size={16} strokeWidth={2.5} />
           Adjust Stock
         </Button>
       </motion.div>
 
-      {summary && (
-        <motion.div custom={1} variants={sectionVariants} initial="hidden" animate="visible">
-          <StatCard
-            title="Inventory Summary"
-            items={[
-              { icon: Package, value: summary.inventory.quantityInHand, label: 'Quantity in Hand', tint: '#3A6EA5' },
-              { icon: Truck, value: summary.inventory.toBeReceived, label: 'To be received', tint: '#946200' },
-              { icon: AlertTriangle, value: lowStockItems.length, label: 'Low Stock', tint: '#6B6B6B' },
-            ]}
+      {/* LAYER 1: 4 KPI Micro-Stat Cards Matching Dashboard Design */}
+      <motion.section custom={1} variants={sectionVariants} initial="hidden" animate="visible">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <MicroStatCard
+            title="Quantity In Hand"
+            subtitle="Total Stocked Units"
+            value={Number(stockQty).toLocaleString()}
+            change="+14.2%"
+            isNegative={false}
+            type="step"
           />
-        </motion.div>
-      )}
+          <MicroStatCard
+            title="To Be Received"
+            subtitle="Pending Shipments"
+            value={Number(toBeReceived).toLocaleString()}
+            change="Incoming"
+            isNegative={false}
+            type="bar"
+          />
+          <MicroStatCard
+            title="Low Stock Alerts"
+            subtitle="Reorder Required"
+            value={lowStockItems.length.toString()}
+            change={lowStockItems.length > 0 ? `${lowStockItems.length} Urgent` : 'Optimal'}
+            isNegative={lowStockItems.length > 0}
+            type="gauge"
+          />
+          <MicroStatCard
+            title="Movement Log"
+            subtitle="Recent Adjustments"
+            value={movements.length.toString()}
+            change="Active"
+            isNegative={false}
+            type="dots"
+          />
+        </div>
+      </motion.section>
 
       {loading ? (
         <div className="flex items-center justify-center gap-2 py-16 text-gray-500">

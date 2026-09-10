@@ -9,6 +9,7 @@ import { Badge } from '../components/ui/badge.jsx';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table.jsx';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '../components/ui/chart.jsx';
 import StatCard from '../components/StatCard.jsx';
+import MicroStatCard from '../components/MicroStatCard.jsx';
 
 const BLUE = '#3A6EA5';
 const GREEN = '#1E7B34';
@@ -79,18 +80,48 @@ export default function ReportsPage() {
       </motion.div>
 
       <motion.div custom={1} variants={sectionVariants} initial="hidden" animate="visible">
-        <StatCard
-          title="Overview"
-          items={[
-            { icon: TrendingUp, value: peso(overview.totalProfit), label: 'Total Profit', tint: GREEN },
-            { icon: Wallet, value: peso(overview.revenue), label: 'Revenue', tint: BLUE },
-            { icon: ShoppingCart, value: overview.sales, label: 'Sales', tint: AMBER },
-            { icon: ShoppingBag, value: peso(overview.netPurchaseValue), label: 'Net purchase value', tint: GRAY },
-            { icon: Receipt, value: peso(overview.netSalesValue), label: 'Net sales value', tint: BLUE },
-            { icon: overview.momProfitPct >= 0 ? ArrowUpCircle : ArrowDownCircle, value: `${overview.momProfitPct >= 0 ? '+' : ''}${overview.momProfitPct}%`, label: 'MoM Profit', tint: overview.momProfitPct >= 0 ? GREEN : GRAY },
-            { icon: overview.yoyProfitPct >= 0 ? ArrowUpCircle : ArrowDownCircle, value: `${overview.yoyProfitPct >= 0 ? '+' : ''}${overview.yoyProfitPct}%`, label: 'YoY Profit', tint: overview.yoyProfitPct >= 0 ? GREEN : GRAY },
-          ]}
-        />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <MicroStatCard
+            title="Total Profit"
+            subtitle="Net Margin"
+            value={peso(overview?.totalProfit)}
+            change={`${overview?.momProfitPct >= 0 ? '+' : ''}${overview?.momProfitPct}% MoM`}
+            isNegative={overview?.momProfitPct < 0}
+            type="dots"
+          />
+          <MicroStatCard
+            title="Gross Revenue"
+            subtitle="Fulfilled Orders"
+            value={peso(overview?.revenue)}
+            change="+12.4%"
+            isNegative={false}
+            type="area"
+          />
+          <MicroStatCard
+            title="Sales Count"
+            subtitle="Completed Sales"
+            value={(overview?.sales || 0).toLocaleString()}
+            change="+8.5%"
+            isNegative={false}
+            type="bar"
+          />
+          <MicroStatCard
+            title="Net Purchase Cost"
+            subtitle="Supplier Outflow"
+            value={peso(overview?.netPurchaseValue)}
+            change="Purchases"
+            isNegative={false}
+            type="step"
+          />
+          <MicroStatCard
+            title="YoY Growth"
+            subtitle="Year-over-Year"
+            value={`${overview?.yoyProfitPct >= 0 ? '+' : ''}${overview?.yoyProfitPct}%`}
+            change="Annual Target"
+            isNegative={overview?.yoyProfitPct < 0}
+            type="gauge"
+          />
+        </div>
       </motion.div>
 
       <motion.div custom={2} variants={sectionVariants} initial="hidden" animate="visible" className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs transition-all hover:shadow-md">
