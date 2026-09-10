@@ -106,7 +106,7 @@ export async function processChatQuery(userMessage) {
 
     for (const term of searchTerms) {
       if (term !== matchedCategory) {
-        sql += ` AND (LOWER(p.name) LIKE $${paramIndex} OR LOWER(p.sku) LIKE $${paramIndex} OR LOWER(p.brand) LIKE $${paramIndex} OR LOWER(p.description) LIKE $${paramIndex})`;
+        sql += ` AND (LOWER(p.name) LIKE $${paramIndex} OR LOWER(p.sku) LIKE $${paramIndex} OR LOWER(p.brand) LIKE $${paramIndex} OR LOWER(p.notes) LIKE $${paramIndex})`;
         params.push(`%${term}%`);
         paramIndex++;
       }
