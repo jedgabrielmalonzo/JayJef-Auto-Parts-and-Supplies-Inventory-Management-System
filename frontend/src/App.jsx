@@ -11,6 +11,7 @@ import OcrPage from './pages/OcrPage.jsx';
 import SuppliersPage from './pages/SuppliersPage.jsx';
 import MapPage from './pages/MapPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
+import AiChatbot from './components/AiChatbot.jsx';
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -79,6 +80,7 @@ export default function App() {
           </Routes>
         </main>
       </div>
+      <AiChatbot />
       <Toaster position="top-right" />
     </BrowserRouter>
   );
