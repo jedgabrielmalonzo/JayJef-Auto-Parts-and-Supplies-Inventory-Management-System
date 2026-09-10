@@ -2,7 +2,7 @@
 
 ## Feature Summary
 
-The **JayJef AI Inventory Assistant** provides natural language search, stock verification, price lookup, and low-stock alerts directly grounded in the shop's PostgreSQL database.
+The **JayJef AI Inventory Assistant** is a **lightweight, deterministic SQL-based query engine** (not an external neural LLM like OpenAI or Gemini). It provides natural language keyword search, stock verification, price lookup, and low-stock alerts grounded strictly in live PostgreSQL database records without relying on external AI API dependencies.
 
 Staff can query the assistant via the dedicated **Assistant Page** (`/assistant`) or the floating **AI Chatbot widget** (`<AiChatbot />`) available across all app screens.
 
