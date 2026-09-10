@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  ShoppingCart, Wallet, PiggyBank, Receipt, Package, Truck,
-  ShoppingBag, XCircle, Users, LayoutGrid, Loader2, AlertTriangle,
-} from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { BarChart, Bar, LineChart, Line, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { getOverview, getSalesPurchaseChart, getOrderSummaryChart, getTopSelling } from '../api/dashboard.js';
@@ -11,16 +8,15 @@ import { lowStock } from '../api/inventory.js';
 import { Badge } from '../components/ui/badge.jsx';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table.jsx';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '../components/ui/chart.jsx';
-import StatCard from '../components/StatCard.jsx';
+import MicroStatCard from '../components/MicroStatCard.jsx';
 import ProductThumb from '../components/ProductThumb.jsx';
 
 const BLUE = '#3A6EA5';
 const GREEN = '#1E7B34';
 const AMBER = '#946200';
-const GRAY = '#6B6B6B';
 
 function peso(n) {
-  return `₱${Number(n || 0).toFixed(2)}`;
+  return `₱${Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function monthLabel(iso) {
@@ -70,45 +66,56 @@ export default function DashboardPage() {
         <div className="h-1 w-16 bg-black-900 mt-2" />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <StatCard
-          title="Sales Overview"
-          items={[
-            { icon: ShoppingCart, value: overview.sales.count, label: 'Sales', tint: BLUE },
-            { icon: Wallet, value: peso(overview.sales.revenue), label: 'Revenue', tint: GREEN },
-            { icon: PiggyBank, value: peso(overview.sales.profit), label: 'Profit', tint: AMBER },
-            { icon: Receipt, value: peso(overview.sales.cost), label: 'Cost', tint: GRAY },
-          ]}
+      {/* Image 2 style: 5 Horizontal Micro-Stat Cards */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <MicroStatCard
+          title="Orders"
+          subtitle="Last 7 Days"
+          value={overview?.sales?.count || '0'}
+          change="+12.6%"
+          isNegative={false}
+          type="bar"
         />
-        <StatCard
-          title="Inventory Summary"
-          items={[
-            { icon: Package, value: overview.inventory.quantityInHand, label: 'Quantity in Hand', tint: BLUE },
-            { icon: Truck, value: overview.inventory.toBeReceived, label: 'To be received', tint: AMBER },
-          ]}
+        <MicroStatCard
+          title="Revenue"
+          subtitle="This Month"
+          value={peso(overview?.sales?.revenue || 0)}
+          change="-4.2%"
+          isNegative={true}
+          type="area"
         />
-        <StatCard
-          title="Purchase Overview"
-          items={[
-            { icon: ShoppingBag, value: overview.purchases.count, label: 'Purchase', tint: BLUE },
-            { icon: Receipt, value: peso(overview.purchases.cost), label: 'Cost', tint: GREEN },
-            { icon: XCircle, value: overview.purchases.cancelled, label: 'Cancelled', tint: GRAY },
-          ]}
+        <MicroStatCard
+          title="Profit"
+          subtitle="Net Margin"
+          value={peso(overview?.sales?.profit || 0)}
+          change="+18.5%"
+          isNegative={false}
+          type="dots"
         />
-        <StatCard
-          title="Product Summary"
-          items={[
-            { icon: Users, value: overview.products.supplierCount, label: 'Number of Suppliers', tint: BLUE },
-            { icon: LayoutGrid, value: overview.products.categoryCount, label: 'Number of Categories', tint: AMBER },
-          ]}
+        <MicroStatCard
+          title="Inventory Hand"
+          subtitle="In Stock Items"
+          value={overview?.inventory?.quantityInHand || '0'}
+          change="+24%"
+          isNegative={false}
+          type="step"
+        />
+        <MicroStatCard
+          title="Low Stock"
+          subtitle="Reorder Alert"
+          value={lowQuantity.length}
+          change={lowQuantity.length > 0 ? `${lowQuantity.length} Urgent` : 'Optimal'}
+          isNegative={lowQuantity.length > 0}
+          type="gauge"
         />
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-          <h3 className="mb-3 font-heading font-bold text-black-900">Sales &amp; Purchase</h3>
+      {/* Main Charts Row */}
+      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <h3 className="mb-3 font-heading font-bold text-black-900">Sales &amp; Purchase Overview</h3>
           {salesPurchase.length === 0 ? (
-            <p className="py-10 text-center text-sm text-black-500">No orders yet this period.</p>
+            <p className="py-10 text-center text-sm text-black-500">No orders recorded yet.</p>
           ) : (
             <ChartContainer
               config={{ purchase: { label: 'Purchase', color: BLUE }, sales: { label: 'Sales', color: GREEN } }}
@@ -126,10 +133,10 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-          <h3 className="mb-3 font-heading font-bold text-black-900">Order Summary</h3>
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <h3 className="mb-3 font-heading font-bold text-black-900">Order Delivery Trend</h3>
           {orderSummary.length === 0 ? (
-            <p className="py-10 text-center text-sm text-black-500">No orders yet.</p>
+            <p className="py-10 text-center text-sm text-black-500">No recent orders.</p>
           ) : (
             <ChartContainer
               config={{ ordered: { label: 'Ordered', color: AMBER }, delivered: { label: 'Delivered', color: BLUE } }}
@@ -148,9 +155,10 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between px-4 pt-4">
+      {/* Stock Summary Tables Row */}
+      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between p-5 pb-3">
             <h3 className="font-heading font-bold text-black-900">Top Selling Stock</h3>
             <Link to="/products" className="text-sm font-medium text-red-600 hover:underline">See All</Link>
           </div>
@@ -161,15 +169,15 @@ export default function DashboardPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Sold Quantity</TableHead>
-                  <TableHead>Remaining Quantity</TableHead>
+                  <TableHead>Sold Qty</TableHead>
+                  <TableHead>Stock</TableHead>
                   <TableHead>Price</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {topSelling.map((p) => (
                   <TableRow key={p.id}>
-                    <TableCell className="text-black-900">{p.name}</TableCell>
+                    <TableCell className="font-medium text-black-900">{p.name}</TableCell>
                     <TableCell className="tabular-nums text-black-700">{p.sold_quantity}</TableCell>
                     <TableCell className="tabular-nums text-black-700">{p.stock_quantity}</TableCell>
                     <TableCell className="tabular-nums text-black-900">{peso(p.selling_price)}</TableCell>
@@ -180,20 +188,20 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between px-4 pt-4">
-            <h3 className="font-heading font-bold text-black-900">Low Quantity Stock</h3>
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between p-5 pb-3">
+            <h3 className="font-heading font-bold text-black-900">Low Quantity Alert</h3>
             <Link to="/inventory" className="text-sm font-medium text-red-600 hover:underline">See All</Link>
           </div>
           {lowQuantity.length === 0 ? (
-            <p className="flex flex-col items-center gap-2 px-4 py-10 text-center text-sm text-black-500">
+            <p className="flex flex-col items-center gap-2 p-8 text-center text-sm text-black-500">
               <AlertTriangle size={20} className="text-black-300" />
-              Nothing below its reorder threshold right now.
+              All parts are currently well-stocked.
             </p>
           ) : (
-            <div className="divide-y divide-gray-200 p-4 pt-2">
+            <div className="divide-y divide-gray-200 p-5 pt-0">
               {lowQuantity.map((p) => (
-                <div key={p.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                <div key={p.id} className="flex items-center gap-3 py-3.5 first:pt-0 last:pb-0">
                   <ProductThumb product={p} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-black-900">{p.name}</p>

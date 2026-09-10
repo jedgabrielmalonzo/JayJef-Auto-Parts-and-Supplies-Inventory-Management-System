@@ -1,45 +1,48 @@
 import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-dom';
-import { Wrench, LayoutDashboard, Package, ClipboardList, FileText, ScanLine, Truck, Map, BarChart3, Store, Search } from 'lucide-react';
+import { Wrench, LayoutDashboard, Package, ClipboardList, FileText, ScanLine, Map, BarChart3, Bot, Sparkles } from 'lucide-react';
 import { Toaster } from './components/ui/sonner.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
-import LookupPage from './pages/LookupPage.jsx';
 import ProductsPage from './pages/ProductsPage.jsx';
 import InventoryPage from './pages/InventoryPage.jsx';
 import ReportsPage from './pages/ReportsPage.jsx';
 import OrdersPage from './pages/OrdersPage.jsx';
 import OcrPage from './pages/OcrPage.jsx';
-import SuppliersPage from './pages/SuppliersPage.jsx';
 import MapPage from './pages/MapPage.jsx';
-import SettingsPage from './pages/SettingsPage.jsx';
+import AssistantPage from './pages/AssistantPage.jsx';
 import AiChatbot from './components/AiChatbot.jsx';
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/lookup', label: 'Quick Lookup', icon: Search },
+  { to: '/assistant', label: 'AI Assistant', icon: Bot, isSpecial: true },
   { to: '/products', label: 'Products', icon: Package },
   { to: '/inventory', label: 'Inventory', icon: ClipboardList },
   { to: '/reports', label: 'Reports', icon: BarChart3 },
   { to: '/orders', label: 'Orders', icon: FileText },
   { to: '/ocr', label: 'OCR Capture', icon: ScanLine },
-  { to: '/suppliers', label: 'Suppliers', icon: Truck },
   { to: '/map', label: 'Shop Map', icon: Map },
-  { to: '/settings', label: 'Manage Store', icon: Store },
 ];
 
-function NavItem({ to, label, icon: Icon }) {
+function NavItem({ to, label, icon: Icon, isSpecial }) {
   return (
     <NavLink
       to={to}
       className={({ isActive }) =>
         `flex items-center gap-3 border-l-[3px] px-4 py-2.5 text-sm font-medium transition-colors ${
           isActive
-            ? 'border-red-600 bg-red-50 text-black-900'
+            ? 'border-red-600 bg-red-50 text-black-900 font-bold'
+            : isSpecial
+            ? 'border-transparent text-red-600 hover:bg-red-50'
             : 'border-transparent text-black-500 hover:bg-gray-50 hover:text-black-900'
         }`
       }
     >
-      <Icon size={18} />
-      {label}
+      <Icon size={18} className={isSpecial ? 'text-red-600' : ''} />
+      <span>{label}</span>
+      {isSpecial && (
+        <span className="ml-auto rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white uppercase">
+          AI
+        </span>
+      )}
     </NavLink>
   );
 }
@@ -68,15 +71,13 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/lookup" element={<LookupPage />} />
+            <Route path="/assistant" element={<AssistantPage />} />
             <Route path="/products/*" element={<ProductsPage />} />
             <Route path="/inventory" element={<InventoryPage />} />
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/orders/*" element={<OrdersPage />} />
             <Route path="/ocr/*" element={<OcrPage />} />
-            <Route path="/suppliers/*" element={<SuppliersPage />} />
             <Route path="/map" element={<MapPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
           </Routes>
         </main>
       </div>
