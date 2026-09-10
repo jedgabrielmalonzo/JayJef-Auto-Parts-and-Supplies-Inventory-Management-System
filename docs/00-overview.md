@@ -31,85 +31,83 @@ the counter, tablet/phone in the stockroom) to:
 
 | Layer | Choice | Why |
 |---|---|---|
-| Frontend | React + Tailwind CSS | Fast to build forms/tables/dashboards; Tailwind keeps styling consistent without a heavy design system. |
-| Backend | Node.js + Express | Simple REST API layer, same language as frontend (JS/TS), minimal ceremony for a small team/local app. |
-| Database | PostgreSQL | Relational data (products, orders, movements) with real foreign keys and transactions — important for keeping stock counts consistent. |
-| OCR | Python + PaddleOCR, run as a **separate local microservice** | PaddleOCR is Python-only and has real dependencies (models, image libs); isolating it as its own service keeps the Node backend simple and lets OCR be restarted/scaled independently. |
-| PDF generation | pdf-lib or Puppeteer | Generates printable purchase order / invoice documents server-side. Puppeteer is easier if the invoice is laid out as HTML/CSS first; pdf-lib is lighter-weight if building the PDF programmatically. Decide per-implementation (see [04](./04-purchase-order-invoice.md)). |
+| Frontend | React + Tailwind CSS + Shadcn UI + Framer Motion | Modern, responsive SPA with accessible Shadcn UI primitives, smooth Framer Motion micro-animations, and Lucide iconography. |
+| Backend | Node.js + Express | Simple REST API layer, business logic rules (stock math, PDF generation, AI chatbot search logic). |
+| Database | PostgreSQL | Relational storage (products, movements, orders, suppliers, ocr_receipts) with strict foreign keys and atomic transactions. |
+| AI Assistant | Node.js + PostgreSQL Query Engine | Strictly grounded natural language AI assistant (`/api/chat`) with anti-hallucination guardrails and stopword processing. |
+| OCR | Python + PaddleOCR, run as a **separate local microservice** | Isolates Python models/dependencies; accepts receipt uploads, unwarps images, and streams text to Express parser. |
+| Hardware / Printing | ESC/POS Thermal Printer + Browser PDF | Enables thermal receipt printing for scanned stock receipts and printable invoice PDFs. |
 
 ## High-Level Architecture
 
 ```
-┌─────────────────────┐        HTTP (REST/JSON)        ┌──────────────────────┐
-│   React Frontend     │ ───────────────────────────►  │   Express API Server │
-│ (Tailwind CSS, SPA)  │ ◄───────────────────────────  │      (Node.js)       │
-└─────────────────────┘                                 └──────────┬───────────┘
-        ▲  served to any device                                    │
-        │  on the shop's local network                              │ SQL
-        │                                                           ▼
-        │                                                ┌──────────────────────┐
-        │                                                │   PostgreSQL DB      │
-        │                                                │ products, movements, │
-        │                                                │ orders, ocr_receipts │
-        │                                                └──────────────────────┘
-        │                                                           ▲
-        │                          HTTP (image upload / JSON)       │
-        │                                                           │
-        │                                                ┌──────────┴───────────┐
-        └────────── receipt photo ─────────────────────► │  Python OCR Service   │
-                                                            │  (PaddleOCR, local)   │
-                                                            └───────────────────────┘
+┌────────────────────────────────────────────────────────┐
+│                   React Frontend                       │
+│ (Tailwind CSS, Shadcn UI, Framer Motion, AiChatbot)    │
+└───────────────────────────┬────────────────────────────┘
+                            │
+              HTTP (REST/JSON API & /api/chat)
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│                 Express API Server                     │
+│    (Node.js, Stock Math, AI Assistant Engine)          │
+└─────────────┬────────────────────────────┬─────────────┘
+              │                            │
+              │ SQL Queries                │ HTTP (Image upload)
+              ▼                            ▼
+┌───────────────────────────┐┌───────────────────────────┐
+│       PostgreSQL DB       ││    Python OCR Service     │
+│ products, movements,      ││   (PaddleOCR, FastAPI)    │
+│ orders, ocr_receipts,     │└───────────────────────────┘
+│ shop_layout_cabinets      │
+└───────────────────────────┘
 ```
 
-- The **React frontend** talks only to the **Express backend** (never directly
-  to Postgres or the OCR service).
-- The **Express backend** is the single source of truth: it owns the database
-  connection, business rules (stock math, reorder alerts), and PDF generation.
-- The **OCR microservice** is a small Python HTTP API (e.g. FastAPI/Flask) that
-  accepts an image and returns extracted text/line items. It has no direct
-  access to the database — the Express backend calls it, then decides what to
-  do with the result.
-- All services run on machines within the shop's LAN. The backend and OCR
-  service can run on the same machine or different machines on the same
-  network; the frontend is built once and served as static files (or run in
-  dev mode) accessible to any device on the network.
+- The **React frontend** talks exclusively to the **Express backend** (including AI search via `/api/chat`).
+- The **Express backend** is the single source of truth: it manages transactions, stock calculation, AI database queries, and receipt parsing.
+- The **AI Assistant Service** acts as an anti-hallucination query engine, parsing natural language search queries and filtering results directly against live PostgreSQL product and supplier records.
+- The **OCR microservice** is an isolated Python service running PaddleOCR that receives receipt photos and returns detected text lines to the Express backend.
 
 ## Folder Structure Plan
 
 ```
 JayJef-Auto-Parts-and-Supplies-Inventory-Management-System/
-├── docs/                        # This documentation (specs, planning)
+├── docs/                        # Specifications (00-overview to 09-design-system)
+│   ├── 00-overview.md
+│   ├── 01-product-crud.md
+│   ├── 02-inventory-tracking.md
+│   ├── 03-ocr-receipt-capture.md
+│   ├── 04-purchase-order-invoice.md
+│   ├── 05-database-schema.md
+│   ├── 06-api-endpoints.md
+│   ├── 07-3d-navigation.md
+│   ├── 08-ai-assistant.md       # AI Assistant & Guardrails spec
+│   └── 09-design-system.md
 │
-├── frontend/                    # React + Tailwind app
+├── frontend/                    # React + Tailwind + Shadcn UI app
 │   ├── src/
-│   │   ├── components/          # Shared UI components (buttons, tables, modals)
-│   │   ├── pages/                # Route-level pages (Dashboard, Quick Lookup, Products, Inventory, Reports, Orders, OCR Capture, Suppliers, Shop Map, Manage Store)
-│   │   ├── features/             # Feature-specific logic/hooks (products, inventory, ocr, orders)
-│   │   ├── api/                  # API client functions (fetch wrappers per resource)
+│   │   ├── components/          # UI components (AiChatbot, StatCard, ProductThumb, ui/*)
+│   │   ├── pages/               # Route pages (Dashboard, Lookup, Products, ProductDetail, Inventory, Reports, Orders, Ocr, Suppliers, Map, Assistant, Settings)
+│   │   ├── features/            # Shop map and domain features
+│   │   ├── api/                 # API client helpers (products, inventory, ocr, orders, chat, reports)
 │   │   ├── App.jsx / main.jsx
-│   │   └── ...
-│   ├── public/
+│   │   └── index.css            # Tailwind + Shadcn design tokens
 │   └── package.json
 │
 ├── backend/                     # Node.js + Express API
 │   ├── src/
-│   │   ├── routes/               # Express route definitions per resource
-│   │   ├── controllers/          # Request handlers
-│   │   ├── services/              # Business logic (stock math, PDF generation, OCR client)
-│   │   ├── db/                    # DB connection, query helpers, migrations
-│   │   ├── models/                 # Data access per table/entity
+│   │   ├── routes/              # Route handlers (products, inventory, chat, ocr, orders, reports, dashboard, shopLayout, shopSettings)
+│   │   ├── controllers/         # Request handling logic
+│   │   ├── services/            # Business logic (aiAssistant, stock math, ocrParser)
+│   │   ├── db/                  # DB pool connection, migrations
 │   │   └── app.js / server.js
-│   ├── migrations/                # SQL migration files
+│   ├── migrations/              # SQL migrations
 │   └── package.json
 │
 ├── ocr-service/                 # Python + PaddleOCR microservice
-│   ├── app.py                    # HTTP API entrypoint
-│   ├── ocr/                       # OCR + parsing logic (image -> text -> line items)
-│   ├── requirements.txt
-│   └── storage/                   # Local storage for uploaded receipt images (dev only)
+│   ├── app.py                   # FastAPI entrypoint
+│   └── requirements.txt
 │
 └── README.md
 ```
-
-This structure is a starting point — see later docs for how each feature maps
-into these folders once implementation begins.

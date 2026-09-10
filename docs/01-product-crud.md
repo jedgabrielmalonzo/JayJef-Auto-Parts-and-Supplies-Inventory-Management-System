@@ -71,7 +71,13 @@ the [shop map feature](./07-3d-navigation.md) to point staff to it:
    `stock_quantity` (which is read-only in this form — stock changes only
    happen through movements).
 2. SKU can be edited but must remain unique.
-3. `updated_at` is refreshed on save.
+3. Photo upload (`image`) updates `image_path` for product card/detail view thumbnails.
+4. `updated_at` is refreshed on save.
+
+### 1-Click Quick Stock Actions (Catalog & Table View)
+For fast over-the-counter transactions without creating a full purchase/sales order:
+- **1-Click Sold (`-1`)**: Staff clicks the red **1 Sold** button on a product card or `-` button in the table row. Automatically creates a `manual_adjustment` stock movement (`quantity_change = -1`, note: `'1-Click Quick Sale (-1)'`). Blocked if `stock_quantity <= 0`.
+- **1-Click Restock (`+1`)**: Staff clicks the `+` button in the table row. Automatically creates a `manual_adjustment` stock movement (`quantity_change = 1`, note: `'1-Click Quick Restock (+1)'`).
 
 ### Delete a product
 

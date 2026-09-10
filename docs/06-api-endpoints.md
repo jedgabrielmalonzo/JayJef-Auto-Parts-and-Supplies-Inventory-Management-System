@@ -93,6 +93,14 @@ Minimal — for the staff-attribution picker, not an auth system (see
 | POST | `/users` | `{ name, role }` | `User` (201) |
 | PUT | `/users/:id` | Partial | `User` |
 
+## AI Chat Assistant
+
+Backing the floating `<AiChatbot />` and dedicated `/assistant` page. See [08-ai-assistant.md](./08-ai-assistant.md).
+
+| Method | Path | Request | Response |
+|---|---|---|---|
+| POST | `/chat` | `{ message: string }` | `{ reply: string, products: Product[] }` — Grounded PostgreSQL natural language query response |
+
 ## Dashboard
 
 Read-only aggregation endpoints backing the Dashboard landing page. All

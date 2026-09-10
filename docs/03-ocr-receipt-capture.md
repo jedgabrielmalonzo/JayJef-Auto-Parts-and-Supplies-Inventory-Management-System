@@ -74,6 +74,17 @@ slip before shelving it.
   needed; a scheduled local backup of the storage directory + database is
   the shop's responsibility (outside this doc's scope).
 
+## Hardware & Thermal Printer Integration
+
+Staff can connect thermal receipt printers and hardware USB/Bluetooth receipt scanners via the **Hardware Connection Modal** (`HardwareScanModal` at `/ocr/hardware`):
+
+1. **Hardware Scanner Connection**:
+   - Supports direct camera capture, USB HID scanner input, or serial port hardware devices.
+   - Captured raw image or barcode data is transmitted directly into the OCR parsing pipeline.
+2. **Thermal Receipt Printing**:
+   - Allows instant printing of confirmed restock receipt summaries to connected ESC/POS 80mm/58mm thermal printers.
+   - Generates compact monochrome receipt summaries showing Supplier, Date, Confirmed Items, and Total Restock Value.
+
 ## Error Handling
 
 | Situation | Handling |

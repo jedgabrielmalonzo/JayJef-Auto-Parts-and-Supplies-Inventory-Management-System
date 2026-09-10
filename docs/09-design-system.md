@@ -159,15 +159,17 @@ keeps dense screens (product tables, dashboards) calm instead of busy.
 Kept short deliberately — this is a tool staff use dozens of times a day;
 animation should never make them wait.
 
+## Component Architecture & UI Libraries
+
+The frontend utilizes **Shadcn UI** primitives (built on Radix UI / Base UI) styled with Tailwind CSS, micro-animated with **Framer Motion**, and notified via **Sonner** toasts:
+
+- **Shadcn Components**: `<Button>`, `<Card>`, `<Badge>`, `<Dialog>`, `<AlertDialog>`, `<Select>`, `<Input>`, `<Tabs>`, `<Table>`, `<Checkbox>`.
+- **Animations**: `framer-motion` handles page transitions, card hover elevation (`scale-102`), and smooth modal pop-overs.
+- **Notifications**: `sonner` provides toast notifications for action feedback (e.g. quick stock deduction, order saved, OCR confirmed).
+
 ## Iconography
 
-Simple outline icons, consistent 1.5–2px stroke, no filled/glyph icons
-(matches the flat, utilitarian tone). Default color `--black-900`;
-`--red-600` only for an active/selected icon or a count badge — icons stay
-quiet everywhere else so red keeps its meaning as "pay attention here."
-[Lucide](https://lucide.dev) icons are a reasonable concrete pick — open
-source, consistent stroke width, wide coverage, easy to install alongside
-React.
+Simple outline icons from [Lucide React](https://lucide.dev) (`lucide-react`) with consistent 1.5–2px stroke widths. Default color `--black-900`; `--red-600` used exclusively for active selected states or count badges.
 
 ## Signature Detail: The Bold Rule
 

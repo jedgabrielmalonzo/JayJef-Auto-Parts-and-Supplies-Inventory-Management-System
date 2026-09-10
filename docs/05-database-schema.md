@@ -226,3 +226,5 @@ stock_movements.reference_(type,id) --(app-level, not FK)--> purchase_orders | o
   `shop_layout_cabinets` (not a static frontend file) specifically because,
   unlike most of this schema, it's meant to be edited by shop staff through
   the app rather than by a developer — see [07-3d-navigation.md](./07-3d-navigation.md).
+- **AI Assistant Read-Only Access**: The AI assistant service (`/api/chat`) performs read-only `SELECT` queries across `products` (joined with `suppliers`) for natural language lookup, budget thresholds, and reorder alerts (see [08-ai-assistant.md](./08-ai-assistant.md)). It has no write permissions over stock counts or schema data.
+
