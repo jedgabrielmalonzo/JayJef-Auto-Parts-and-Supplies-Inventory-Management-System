@@ -11,7 +11,7 @@ import { Input } from '../components/ui/input.jsx';
 import { Label } from '../components/ui/label.jsx';
 import { Textarea } from '../components/ui/textarea.jsx';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.jsx';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog.jsx';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.jsx';
 
 const STANDARD_UNITS = [
   { value: 'pc', label: 'Piece (pc)' },
@@ -164,9 +164,6 @@ export default function ProductFormPage() {
           <DialogTitle className="font-heading text-xl font-bold text-gray-900">
             {isEdit ? 'Edit Product' : 'Add New Auto Part'}
           </DialogTitle>
-          <DialogDescription className="text-xs text-gray-500">
-            Fill in auto part specs, Philippine Peso (₱) pricing, stock thresholds, and location code.
-          </DialogDescription>
         </DialogHeader>
 
         {loading ? (
@@ -203,7 +200,7 @@ export default function ProductFormPage() {
 
             <Section title="Basic Details">
               <div className="grid grid-cols-2 gap-4">
-                <Field label="SKU / Part Code" required error={fieldErrors.sku}>
+                <Field label="Part Number" required error={fieldErrors.sku}>
                   <Input
                     className="font-mono text-sm uppercase rounded-xl border-gray-300 focus:border-red-600"
                     aria-invalid={!!fieldErrors.sku}

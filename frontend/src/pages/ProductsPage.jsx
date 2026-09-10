@@ -7,6 +7,7 @@ import { listProducts, deleteProduct } from '../api/products.js';
 import { createMovement } from '../api/inventory.js';
 import { getOverview } from '../api/dashboard.js';
 import { CATEGORIES, formatCategory, availability } from '../constants.js';
+import { soundService } from '../lib/sound.js';
 import { Button } from '../components/ui/button.jsx';
 import { Badge } from '../components/ui/badge.jsx';
 import { Input } from '../components/ui/input.jsx';
@@ -90,14 +91,20 @@ function ProductsListView({ modal }) {
 
   async function handleQuickDeduct(p) {
     if (p.stock_quantity <= 0) {
+      soundService.playStockoutAlert();
       toast.error(`"${p.name}" is out of stock!`);
       return;
     }
     setDeductingId(p.id);
 
+    const newQty = Math.max(0, p.stock_quantity - 1);
+
     setProducts((prev) =>
-      prev.map((item) => (item.id === p.id ? { ...item, stock_quantity: Math.max(0, item.stock_quantity - 1) } : item))
+      prev.map((item) => (item.id === p.id ? { ...item, stock_quantity: newQty } : item))
     );
+
+    // Audio alert signal when stock drops to 0 or crosses threshold
+    soundService.checkAndPlayAlert(newQty, p.reorder_threshold);
 
     try {
       await createMovement({
@@ -106,7 +113,13 @@ function ProductsListView({ modal }) {
         reason: 'manual_adjustment',
         note: '1-Click Quick Sale (-1)',
       });
-      toast.success(`Sold 1 unit of "${p.name}" (Stock: ${p.stock_quantity - 1})`);
+      if (newQty === 0) {
+        toast.error(`🔴 OUT OF STOCK: "${p.name}" reached 0 units!`);
+      } else if (newQty <= (p.reorder_threshold || 5)) {
+        toast.warning(`⚠️ REORDER WARNING: "${p.name}" is low in stock (${newQty} left)!`);
+      } else {
+        toast.success(`Sold 1 unit of "${p.name}" (Stock: ${newQty})`);
+      }
       getOverview().then(setSummary).catch(() => {});
     } catch (err) {
       toast.error(err.message);

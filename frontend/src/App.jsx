@@ -3,9 +3,10 @@ import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation } from 're
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Wrench, LayoutDashboard, Package, ClipboardList, FileText, ScanLine, Map, BarChart3, Bot,
-  Menu, X
+  Menu, X, Settings
 } from 'lucide-react';
 import { Toaster } from './components/ui/sonner.jsx';
+import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import ProductsPage from './pages/ProductsPage.jsx';
 import InventoryPage from './pages/InventoryPage.jsx';
@@ -14,6 +15,8 @@ import OrdersPage from './pages/OrdersPage.jsx';
 import OcrPage from './pages/OcrPage.jsx';
 import MapPage from './pages/MapPage.jsx';
 import AssistantPage from './pages/AssistantPage.jsx';
+import SettingsPage from './pages/SettingsPage.jsx';
+import LoginPage from './pages/LoginPage.jsx';
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -99,6 +102,7 @@ const navItemVariants = {
 
 function HeaderBar({ onToggleMobileSidebar }) {
   const [time, setTime] = useState(new Date().toLocaleTimeString());
+  const { user, isAdmin } = useAuth();
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date().toLocaleTimeString()), 1000);
@@ -123,14 +127,23 @@ function HeaderBar({ onToggleMobileSidebar }) {
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2 border-l border-gray-200 pl-4">
+        <div className="flex items-center gap-2.5 border-l border-gray-200 pl-4">
           <div className="hidden sm:flex flex-col items-end leading-tight">
-            <span className="text-xs font-bold text-gray-900">JayJef Staff</span>
+            <span className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+              {isAdmin ? (
+                <>
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  Admin ({user?.name || 'Manager'})
+                </>
+              ) : (
+                'JayJef Staff'
+              )}
+            </span>
             <span className="text-[10px] font-medium text-gray-500">{time}</span>
           </div>
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-white font-bold text-xs shadow-sm">
-            JJ
-          </div>
+          <NavLink to="/settings" className="flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-white font-bold text-xs shadow-sm hover:opacity-90 transition-opacity">
+            {isAdmin ? 'AD' : 'JJ'}
+          </NavLink>
         </div>
       </div>
     </header>
@@ -230,6 +243,11 @@ function SidebarContent({ onCloseMobile }) {
           ))}
         </motion.nav>
       </div>
+
+      {/* Bottom Sidebar Section: Settings */}
+      <div className="pt-3 border-t border-gray-100 mt-auto">
+        <NavItem to="/settings" label="Settings & Admin" icon={Settings} onClick={onCloseMobile} />
+      </div>
     </div>
   );
 }
@@ -258,63 +276,79 @@ function AnimatedRoutes() {
           <Route path="/ocr/*" element={<OcrPage />} />
           <Route path="/map" element={<MapPage />} />
           <Route path="/assistant" element={<AssistantPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </motion.div>
     </AnimatePresence>
   );
 }
 
-export default function App() {
+function MainAppLayout() {
+  const { isAdmin } = useAuth();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
+  // FIRST ENCOUNTER GATEKEEPER:
+  // If user is not logged in as Admin, display full-screen Admin Login page immediately!
+  if (!isAdmin) {
+    return <LoginPage />;
+  }
+
   return (
-    <BrowserRouter>
-      <div className="flex min-h-screen bg-slate-50/70 text-gray-900">
-        {/* Mobile Backdrop Overlay */}
-        <AnimatePresence>
-          {mobileSidebarOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setMobileSidebarOpen(false)}
-              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs lg:hidden"
-            />
-          )}
-        </AnimatePresence>
+    <div className="flex min-h-screen bg-slate-50/70 text-gray-900">
+      {/* Mobile Backdrop Overlay */}
+      <AnimatePresence>
+        {mobileSidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setMobileSidebarOpen(false)}
+            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs lg:hidden"
+          />
+        )}
+      </AnimatePresence>
 
-        {/* Mobile Sidebar (Animated Drawer) */}
-        <AnimatePresence>
-          {mobileSidebarOpen && (
-            <motion.aside
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="fixed inset-y-0 left-0 z-50 flex h-screen w-64 shrink-0 flex-col border-r border-gray-200 bg-white shadow-2xl lg:hidden"
-            >
-              <SidebarContent onCloseMobile={() => setMobileSidebarOpen(false)} />
-            </motion.aside>
-          )}
-        </AnimatePresence>
+      {/* Mobile Sidebar (Animated Drawer) */}
+      <AnimatePresence>
+        {mobileSidebarOpen && (
+          <motion.aside
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="fixed inset-y-0 left-0 z-50 flex h-screen w-64 shrink-0 flex-col border-r border-gray-200 bg-white shadow-2xl lg:hidden"
+          >
+            <SidebarContent onCloseMobile={() => setMobileSidebarOpen(false)} />
+          </motion.aside>
+        )}
+      </AnimatePresence>
 
-        {/* Desktop Sidebar (Static Layout) */}
-        <aside className="hidden lg:flex inset-y-0 left-0 z-50 h-screen w-64 shrink-0 flex-col border-r border-gray-200 bg-white sticky top-0">
-          <SidebarContent onCloseMobile={() => { }} />
-        </aside>
+      {/* Desktop Sidebar (Static Layout with Settings at the bottom) */}
+      <aside className="hidden lg:flex inset-y-0 left-0 z-50 h-screen w-64 shrink-0 flex-col border-r border-gray-200 bg-white sticky top-0">
+        <SidebarContent onCloseMobile={() => { }} />
+      </aside>
 
-        {/* Main Content Area with Header */}
-        <div className="flex min-w-0 flex-1 flex-col">
-          <HeaderBar onToggleMobileSidebar={() => setMobileSidebarOpen(!mobileSidebarOpen)} />
-          <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
-            <ErrorBoundary>
-              <AnimatedRoutes />
-            </ErrorBoundary>
-          </main>
-        </div>
+      {/* Main Content Area with Header */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <HeaderBar onToggleMobileSidebar={() => setMobileSidebarOpen(!mobileSidebarOpen)} />
+        <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
+          <ErrorBoundary>
+            <AnimatedRoutes />
+          </ErrorBoundary>
+        </main>
       </div>
-      <Toaster position="top-right" />
-    </BrowserRouter>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <MainAppLayout />
+        <Toaster position="top-right" />
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 

@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { lowStock, listMovements, createMovement } from '../api/inventory.js';
 import { getOverview } from '../api/dashboard.js';
 import { MOVEMENT_REASON_LABELS, formatCategory } from '../constants.js';
+import { soundService } from '../lib/sound.js';
 import { Badge } from '../components/ui/badge.jsx';
 import MicroStatCard from '../components/MicroStatCard.jsx';
 import { Button } from '../components/ui/button.jsx';
@@ -104,6 +105,12 @@ function AdjustStockModal({ open, onClose, onSaved }) {
     try {
       const signedQuantity = direction === 'in' ? Number(quantity) : -Number(quantity);
       await createMovement({ product_id: product.id, quantity_change: signedQuantity, reason, note: note || undefined });
+
+      const newQty = Math.max(0, (product.stock_quantity || 0) + signedQuantity);
+      if (signedQuantity < 0) {
+        soundService.checkAndPlayAlert(newQty, product.reorder_threshold || 5);
+      }
+
       toast.success('Stock movement recorded');
       onSaved();
     } catch (err) {

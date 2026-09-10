@@ -16,7 +16,7 @@ function percentChange(current, previous) {
 }
 
 export async function overview() {
-  const [salesRes, purchaseRes, cancelRes, inventoryRes, toBeReceivedRes, supplierRes, categoryRes] = await Promise.all([
+  const [salesRes, purchaseRes, cancelRes, inventoryRes, toBeReceivedRes, supplierRes, categoryRes, lowStockRes, outOfStockRes] = await Promise.all([
     pool.query(`SELECT COUNT(*)::int AS count, COALESCE(SUM(total),0)::numeric AS total FROM purchase_orders WHERE type = 'sale' AND status = 'fulfilled'`),
     pool.query(`SELECT COUNT(*)::int AS count, COALESCE(SUM(total),0)::numeric AS total FROM purchase_orders WHERE type = 'purchase' AND status = 'fulfilled'`),
     pool.query(`SELECT COUNT(*)::int AS count FROM purchase_orders WHERE type = 'purchase' AND status = 'cancelled'`),
@@ -24,6 +24,8 @@ export async function overview() {
     pool.query(`SELECT COALESCE(SUM(poi.quantity),0)::int AS total FROM purchase_order_items poi JOIN purchase_orders po ON po.id = poi.purchase_order_id WHERE po.status = 'confirmed' AND po.type = 'purchase'`),
     pool.query(`SELECT COUNT(*)::int AS count FROM suppliers`),
     pool.query(`SELECT COUNT(DISTINCT category)::int AS count FROM products WHERE is_active = true`),
+    pool.query(`SELECT COUNT(*)::int AS count FROM products WHERE is_active = true AND stock_quantity <= reorder_threshold AND stock_quantity > 0`),
+    pool.query(`SELECT COUNT(*)::int AS count FROM products WHERE is_active = true AND stock_quantity = 0`),
   ]);
 
   const revenue = Number(salesRes.rows[0].total);
@@ -31,7 +33,12 @@ export async function overview() {
 
   return {
     sales: { count: salesRes.rows[0].count, revenue, profit: revenue - cost, cost },
-    inventory: { quantityInHand: inventoryRes.rows[0].total, toBeReceived: toBeReceivedRes.rows[0].total },
+    inventory: {
+      quantityInHand: inventoryRes.rows[0].total,
+      toBeReceived: toBeReceivedRes.rows[0].total,
+      lowStockCount: lowStockRes.rows[0].count,
+      outOfStockCount: outOfStockRes.rows[0].count,
+    },
     purchases: { count: purchaseRes.rows[0].count, cost, cancelled: cancelRes.rows[0].count },
     products: { supplierCount: supplierRes.rows[0].count, categoryCount: categoryRes.rows[0].count },
   };
