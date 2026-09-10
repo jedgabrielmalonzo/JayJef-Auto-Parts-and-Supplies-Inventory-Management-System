@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Loader2, AlertTriangle, TrendingUp, TrendingDown, PackageCheck, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { BarChart, Bar, LineChart, Line, CartesianGrid, XAxis, YAxis } from 'recharts';
@@ -22,6 +23,15 @@ function peso(n) {
 function monthLabel(iso) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short' });
 }
+
+const sectionVariants = {
+  hidden: { opacity: 0, y: 15 },
+  visible: (i) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.1, duration: 0.4, ease: 'easeOut' },
+  }),
+};
 
 export default function DashboardPage() {
   const [overview, setOverview] = useState(null);
@@ -65,14 +75,13 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Dashboard Title Header */}
-      <div>
+      <motion.div custom={0} variants={sectionVariants} initial="hidden" animate="visible">
         <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900">Dashboard</h1>
         <p className="text-sm text-gray-500 mt-1">Real-time inventory overview, sales analytics, and stock alerts</p>
-      </div>
+      </motion.div>
 
       {/* LAYER 1: 5 Essential KPI Micro-Stat Cards */}
-      <section>
-
+      <motion.section custom={1} variants={sectionVariants} initial="hidden" animate="visible">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <MicroStatCard
             title="Total Orders"
@@ -115,14 +124,13 @@ export default function DashboardPage() {
             type="gauge"
           />
         </div>
-      </section>
+      </motion.section>
 
       {/* LAYER 2: 2 Analytical Graphs */}
-      <section>
-
+      <motion.section custom={2} variants={sectionVariants} initial="hidden" animate="visible">
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           {/* Graph 1: Sales & Purchase */}
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs transition-all hover:shadow-md">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="font-heading font-bold text-gray-900 text-base">Sales vs. Purchase Comparison</h3>
@@ -152,7 +160,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Graph 2: Order Delivery Trend */}
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs transition-all hover:shadow-md">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="font-heading font-bold text-gray-900 text-base">Order Delivery &amp; Fulfillment</h3>
@@ -181,14 +189,13 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* LAYER 3: Stock Alerts & Fast Movers */}
-      <section>
-
+      <motion.section custom={3} variants={sectionVariants} initial="hidden" animate="visible">
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           {/* Alert Card 1: Low Quantity Stock */}
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden flex flex-col justify-between">
+          <div className="rounded-2xl border border-gray-200 bg-white shadow-xs transition-all hover:shadow-md overflow-hidden flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between p-5 pb-3 border-b border-gray-100">
                 <div className="flex items-center gap-2">
@@ -235,7 +242,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Alert Card 2: Top Selling Stock */}
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden flex flex-col justify-between">
+          <div className="rounded-2xl border border-gray-200 bg-white shadow-xs transition-all hover:shadow-md overflow-hidden flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between p-5 pb-3 border-b border-gray-100">
                 <div className="flex items-center gap-2">
@@ -279,7 +286,8 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
     </div>
   );
 }
+

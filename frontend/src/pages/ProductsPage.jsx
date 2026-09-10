@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Search, Plus, Pencil, Trash2, PackageSearch, Loader2, LayoutGrid, List, LayoutList, Box, Truck as TruckIcon, AlertTriangle, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { listProducts, deleteProduct } from '../api/products.js';
@@ -20,6 +21,15 @@ import {
 import ProductFormPage from './ProductFormPage.jsx';
 import ProductDetailPage from './ProductDetailPage.jsx';
 import ProductThumb from '../components/ProductThumb.jsx';
+
+const sectionVariants = {
+  hidden: { opacity: 0, y: 15 },
+  visible: (i) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.08, duration: 0.35, ease: 'easeOut' },
+  }),
+};
 
 function ProductsListView({ modal }) {
   const location = useLocation();
@@ -86,7 +96,7 @@ function ProductsListView({ modal }) {
       {modal}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <motion.div custom={0} variants={sectionVariants} initial="hidden" animate="visible" className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900">Products Catalog</h1>
           <p className="text-sm text-gray-500 mt-1">Manage auto parts, prices, categories, and stock thresholds</p>
@@ -95,10 +105,10 @@ function ProductsListView({ modal }) {
           <Plus size={18} strokeWidth={2.5} />
           Add New Product
         </Button>
-      </div>
+      </motion.div>
 
       {/* Modern Filter Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+      <motion.div custom={1} variants={sectionVariants} initial="hidden" animate="visible" className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
           <div className="relative flex-1 min-w-[200px]">
             <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -149,7 +159,7 @@ function ProductsListView({ modal }) {
             <LayoutGrid size={18} />
           </button>
         </div>
-      </div>
+      </motion.div>
 
       {loading && (
         <div className="flex items-center justify-center gap-2 py-20 text-gray-500">
@@ -167,7 +177,7 @@ function ProductsListView({ modal }) {
 
       {/* Table List View */}
       {!loading && products.length > 0 && view === 'list' && (
-        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <motion.div custom={2} variants={sectionVariants} initial="hidden" animate="visible" className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
           <Table>
             <TableHeader className="bg-gray-50/80">
               <TableRow>
@@ -235,12 +245,12 @@ function ProductsListView({ modal }) {
               })}
             </TableBody>
           </Table>
-        </div>
+        </motion.div>
       )}
 
       {/* Grid Card View */}
       {!loading && products.length > 0 && view === 'grid' && (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <motion.div custom={2} variants={sectionVariants} initial="hidden" animate="visible" className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {products.map((p) => {
             const avail = availability(p);
             return (
@@ -281,7 +291,7 @@ function ProductsListView({ modal }) {
               </Card>
             );
           })}
-        </div>
+        </motion.div>
       )}
 
       <AlertDialog open={!!pendingDelete} onOpenChange={(open) => !open && setPendingDelete(null)}>
@@ -312,3 +322,4 @@ export default function ProductsPage() {
     </Routes>
   );
 }
+

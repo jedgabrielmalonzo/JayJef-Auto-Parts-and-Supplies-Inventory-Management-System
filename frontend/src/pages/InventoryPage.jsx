@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { AlertTriangle, ClipboardList, Loader2, Package, PlusCircle, Search, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 import { lowStock, listMovements, createMovement } from '../api/inventory.js';
@@ -18,6 +19,15 @@ import ProductPicker from '../components/ProductPicker.jsx';
 
 const DIRECTION_LABELS = { in: 'Stock In (+)', out: 'Stock Out (−)' };
 const REASON_OPTIONS = { manual_adjustment: 'Manual Adjustment', correction: 'Correction' };
+
+const sectionVariants = {
+  hidden: { opacity: 0, y: 15 },
+  visible: (i) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.08, duration: 0.35, ease: 'easeOut' },
+  }),
+};
 
 function AdjustStockModal({ open, onClose, onSaved }) {
   const [product, setProduct] = useState(null);
@@ -142,22 +152,22 @@ export default function InventoryPage() {
   }
 
   return (
-    <div>
+    <div className="space-y-6">
       <AdjustStockModal open={adjustOpen} onClose={() => setAdjustOpen(false)} onSaved={handleAdjusted} />
 
-      <div className="flex items-center justify-between mb-6">
+      <motion.div custom={0} variants={sectionVariants} initial="hidden" animate="visible" className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-3xl text-black-900">Inventory</h1>
-          <div className="h-1 w-16 bg-black-900 mt-2" />
+          <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900">Stock and Movement</h1>
+          <p className="text-sm text-gray-500 mt-1">Real-time inventory levels, stock adjustments, and movements history</p>
         </div>
-        <Button onClick={() => setAdjustOpen(true)}>
+        <Button onClick={() => setAdjustOpen(true)} className="bg-red-600 hover:bg-red-700">
           <PlusCircle size={16} strokeWidth={2.5} />
           Adjust Stock
         </Button>
-      </div>
+      </motion.div>
 
       {summary && (
-        <div className="mb-6">
+        <motion.div custom={1} variants={sectionVariants} initial="hidden" animate="visible">
           <StatCard
             title="Inventory Summary"
             items={[
@@ -166,33 +176,33 @@ export default function InventoryPage() {
               { icon: AlertTriangle, value: lowStockItems.length, label: 'Low Stock', tint: '#6B6B6B' },
             ]}
           />
-        </div>
+        </motion.div>
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-16 text-black-500">
-          <Loader2 size={16} className="animate-spin" />
-          Loading...
+        <div className="flex items-center justify-center gap-2 py-16 text-gray-500">
+          <Loader2 size={16} className="animate-spin text-red-600" />
+          Loading inventory movements...
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+        <motion.div custom={2} variants={sectionVariants} initial="hidden" animate="visible" className="grid grid-cols-1 gap-6 lg:grid-cols-5">
           <section className="lg:col-span-2">
-            <h2 className="font-heading font-bold text-sm uppercase tracking-wide text-black-500 mb-3 flex items-center gap-2">
+            <h2 className="font-heading font-bold text-sm uppercase tracking-wide text-gray-500 mb-3 flex items-center gap-2">
               <AlertTriangle size={15} className="text-amber-700" />
-              Low Stock ({lowStockItems.length})
+              Low Stock Alerts ({lowStockItems.length})
             </h2>
-            <div className="rounded-lg border border-gray-200 shadow-sm divide-y divide-gray-200">
+            <div className="rounded-2xl border border-gray-200 bg-white shadow-xs divide-y divide-gray-100 overflow-hidden">
               {lowStockItems.length === 0 && (
-                <p className="px-4 py-6 text-sm text-black-500">Nothing below its reorder threshold right now.</p>
+                <p className="px-4 py-6 text-sm text-gray-500">Nothing below its reorder threshold right now.</p>
               )}
               {lowStockItems.map((p) => (
                 <Link key={p.id} to={`/products/${p.id}/edit`} className="flex items-center justify-between px-4 py-3 text-sm hover:bg-gray-50 transition-colors">
                   <div>
-                    <p className="text-black-900 font-medium">{p.name}</p>
-                    <p className="font-mono text-xs text-black-500">{p.sku} · <Badge>{formatCategory(p.category)}</Badge></p>
+                    <p className="text-gray-900 font-semibold">{p.name}</p>
+                    <p className="font-mono text-xs text-gray-500">{p.sku} · <Badge>{formatCategory(p.category)}</Badge></p>
                   </div>
                   <div className="text-right tabular-nums">
-                    <p className="text-black-900">{p.stock_quantity} / {p.reorder_threshold}</p>
+                    <p className="text-gray-900 font-bold">{p.stock_quantity} / {p.reorder_threshold}</p>
                     <Badge variant="warning">Low Stock</Badge>
                   </div>
                 </Link>
@@ -201,48 +211,49 @@ export default function InventoryPage() {
           </section>
 
           <section className="lg:col-span-3">
-            <h2 className="font-heading font-bold text-sm uppercase tracking-wide text-black-500 mb-3 flex items-center gap-2">
+            <h2 className="font-heading font-bold text-sm uppercase tracking-wide text-gray-500 mb-3 flex items-center gap-2">
               <ClipboardList size={15} />
               Recent Movements
             </h2>
-            <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xs">
               <Table>
-                <TableHeader>
+                <TableHeader className="bg-gray-50/80">
                   <TableRow>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Change</TableHead>
-                    <TableHead>Reason</TableHead>
-                    <TableHead>When</TableHead>
+                    <TableHead className="font-semibold text-gray-700">Product</TableHead>
+                    <TableHead className="font-semibold text-gray-700">Change</TableHead>
+                    <TableHead className="font-semibold text-gray-700">Reason</TableHead>
+                    <TableHead className="font-semibold text-gray-700">When</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {movements.length === 0 && (
-                    <TableRow><TableCell colSpan={4} className="py-10 text-center text-black-500">
+                    <TableRow><TableCell colSpan={4} className="py-10 text-center text-gray-500">
                       <div className="flex flex-col items-center gap-2">
-                        <Search size={24} className="text-black-300" strokeWidth={1.5} />
+                        <Search size={24} className="text-gray-300" strokeWidth={1.5} />
                         No stock movements recorded yet.
                       </div>
                     </TableCell></TableRow>
                   )}
                   {movements.map((m) => (
-                    <TableRow key={m.id}>
+                    <TableRow key={m.id} className="hover:bg-gray-50/50">
                       <TableCell>
-                        <p className="text-black-900">{m.product_name}</p>
-                        <p className="font-mono text-xs text-black-500">{m.product_sku}</p>
+                        <p className="text-gray-900 font-medium">{m.product_name}</p>
+                        <p className="font-mono text-xs text-gray-500">{m.product_sku}</p>
                       </TableCell>
-                      <TableCell className={`tabular-nums font-medium ${m.quantity_change >= 0 ? 'text-green-600' : 'text-black-900'}`}>
+                      <TableCell className={`tabular-nums font-bold ${m.quantity_change >= 0 ? 'text-emerald-600' : 'text-gray-900'}`}>
                         {m.quantity_change >= 0 ? '+' : '−'}{Math.abs(m.quantity_change)}
                       </TableCell>
-                      <TableCell className="text-black-700">{MOVEMENT_REASON_LABELS[m.reason] || m.reason}</TableCell>
-                      <TableCell className="text-black-500">{new Date(m.created_at).toLocaleString()}</TableCell>
+                      <TableCell className="text-gray-700 font-medium">{MOVEMENT_REASON_LABELS[m.reason] || m.reason}</TableCell>
+                      <TableCell className="text-gray-500 text-xs">{new Date(m.created_at).toLocaleString()}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </div>
           </section>
-        </div>
+        </motion.div>
       )}
     </div>
   );
 }
+

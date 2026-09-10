@@ -1,8 +1,9 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 
 /**
- * SegmentedProgressCard - Renders progress bar stat cards matching the requested UI image:
- * Features: Large primary value, subtitle, multi-segment colored bar, and dot legend row.
+ * SegmentedProgressCard - Renders progress bar stat cards with Motion.dev animations:
+ * Features: Large primary value, subtitle, animated multi-segment colored bar, and dot legend row.
  */
 export default function SegmentedProgressCard({
   title,
@@ -11,7 +12,13 @@ export default function SegmentedProgressCard({
   segments = [],
 }) {
   return (
-    <div className="flex flex-col justify-between rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:shadow-md">
+    <motion.div
+      whileHover={{ y: -3, transition: { duration: 0.2 } }}
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="flex flex-col justify-between rounded-2xl border border-gray-200 bg-white p-5 shadow-xs hover:shadow-md transition-shadow cursor-pointer"
+    >
       {/* Title & Value */}
       <div>
         <h4 className="text-sm font-semibold text-gray-700">{title}</h4>
@@ -25,11 +32,13 @@ export default function SegmentedProgressCard({
       <div className="mt-5 mb-3">
         <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-gray-100 gap-0.5">
           {segments.map((seg, idx) => (
-            <div
+            <motion.div
               key={idx}
-              className="h-full transition-all duration-500"
+              initial={{ width: 0 }}
+              animate={{ width: `${seg.percent}%` }}
+              transition={{ duration: 0.8, delay: idx * 0.1, ease: 'easeOut' }}
+              className="h-full"
               style={{
-                width: `${seg.percent}%`,
                 backgroundColor: seg.color,
               }}
             />
@@ -54,6 +63,7 @@ export default function SegmentedProgressCard({
           </div>
         ))}
       </div>
-    </div>
+    </motion.div>
   );
 }
+

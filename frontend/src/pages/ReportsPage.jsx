@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { TrendingUp, Wallet, ShoppingCart, ShoppingBag, Receipt, ArrowUpCircle, ArrowDownCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { LineChart, Line, CartesianGrid, XAxis, YAxis } from 'recharts';
@@ -26,12 +27,21 @@ function ChangeBadge({ pct }) {
   const positive = pct >= 0;
   const Icon = positive ? ArrowUpCircle : ArrowDownCircle;
   return (
-    <span className={`inline-flex items-center gap-1 tabular-nums ${positive ? 'text-green-600' : 'text-black-900'}`}>
+    <span className={`inline-flex items-center gap-1 tabular-nums font-semibold ${positive ? 'text-emerald-600' : 'text-gray-900'}`}>
       <Icon size={13} />
       {positive ? '+' : ''}{pct}%
     </span>
   );
 }
+
+const sectionVariants = {
+  hidden: { opacity: 0, y: 15 },
+  visible: (i) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.08, duration: 0.35, ease: 'easeOut' },
+  }),
+};
 
 export default function ReportsPage() {
   const [overview, setOverview] = useState(null);
@@ -54,37 +64,39 @@ export default function ReportsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center gap-2 py-16 text-black-500">
-        <Loader2 size={16} className="animate-spin" />
-        Loading...
+      <div className="flex items-center justify-center gap-2 py-16 text-gray-500">
+        <Loader2 size={16} className="animate-spin text-red-600" />
+        Loading financial reports...
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="font-display text-3xl text-black-900">Reports</h1>
-        <div className="h-1 w-16 bg-black-900 mt-2" />
-      </div>
+    <div className="space-y-6">
+      <motion.div custom={0} variants={sectionVariants} initial="hidden" animate="visible">
+        <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900">Report and Analytics</h1>
+        <p className="text-sm text-gray-500 mt-1">Financial performance, profit margins, and fast-selling category analytics</p>
+      </motion.div>
 
-      <StatCard
-        title="Overview"
-        items={[
-          { icon: TrendingUp, value: peso(overview.totalProfit), label: 'Total Profit', tint: GREEN },
-          { icon: Wallet, value: peso(overview.revenue), label: 'Revenue', tint: BLUE },
-          { icon: ShoppingCart, value: overview.sales, label: 'Sales', tint: AMBER },
-          { icon: ShoppingBag, value: peso(overview.netPurchaseValue), label: 'Net purchase value', tint: GRAY },
-          { icon: Receipt, value: peso(overview.netSalesValue), label: 'Net sales value', tint: BLUE },
-          { icon: overview.momProfitPct >= 0 ? ArrowUpCircle : ArrowDownCircle, value: `${overview.momProfitPct >= 0 ? '+' : ''}${overview.momProfitPct}%`, label: 'MoM Profit', tint: overview.momProfitPct >= 0 ? GREEN : GRAY },
-          { icon: overview.yoyProfitPct >= 0 ? ArrowUpCircle : ArrowDownCircle, value: `${overview.yoyProfitPct >= 0 ? '+' : ''}${overview.yoyProfitPct}%`, label: 'YoY Profit', tint: overview.yoyProfitPct >= 0 ? GREEN : GRAY },
-        ]}
-      />
+      <motion.div custom={1} variants={sectionVariants} initial="hidden" animate="visible">
+        <StatCard
+          title="Overview"
+          items={[
+            { icon: TrendingUp, value: peso(overview.totalProfit), label: 'Total Profit', tint: GREEN },
+            { icon: Wallet, value: peso(overview.revenue), label: 'Revenue', tint: BLUE },
+            { icon: ShoppingCart, value: overview.sales, label: 'Sales', tint: AMBER },
+            { icon: ShoppingBag, value: peso(overview.netPurchaseValue), label: 'Net purchase value', tint: GRAY },
+            { icon: Receipt, value: peso(overview.netSalesValue), label: 'Net sales value', tint: BLUE },
+            { icon: overview.momProfitPct >= 0 ? ArrowUpCircle : ArrowDownCircle, value: `${overview.momProfitPct >= 0 ? '+' : ''}${overview.momProfitPct}%`, label: 'MoM Profit', tint: overview.momProfitPct >= 0 ? GREEN : GRAY },
+            { icon: overview.yoyProfitPct >= 0 ? ArrowUpCircle : ArrowDownCircle, value: `${overview.yoyProfitPct >= 0 ? '+' : ''}${overview.yoyProfitPct}%`, label: 'YoY Profit', tint: overview.yoyProfitPct >= 0 ? GREEN : GRAY },
+          ]}
+        />
+      </motion.div>
 
-      <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-        <h3 className="mb-3 font-heading font-bold text-black-900">Profit &amp; Revenue</h3>
+      <motion.div custom={2} variants={sectionVariants} initial="hidden" animate="visible" className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs transition-all hover:shadow-md">
+        <h3 className="mb-3 font-heading font-bold text-gray-900 text-base">Profit &amp; Revenue Trend</h3>
         {chart.length === 0 ? (
-          <p className="py-10 text-center text-sm text-black-500">No fulfilled orders yet.</p>
+          <p className="py-10 text-center text-sm text-gray-500">No fulfilled orders yet.</p>
         ) : (
           <ChartContainer
             config={{ revenue: { label: 'Revenue', color: BLUE }, profit: { label: 'Profit', color: AMBER } }}
@@ -100,27 +112,27 @@ export default function ReportsPage() {
             </LineChart>
           </ChartContainer>
         )}
-      </div>
+      </motion.div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
-          <h3 className="px-4 pt-4 font-heading font-bold text-black-900">Best Selling Category</h3>
+      <motion.div custom={3} variants={sectionVariants} initial="hidden" animate="visible" className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
+          <h3 className="p-5 pb-3 font-heading font-bold text-gray-900 text-base border-b border-gray-100">Best Selling Category</h3>
           {categories.length === 0 ? (
-            <p className="px-4 py-10 text-center text-sm text-black-500">No sales recorded this month.</p>
+            <p className="p-8 text-center text-sm text-gray-500">No sales recorded this month.</p>
           ) : (
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-gray-50/80">
                 <TableRow>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Turn Over</TableHead>
-                  <TableHead>Increase By</TableHead>
+                  <TableHead className="font-semibold text-gray-700">Category</TableHead>
+                  <TableHead className="font-semibold text-gray-700">Turnover</TableHead>
+                  <TableHead className="font-semibold text-gray-700">Growth</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {categories.map((c) => (
-                  <TableRow key={c.category}>
-                    <TableCell className="text-black-900">{formatCategory(c.category)}</TableCell>
-                    <TableCell className="tabular-nums text-black-900">{peso(c.turnover)}</TableCell>
+                  <TableRow key={c.category} className="hover:bg-gray-50/50">
+                    <TableCell className="text-gray-900 font-medium">{formatCategory(c.category)}</TableCell>
+                    <TableCell className="tabular-nums font-bold text-gray-900">{peso(c.turnover)}</TableCell>
                     <TableCell><ChangeBadge pct={c.increaseByPct} /></TableCell>
                   </TableRow>
                 ))}
@@ -129,32 +141,32 @@ export default function ReportsPage() {
           )}
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
-          <h3 className="px-4 pt-4 font-heading font-bold text-black-900">Best Selling Product</h3>
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
+          <h3 className="p-5 pb-3 font-heading font-bold text-gray-900 text-base border-b border-gray-100">Best Selling Product</h3>
           {products.length === 0 ? (
-            <p className="px-4 py-10 text-center text-sm text-black-500">No sales recorded this month.</p>
+            <p className="p-8 text-center text-sm text-gray-500">No sales recorded this month.</p>
           ) : (
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader>
+                <TableHeader className="bg-gray-50/80">
                   <TableRow>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Remaining Qty</TableHead>
-                    <TableHead>Turn Over</TableHead>
-                    <TableHead>Increase By</TableHead>
+                    <TableHead className="font-semibold text-gray-700">Product</TableHead>
+                    <TableHead className="font-semibold text-gray-700">Category</TableHead>
+                    <TableHead className="font-semibold text-gray-700">Stock Qty</TableHead>
+                    <TableHead className="font-semibold text-gray-700">Turnover</TableHead>
+                    <TableHead className="font-semibold text-gray-700">Growth</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {products.map((p) => (
-                    <TableRow key={p.id}>
+                    <TableRow key={p.id} className="hover:bg-gray-50/50">
                       <TableCell>
-                        <p className="text-black-900">{p.name}</p>
-                        <p className="font-mono text-xs text-black-500">{p.sku}</p>
+                        <p className="text-gray-900 font-medium">{p.name}</p>
+                        <p className="font-mono text-xs text-gray-500">{p.sku}</p>
                       </TableCell>
-                      <TableCell><Badge variant="neutral">{formatCategory(p.category)}</Badge></TableCell>
-                      <TableCell className="tabular-nums text-black-700">{p.remainingQuantity}</TableCell>
-                      <TableCell className="tabular-nums text-black-900">{peso(p.turnover)}</TableCell>
+                      <TableCell><Badge variant="outline">{formatCategory(p.category)}</Badge></TableCell>
+                      <TableCell className="tabular-nums font-semibold text-gray-700">{p.remainingQuantity}</TableCell>
+                      <TableCell className="tabular-nums font-bold text-gray-900">{peso(p.turnover)}</TableCell>
                       <TableCell><ChangeBadge pct={p.increaseByPct} /></TableCell>
                     </TableRow>
                   ))}
@@ -163,7 +175,8 @@ export default function ReportsPage() {
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
+

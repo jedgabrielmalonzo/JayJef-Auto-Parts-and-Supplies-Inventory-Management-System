@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
 import { Search, MapPin, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { getProductLocations } from '../api/products.js';
@@ -13,8 +14,6 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
 } from '../components/ui/alert-dialog.jsx';
 
-// No red — red is reserved as the single "you're looking for this one"
-// highlight signal (docs/09).
 const COLOR_OPTIONS = [
   { value: '#3A6EA5', label: 'Blue' },
   { value: '#1E7B34', label: 'Green' },
@@ -22,6 +21,15 @@ const COLOR_OPTIONS = [
   { value: '#6B6B6B', label: 'Gray' },
   { value: '#7C3AED', label: 'Purple' },
 ];
+
+const sectionVariants = {
+  hidden: { opacity: 0, y: 15 },
+  visible: (i) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.08, duration: 0.35, ease: 'easeOut' },
+  }),
+};
 
 function CabinetFormDialog({ open, cabinet, onClose, onSaved }) {
   const isEdit = !!cabinet;
@@ -155,7 +163,7 @@ function Cabinet({ cabinet, editMode, highlighted, onDragEnd, onEdit, onDelete }
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
-      className={`absolute flex select-none flex-col items-center justify-center rounded text-center text-xs font-bold text-white shadow-sm transition-shadow ${editMode ? 'cursor-grab active:cursor-grabbing' : ''} ${highlighted ? 'ring-4 ring-red-600 ring-offset-2' : ''}`}
+      className={`absolute flex select-none flex-col items-center justify-center rounded-xl text-center text-xs font-bold text-white shadow-md transition-shadow ${editMode ? 'cursor-grab active:cursor-grabbing' : ''} ${highlighted ? 'ring-4 ring-red-600 ring-offset-2 scale-105' : ''}`}
       style={{ left: pos.x, top: pos.y, width: Number(cabinet.width), height: Number(cabinet.height), backgroundColor: cabinet.color }}
     >
       {cabinet.label}
@@ -166,7 +174,7 @@ function Cabinet({ cabinet, editMode, highlighted, onDragEnd, onEdit, onDelete }
             title="Edit"
             onPointerDown={(e) => e.stopPropagation()}
             onClick={() => onEdit(cabinet)}
-            className="flex size-6 items-center justify-center rounded-full border border-gray-300 bg-white text-black-700 shadow-sm hover:bg-gray-50"
+            className="flex size-6 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-700 shadow-sm hover:bg-gray-50"
           >
             <Pencil size={11} />
           </button>
@@ -175,7 +183,7 @@ function Cabinet({ cabinet, editMode, highlighted, onDragEnd, onEdit, onDelete }
             title="Delete"
             onPointerDown={(e) => e.stopPropagation()}
             onClick={() => onDelete(cabinet)}
-            className="flex size-6 items-center justify-center rounded-full border border-gray-300 bg-white text-black-700 shadow-sm hover:bg-red-50 hover:text-red-600"
+            className="flex size-6 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-700 shadow-sm hover:bg-red-50 hover:text-red-600"
           >
             <X size={12} />
           </button>
@@ -236,11 +244,11 @@ export default function MapPage() {
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
+    <div className="space-y-6">
+      <motion.div custom={0} variants={sectionVariants} initial="hidden" animate="visible" className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-3xl text-black-900">Shop Map</h1>
-          <div className="h-1 w-16 bg-black-900 mt-2" />
+          <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900">Shop Map 3D</h1>
+          <p className="text-sm text-gray-500 mt-1">Interactive floorplan and cabinet aisle finder</p>
         </div>
         <div className="flex items-center gap-2">
           {editMode && (
@@ -254,44 +262,44 @@ export default function MapPage() {
             {editMode ? 'Done Editing' : 'Edit Layout'}
           </Button>
         </div>
-      </div>
+      </motion.div>
 
       {!editMode && (
-        <div className="relative mb-4 max-w-sm">
-          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-black-500" />
+        <motion.div custom={1} variants={sectionVariants} initial="hidden" animate="visible" className="relative max-w-sm">
+          <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
           <Input
-            className="pl-9"
-            placeholder="Search a product to locate it..."
+            className="pl-10 rounded-xl border-gray-300"
+            placeholder="Search a product to locate its aisle..."
             value={query}
             onChange={(e) => { setQuery(e.target.value); setSelected(null); }}
           />
           {options.length > 0 && !selected && (
-            <div className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded border border-gray-200 bg-white shadow-md">
+            <div className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg">
               {options.map((p) => (
                 <button
                   type="button"
                   key={p.id}
-                  className="block w-full px-3 py-2 text-left text-sm hover:bg-gray-50 transition-colors"
+                  className="block w-full px-3.5 py-2 text-left text-sm hover:bg-gray-50 transition-colors"
                   onClick={() => { setSelected(p); setQuery(`${p.sku} — ${p.name}`); setOptions([]); }}
                 >
-                  <span className="font-mono">{p.sku}</span> — {p.name}
+                  <span className="font-mono font-bold text-red-600">{p.sku}</span> — {p.name}
                 </button>
               ))}
             </div>
           )}
           {selected && !highlightedCabinet && (
-            <div className="absolute z-10 mt-1 w-full rounded border border-amber-700 bg-amber-100 px-3 py-2 text-sm text-amber-700">
+            <div className="absolute z-10 mt-1 w-full rounded-xl border border-amber-700 bg-amber-100 px-3 py-2 text-sm text-amber-700">
               This product's aisle ({selected.location_aisle || 'not set'}) isn't on the map yet.
             </div>
           )}
-        </div>
+        </motion.div>
       )}
 
       {editMode && (
-        <p className="mb-4 text-sm text-black-500">Drag cabinets to match your real floor plan. Changes save as you go.</p>
+        <p className="text-sm text-gray-500">Drag cabinets to match your real floor plan. Changes save as you go.</p>
       )}
 
-      <div className="relative h-[560px] overflow-auto rounded-lg border border-gray-200 bg-gray-50 shadow-sm">
+      <motion.div custom={2} variants={sectionVariants} initial="hidden" animate="visible" className="relative h-[560px] overflow-auto rounded-2xl border border-gray-200 bg-gray-50 shadow-xs">
         <div
           className="relative"
           style={{
@@ -313,22 +321,22 @@ export default function MapPage() {
             />
           ))}
         </div>
-      </div>
+      </motion.div>
 
       {highlightedCabinet && selected && (
-        <div className="mt-3 inline-flex flex-col gap-0.5 rounded border border-red-600 bg-white px-3 py-2 text-sm shadow-sm">
-          <p className="font-mono font-medium text-black-900">{selected.sku}</p>
-          <p className="text-black-700">{selected.name}</p>
-          <p className="text-black-500">
-            {[selected.location_aisle, selected.location_shelf, selected.location_bin].filter(Boolean).join(' / ')}
+        <div className="inline-flex flex-col gap-0.5 rounded-xl border border-red-600 bg-white p-4 text-sm shadow-md">
+          <p className="font-mono font-bold text-red-600">{selected.sku}</p>
+          <p className="text-gray-900 font-bold">{selected.name}</p>
+          <p className="text-gray-500 text-xs mt-0.5">
+            Aisle/Shelf/Bin: {[selected.location_aisle, selected.location_shelf, selected.location_bin].filter(Boolean).join(' / ')}
           </p>
         </div>
       )}
 
       {!editMode && (
-        <p className="mt-3 flex items-center gap-1.5 text-xs text-black-500">
+        <p className="flex items-center gap-1.5 text-xs text-gray-500">
           <MapPin size={13} />
-          A static reference for where things are — not a live tracker.
+          Interactive reference for shop cabinet layouts.
         </p>
       )}
 
@@ -359,3 +367,4 @@ export default function MapPage() {
     </div>
   );
 }
+

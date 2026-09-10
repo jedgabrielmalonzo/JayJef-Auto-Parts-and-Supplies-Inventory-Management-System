@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Wrench, LayoutDashboard, Package, ClipboardList, FileText, ScanLine, Map, BarChart3, Bot,
   Search, Menu, X
@@ -25,6 +26,36 @@ const NAV_ITEMS = [
   { to: '/assistant', label: 'AI Assistant', icon: Bot, isSpecial: true },
 ];
 
+const pageVariants = {
+  hidden: { opacity: 0, y: 14 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.35, ease: 'easeOut' },
+  },
+  exit: {
+    opacity: 0,
+    y: -8,
+    transition: { duration: 0.15, ease: 'easeIn' },
+  },
+};
+
+const navListVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.04,
+      delayChildren: 0.05,
+    },
+  },
+};
+
+const navItemVariants = {
+  hidden: { opacity: 0, x: -12 },
+  visible: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 400, damping: 28 } },
+};
+
 function HeaderBar({ onToggleMobileSidebar }) {
   const [time, setTime] = useState(new Date().toLocaleTimeString());
 
@@ -36,13 +67,14 @@ function HeaderBar({ onToggleMobileSidebar }) {
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-gray-200 bg-white/95 px-4 sm:px-6 backdrop-blur-md">
       <div className="flex items-center gap-3">
-        <button
+        <motion.button
+          whileTap={{ scale: 0.9 }}
           onClick={onToggleMobileSidebar}
           className="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-100 lg:hidden"
           aria-label="Toggle Navigation Menu"
         >
           <Menu size={20} />
-        </button>
+        </motion.button>
         <span className="flex h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse" />
         <span className="text-xs font-semibold uppercase tracking-wider text-gray-600 truncate">
           JayJef Auto Parts • Main Branch
@@ -73,28 +105,132 @@ function HeaderBar({ onToggleMobileSidebar }) {
 }
 
 function NavItem({ to, label, icon: Icon, isSpecial, onClick }) {
+  const location = useLocation();
+  const isActive = location.pathname.startsWith(to);
+
   return (
-    <NavLink
-      to={to}
-      onClick={onClick}
-      className={({ isActive }) =>
-        `flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-all ${
+    <motion.div variants={navItemVariants}>
+      <NavLink
+        to={to}
+        onClick={onClick}
+        className={`group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors ${
           isActive
-            ? 'bg-red-600 text-white font-bold shadow-sm'
+            ? 'text-white font-bold'
             : isSpecial
-            ? 'text-red-600 hover:bg-red-50 hover:text-red-700'
-            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-        }`
-      }
-    >
-      <Icon size={18} className={isSpecial ? 'text-red-600' : ''} />
-      <span className="flex-1 truncate">{label}</span>
-      {isSpecial && (
-        <span className="rounded-full bg-red-100 border border-red-200 px-1.5 py-0.5 text-[10px] font-bold text-red-600 uppercase">
-          AI
-        </span>
-      )}
-    </NavLink>
+            ? 'text-red-600 hover:bg-red-50/70 hover:text-red-700'
+            : 'text-gray-600 hover:bg-gray-100/80 hover:text-gray-900'
+        }`}
+      >
+        {/* Animated Gliding Active Background Pill */}
+        {isActive && (
+          <motion.span
+            layoutId="activeSidebarPill"
+            className="absolute inset-0 rounded-xl bg-red-600 shadow-md shadow-red-600/30"
+            transition={{ type: 'spring', stiffness: 450, damping: 32 }}
+          />
+        )}
+
+        <motion.div
+          whileHover={{ scale: 1.15, rotate: 5 }}
+          whileTap={{ scale: 0.9 }}
+          className="relative z-10"
+        >
+          <Icon size={18} className={isSpecial && !isActive ? 'text-red-600' : ''} />
+        </motion.div>
+
+        <span className="relative z-10 flex-1 truncate">{label}</span>
+
+        {isSpecial && (
+          <span
+            className={`relative z-10 rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase ${
+              isActive
+                ? 'bg-white/20 text-white border border-white/30'
+                : 'bg-red-100 border border-red-200 text-red-600'
+            }`}
+          >
+            AI
+          </span>
+        )}
+      </NavLink>
+    </motion.div>
+  );
+}
+
+function SidebarContent({ onCloseMobile }) {
+  return (
+    <div className="flex h-full flex-col justify-between p-4">
+      <div>
+        {/* Shop Brand Logo & Mobile Close */}
+        <div className="flex items-center justify-between px-2 py-3 mb-4 border-b border-gray-100 pb-5">
+          <NavLink to="/dashboard" onClick={onCloseMobile} className="flex items-center gap-3">
+            <motion.span
+              whileHover={{ rotate: 12, scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-600 text-white shadow-md shadow-red-600/30"
+            >
+              <Wrench size={22} strokeWidth={2.5} />
+            </motion.span>
+            <span className="leading-none">
+              <span className="block font-display text-lg tracking-tight text-gray-900">JAYJEF</span>
+              <span className="block text-[10px] font-bold uppercase tracking-wider text-red-600 mt-1">
+                Auto Parts &amp; Supplies
+              </span>
+            </span>
+          </NavLink>
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={onCloseMobile}
+            className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 lg:hidden"
+          >
+            <X size={20} />
+          </motion.button>
+        </div>
+
+        {/* Navigation Category */}
+        <div className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+          System Modules
+        </div>
+        <motion.nav
+          variants={navListVariants}
+          initial="hidden"
+          animate="visible"
+          className="flex flex-col gap-1"
+        >
+          {NAV_ITEMS.map((item) => (
+            <NavItem key={item.to} {...item} onClick={onCloseMobile} />
+          ))}
+        </motion.nav>
+      </div>
+    </div>
+  );
+}
+
+function AnimatedRoutes() {
+  const location = useLocation();
+
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location.pathname.split('/')[1] || 'dashboard'}
+        variants={pageVariants}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+        className="w-full"
+      >
+        <Routes location={location}>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/products/*" element={<ProductsPage />} />
+          <Route path="/inventory" element={<InventoryPage />} />
+          <Route path="/orders/*" element={<OrdersPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/ocr/*" element={<OcrPage />} />
+          <Route path="/map" element={<MapPage />} />
+          <Route path="/assistant" element={<AssistantPage />} />
+        </Routes>
+      </motion.div>
+    </AnimatePresence>
   );
 }
 
@@ -105,68 +241,43 @@ export default function App() {
     <BrowserRouter>
       <div className="flex min-h-screen bg-slate-50/70 text-gray-900">
         {/* Mobile Backdrop Overlay */}
-        {mobileSidebarOpen && (
-          <div
-            onClick={() => setMobileSidebarOpen(false)}
-            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs lg:hidden"
-          />
-        )}
+        <AnimatePresence>
+          {mobileSidebarOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileSidebarOpen(false)}
+              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs lg:hidden"
+            />
+          )}
+        </AnimatePresence>
 
-        {/* Sidebar */}
-        <aside
-          className={`fixed inset-y-0 left-0 z-50 flex h-screen w-64 shrink-0 flex-col justify-between border-r border-gray-200 bg-white p-4 transition-transform duration-200 lg:static lg:translate-x-0 ${
-            mobileSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
-          }`}
-        >
-          <div>
-            {/* Shop Brand Logo & Mobile Close */}
-            <div className="flex items-center justify-between px-2 py-3 mb-4 border-b border-gray-100 pb-5">
-              <NavLink to="/dashboard" onClick={() => setMobileSidebarOpen(false)} className="flex items-center gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-600 text-white shadow-md">
-                  <Wrench size={22} strokeWidth={2.5} />
-                </span>
-                <span className="leading-none">
-                  <span className="block font-display text-lg tracking-tight text-gray-900">JAYJEF</span>
-                  <span className="block text-[10px] font-bold uppercase tracking-wider text-red-600 mt-1">
-                    Auto Parts &amp; Supplies
-                  </span>
-                </span>
-              </NavLink>
-              <button
-                onClick={() => setMobileSidebarOpen(false)}
-                className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 lg:hidden"
-              >
-                <X size={20} />
-              </button>
-            </div>
+        {/* Mobile Sidebar (Animated Drawer) */}
+        <AnimatePresence>
+          {mobileSidebarOpen && (
+            <motion.aside
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              className="fixed inset-y-0 left-0 z-50 flex h-screen w-64 shrink-0 flex-col border-r border-gray-200 bg-white shadow-2xl lg:hidden"
+            >
+              <SidebarContent onCloseMobile={() => setMobileSidebarOpen(false)} />
+            </motion.aside>
+          )}
+        </AnimatePresence>
 
-            {/* Navigation Category */}
-            <div className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-gray-400">
-              System Modules
-            </div>
-            <nav className="flex flex-col gap-1">
-              {NAV_ITEMS.map((item) => (
-                <NavItem key={item.to} {...item} onClick={() => setMobileSidebarOpen(false)} />
-              ))}
-            </nav>
-          </div>
+        {/* Desktop Sidebar (Static Layout) */}
+        <aside className="hidden lg:flex inset-y-0 left-0 z-50 h-screen w-64 shrink-0 flex-col border-r border-gray-200 bg-white sticky top-0">
+          <SidebarContent onCloseMobile={() => {}} />
         </aside>
 
         {/* Main Content Area with Header */}
         <div className="flex min-w-0 flex-1 flex-col">
           <HeaderBar onToggleMobileSidebar={() => setMobileSidebarOpen(!mobileSidebarOpen)} />
           <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
-            <Routes>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/products/*" element={<ProductsPage />} />
-              <Route path="/inventory" element={<InventoryPage />} />
-              <Route path="/orders/*" element={<OrdersPage />} />
-              <Route path="/reports" element={<ReportsPage />} />
-              <Route path="/ocr/*" element={<OcrPage />} />
-              <Route path="/map" element={<MapPage />} />
-              <Route path="/assistant" element={<AssistantPage />} />
-            </Routes>
+            <AnimatedRoutes />
           </main>
         </div>
       </div>
@@ -174,3 +285,5 @@ export default function App() {
     </BrowserRouter>
   );
 }
+
+

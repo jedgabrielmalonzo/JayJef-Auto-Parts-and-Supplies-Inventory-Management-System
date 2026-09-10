@@ -1,17 +1,24 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 
 /**
- * MicroStatCard - Renders card designs matching Image 2:
+ * MicroStatCard - Renders card designs matching Image 2 with Framer Motion animations:
  * Types: 'bar' | 'area' | 'dots' | 'step' | 'gauge'
  */
 export default function MicroStatCard({ title, subtitle, value, change, isNegative, type = 'bar' }) {
   return (
-    <div className="flex flex-col justify-between rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:shadow-md">
+    <motion.div
+      whileHover={{ y: -4, transition: { duration: 0.2, ease: 'easeOut' } }}
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="flex flex-col justify-between rounded-2xl border border-gray-200 bg-white p-5 shadow-xs hover:shadow-md transition-shadow cursor-pointer"
+    >
       {/* Title Header */}
       <div>
-        <h4 className="font-heading text-sm font-bold text-black-900">{title}</h4>
-        <p className="text-xs text-black-500">{subtitle}</p>
+        <h4 className="font-heading text-sm font-bold text-gray-900">{title}</h4>
+        <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>
       </div>
 
       {/* Visual Micro Chart */}
@@ -25,11 +32,11 @@ export default function MicroStatCard({ title, subtitle, value, change, isNegati
 
       {/* Metric & Change Footer */}
       <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-        <span className="font-display text-xl font-bold text-black-900 tabular-nums">{value}</span>
+        <span className="font-display text-xl font-bold text-gray-900 tabular-nums">{value}</span>
         {change && (
           <span
             className={`inline-flex items-center gap-0.5 text-xs font-semibold ${
-              isNegative ? 'text-red-600' : 'text-green-700'
+              isNegative ? 'text-red-600' : 'text-emerald-600'
             }`}
           >
             {isNegative ? <TrendingDown size={12} /> : <TrendingUp size={12} />}
@@ -37,20 +44,22 @@ export default function MicroStatCard({ title, subtitle, value, change, isNegati
           </span>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
-// 1. Vertical pill bar chart
+// 1. Vertical pill bar chart with growth animation
 function MicroBarGraphic() {
   const bars = [40, 90, 50, 50, 85, 55, 65];
   return (
     <div className="flex items-end justify-between gap-1.5 h-12 w-full max-w-[160px]">
       {bars.map((h, i) => (
-        <div key={i} className="flex-1 bg-gray-100 rounded-full h-full flex items-end">
-          <div
-            className="w-full bg-[#F95700] rounded-full transition-all"
-            style={{ height: `${h}%` }}
+        <div key={i} className="flex-1 bg-gray-100 rounded-full h-full flex items-end overflow-hidden">
+          <motion.div
+            initial={{ height: 0 }}
+            animate={{ height: `${h}%` }}
+            transition={{ duration: 0.6, delay: i * 0.05, ease: 'easeOut' }}
+            className="w-full bg-[#F95700] rounded-full"
           />
         </div>
       ))}
@@ -68,11 +77,17 @@ function MicroAreaGraphic() {
           <stop offset="100%" stopColor="#F59E0B" stopOpacity="0.0" />
         </linearGradient>
       </defs>
-      <path
+      <motion.path
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
         d="M 0,25 C 20,20 30,30 45,10 C 60,-5 80,20 100,15 L 120,20 L 120,40 L 0,40 Z"
         fill="url(#yellowArea)"
       />
-      <path
+      <motion.path
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 0.8, ease: 'easeInOut' }}
         d="M 0,25 C 20,20 30,30 45,10 C 60,-5 80,20 100,15 L 120,20"
         fill="none"
         stroke="#F59E0B"
@@ -110,9 +125,26 @@ function MicroDotsGraphic() {
           strokeWidth="1"
         />
       ))}
-      <path d={pathD} fill="none" stroke="#10B981" strokeWidth="2" />
+      <motion.path
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 0.8, ease: 'easeOut' }}
+        d={pathD}
+        fill="none"
+        stroke="#10B981"
+        strokeWidth="2"
+      />
       {points.map((p, i) => (
-        <circle key={i} cx={p.x} cy={p.y} r="3.5" fill="#10B981" />
+        <motion.circle
+          key={i}
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: 0.4 + i * 0.08, type: 'spring' }}
+          cx={p.x}
+          cy={p.y}
+          r="3.5"
+          fill="#10B981"
+        />
       ))}
     </svg>
   );
@@ -122,7 +154,10 @@ function MicroDotsGraphic() {
 function MicroStepGraphic() {
   return (
     <svg viewBox="0 0 120 40" className="w-full h-12 overflow-visible">
-      <path
+      <motion.path
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 0.8, ease: 'easeOut' }}
         d="M 0,28 L 25,28 L 25,18 L 50,18 L 50,25 L 75,25 L 75,35 L 90,35 L 90,10 L 120,10"
         fill="none"
         stroke="#F95700"
@@ -149,7 +184,10 @@ function MicroGaugeGraphic({ valueText }) {
           strokeWidth="3.5"
         />
         {/* Gauge Arc */}
-        <circle
+        <motion.circle
+          initial={{ strokeDashoffset: 88 }}
+          animate={{ strokeDashoffset: 26 }}
+          transition={{ duration: 1, ease: 'easeOut' }}
           cx="18"
           cy="18"
           r="14"
@@ -157,16 +195,16 @@ function MicroGaugeGraphic({ valueText }) {
           className="stroke-[#F95700]"
           strokeWidth="3.5"
           strokeDasharray="88"
-          strokeDashoffset="26"
           strokeLinecap="round"
         />
       </svg>
       <div className="absolute text-center">
-        <span className="block text-[10px] font-bold text-black-900 leading-tight">
+        <span className="block text-[10px] font-bold text-gray-900 leading-tight">
           {valueText}
         </span>
-        <span className="block text-[8px] text-black-500 uppercase">Items</span>
+        <span className="block text-[8px] text-gray-500 uppercase font-semibold">Items</span>
       </div>
     </div>
   );
 }
+

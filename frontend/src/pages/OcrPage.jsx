@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Loader2, ScanLine, UploadCloud } from 'lucide-react';
 import { toast } from 'sonner';
 import { listReceipts, uploadReceipt } from '../api/ocr.js';
@@ -14,6 +15,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/
 import OcrReviewPage from './OcrReviewPage.jsx';
 
 const STATUS_LABELS = { _all: 'All statuses', pending_review: 'Pending Review', confirmed: 'Confirmed', rejected: 'Rejected' };
+
+const sectionVariants = {
+  hidden: { opacity: 0, y: 15 },
+  visible: (i) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.08, duration: 0.35, ease: 'easeOut' },
+  }),
+};
 
 function UploadModal({ onClose }) {
   const navigate = useNavigate();
@@ -123,71 +133,73 @@ function OcrListView({ modal }) {
   }, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div>
+    <div className="space-y-6">
       {modal}
 
-      <div className="flex items-center justify-between mb-6">
+      <motion.div custom={0} variants={sectionVariants} initial="hidden" animate="visible" className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-3xl text-black-900">OCR Receipt Capture</h1>
-          <div className="h-1 w-16 bg-black-900 mt-2" />
+          <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900">OCR Smart Capture</h1>
+          <p className="text-sm text-gray-500 mt-1">Scan supplier receipts, parse line items automatically, and sync to stock</p>
         </div>
-        <Button onClick={() => navigate('/ocr/upload')}>
+        <Button onClick={() => navigate('/ocr/upload')} className="bg-red-600 hover:bg-red-700">
           <UploadCloud size={16} strokeWidth={2.5} />
           Upload Receipt
         </Button>
-      </div>
+      </motion.div>
 
-      <Select value={status} onValueChange={setStatus}>
-        <SelectTrigger className="w-[200px] mb-4">
-          <SelectValue>{(v) => STATUS_LABELS[v]}</SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          {Object.entries(STATUS_LABELS).map(([value, label]) => (
-            <SelectItem key={value} value={value}>{label}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <motion.div custom={1} variants={sectionVariants} initial="hidden" animate="visible">
+        <Select value={status} onValueChange={setStatus}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue>{(v) => STATUS_LABELS[v]}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(STATUS_LABELS).map(([value, label]) => (
+              <SelectItem key={value} value={value}>{label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </motion.div>
 
-      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+      <motion.div custom={2} variants={sectionVariants} initial="hidden" animate="visible" className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xs">
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-gray-50/80">
             <TableRow>
-              <TableHead>Receipt</TableHead>
-              <TableHead>Supplier</TableHead>
-              <TableHead>Items</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Uploaded</TableHead>
+              <TableHead className="font-semibold text-gray-700">Receipt</TableHead>
+              <TableHead className="font-semibold text-gray-700">Supplier</TableHead>
+              <TableHead className="font-semibold text-gray-700">Items</TableHead>
+              <TableHead className="font-semibold text-gray-700">Status</TableHead>
+              <TableHead className="font-semibold text-gray-700">Uploaded</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading && (
-              <TableRow><TableCell colSpan={5} className="py-12 text-center text-black-500">
-                <div className="flex items-center justify-center gap-2"><Loader2 size={16} className="animate-spin" />Loading...</div>
+              <TableRow><TableCell colSpan={5} className="py-12 text-center text-gray-500">
+                <div className="flex items-center justify-center gap-2"><Loader2 size={16} className="animate-spin text-red-600" />Scanning receipts...</div>
               </TableCell></TableRow>
             )}
             {!loading && receipts.length === 0 && (
-              <TableRow><TableCell colSpan={5} className="py-14 text-center text-black-500">
+              <TableRow><TableCell colSpan={5} className="py-14 text-center text-gray-500">
                 <div className="flex flex-col items-center gap-2">
-                  <ScanLine size={28} className="text-black-300" strokeWidth={1.5} />
+                  <ScanLine size={28} className="text-gray-300" strokeWidth={1.5} />
                   No receipts yet — upload a photo of a supplier receipt to get started.
                 </div>
               </TableCell></TableRow>
             )}
             {!loading && receipts.map((r) => (
-              <TableRow key={r.id} className="cursor-pointer" onClick={() => navigate(`/ocr/${r.id}`)}>
-                <TableCell className="text-black-900">Receipt #{r.id}</TableCell>
-                <TableCell className="text-black-700">{r.supplier_name || '—'}</TableCell>
-                <TableCell className="tabular-nums text-black-700">{r.item_count}</TableCell>
+              <TableRow key={r.id} className="cursor-pointer hover:bg-gray-50/50 transition-colors" onClick={() => navigate(`/ocr/${r.id}`)}>
+                <TableCell className="text-gray-900 font-bold text-xs font-mono">Receipt #{r.id}</TableCell>
+                <TableCell className="text-gray-700 font-medium">{r.supplier_name || '—'}</TableCell>
+                <TableCell className="tabular-nums font-semibold text-gray-900">{r.item_count}</TableCell>
                 <TableCell><Badge variant={OCR_STATUS_BADGE[r.status]}>{r.status.replace('_', ' ')}</Badge></TableCell>
-                <TableCell className="text-black-500">{new Date(r.created_at).toLocaleString()}</TableCell>
+                <TableCell className="text-gray-500 text-xs">{new Date(r.created_at).toLocaleString()}</TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-      </div>
+      </motion.div>
 
       {!loading && total > 0 && (
-        <p className="mt-3 text-xs text-black-500">{total} receipt{total === 1 ? '' : 's'}</p>
+        <p className="mt-3 text-xs text-gray-500">{total} receipt{total === 1 ? '' : 's'}</p>
       )}
     </div>
   );
@@ -203,3 +215,4 @@ export default function OcrPage() {
     </Routes>
   );
 }
+
