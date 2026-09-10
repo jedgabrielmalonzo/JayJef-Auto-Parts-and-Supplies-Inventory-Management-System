@@ -26,3 +26,23 @@ export function confirmReceipt(id) {
 export function rejectReceipt(id) {
   return request(`/ocr/receipts/${id}/reject`, { method: 'POST' });
 }
+
+export function deleteReceipt(id) {
+  return request(`/ocr/receipts/${id}`, { method: 'DELETE' });
+}
+
+export function getScannerStatus() {
+  return request('/ocr/scanner/status');
+}
+
+export function getScannerEvents(since) {
+  return request(`/ocr/scanner/events${toQuery({ since })}`);
+}
+
+export function ingestScannedDocument(file) {
+  const form = new FormData();
+  form.append('image', file);
+  return request('/ocr/scanner/ingest', { method: 'POST', body: form });
+}
+
+

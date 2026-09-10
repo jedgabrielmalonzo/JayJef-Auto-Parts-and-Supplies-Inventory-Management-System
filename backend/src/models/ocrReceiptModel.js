@@ -158,3 +158,20 @@ export async function confirm(id, userId) {
 
   return findById(id);
 }
+
+export async function remove(id) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM ocr_receipt_items WHERE ocr_receipt_id = $1', [id]);
+    const result = await client.query('DELETE FROM ocr_receipts WHERE id = $1 RETURNING *', [id]);
+    await client.query('COMMIT');
+    return result.rows[0] || null;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+

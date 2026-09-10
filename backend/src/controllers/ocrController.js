@@ -3,6 +3,8 @@ import { NoConfirmedItemsError } from '../models/ocrReceiptModel.js';
 import * as productModel from '../models/productModel.js';
 import { requestOcrParse, OcrServiceUnavailableError } from '../services/ocrClient.js';
 import { parseReceiptText, matchProduct } from '../services/ocrParser.js';
+import { getHotFolderInfo, getScanEvents, processScannedFile } from '../services/hotFolderWatcher.js';
+
 
 export async function uploadReceipt(req, res, next) {
   try {
@@ -103,3 +105,44 @@ export async function rejectReceipt(req, res, next) {
     next(err);
   }
 }
+
+export async function deleteReceipt(req, res, next) {
+  try {
+    const deleted = await ocrReceiptModel.remove(req.params.id);
+    if (!deleted) return res.status(404).json({ error: 'Receipt not found' });
+    res.json({ message: 'Receipt deleted successfully', id: req.params.id });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getScannerStatus(req, res, next) {
+  try {
+    res.json(getHotFolderInfo());
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getScannerEvents(req, res, next) {
+  try {
+    const events = getScanEvents(req.query.since);
+    res.json({ events });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function triggerScanSimulation(req, res, next) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Missing scanned file' });
+    }
+    const event = await processScannedFile(req.file.path, 'HP DeskJet 4275 (Direct Ingest)');
+    res.status(201).json({ message: 'Scanned document processed', event });
+  } catch (err) {
+    next(err);
+  }
+}
+
+

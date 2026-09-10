@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, Plus, Pencil, Trash2, PackageSearch, Loader2, LayoutGrid, List, Eye, Tag, MapPin, Box } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, PackageSearch, Loader2, LayoutGrid, List, Eye, Tag, MapPin, Box, Minus } from 'lucide-react';
 import { toast } from 'sonner';
 import { listProducts, deleteProduct } from '../api/products.js';
+import { createMovement } from '../api/inventory.js';
 import { getOverview } from '../api/dashboard.js';
 import { CATEGORIES, formatCategory, availability } from '../constants.js';
 import { Button } from '../components/ui/button.jsx';
@@ -45,6 +46,7 @@ function ProductsListView({ modal }) {
   const [view, setView] = useState('grid');
   const [loading, setLoading] = useState(true);
   const [pendingDelete, setPendingDelete] = useState(null);
+  const [deductingId, setDeductingId] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -85,6 +87,58 @@ function ProductsListView({ modal }) {
     } catch (err) {
       toast.error(err.message);
       setPendingDelete(null);
+    }
+  }
+
+  async function handleQuickDeduct(p) {
+    if (p.stock_quantity <= 0) {
+      toast.error(`"${p.name}" is out of stock!`);
+      return;
+    }
+    setDeductingId(p.id);
+
+    setProducts((prev) =>
+      prev.map((item) => (item.id === p.id ? { ...item, stock_quantity: Math.max(0, item.stock_quantity - 1) } : item))
+    );
+
+    try {
+      await createMovement({
+        product_id: p.id,
+        quantity_change: -1,
+        reason: 'manual_adjustment',
+        note: '1-Click Quick Sale (-1)',
+      });
+      toast.success(`Sold 1 unit of "${p.name}" (Stock: ${p.stock_quantity - 1})`);
+      getOverview().then(setSummary).catch(() => {});
+    } catch (err) {
+      toast.error(err.message);
+      load();
+    } finally {
+      setDeductingId(null);
+    }
+  }
+
+  async function handleQuickRestock(p) {
+    setDeductingId(p.id);
+
+    setProducts((prev) =>
+      prev.map((item) => (item.id === p.id ? { ...item, stock_quantity: item.stock_quantity + 1 } : item))
+    );
+
+    try {
+      await createMovement({
+        product_id: p.id,
+        quantity_change: 1,
+        reason: 'manual_adjustment',
+        note: '1-Click Quick Restock (+1)',
+      });
+      toast.success(`Restocked 1 unit to "${p.name}" (Stock: ${p.stock_quantity + 1})`);
+      getOverview().then(setSummary).catch(() => {});
+    } catch (err) {
+      toast.error(err.message);
+      load();
+    } finally {
+      setDeductingId(null);
     }
   }
 
@@ -280,17 +334,25 @@ function ProductsListView({ modal }) {
                 </div>
 
                 {/* Card Bottom Footer Matching Reference Button */}
-                <div className="mt-4 pt-3 border-t border-gray-200/80 flex items-center justify-between px-1">
+                <div className="mt-4 pt-3 border-t border-gray-200/80 flex items-center justify-between gap-2 px-1">
                   <Badge variant={avail.variant}>{avail.label}</Badge>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/products/${p.id}`);
-                    }}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-[#09090b] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-red-600 transition-colors"
-                  >
-                    <Eye size={13} /> View Part
-                  </button>
+                  <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      disabled={p.stock_quantity <= 0 || deductingId === p.id}
+                      onClick={() => handleQuickDeduct(p)}
+                      title="1-Click Quick Sell (-1 Unit)"
+                      className="inline-flex items-center gap-1.5 rounded-full bg-red-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-red-700 disabled:opacity-40 transition-all hover:scale-105 active:scale-95"
+                    >
+                      <Minus size={13} strokeWidth={3} />
+                      1 Sold
+                    </button>
+                    <button
+                      onClick={() => navigate(`/products/${p.id}`)}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-[#09090b] px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-gray-800 transition-colors"
+                    >
+                      <Eye size={13} /> View
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             );
@@ -327,7 +389,27 @@ function ProductsListView({ modal }) {
                     <TableCell className="font-mono text-xs font-bold text-red-600">{p.sku}</TableCell>
                     <TableCell className="font-medium text-gray-900">{p.name}</TableCell>
                     <TableCell><Badge variant="outline">{formatCategory(p.category)}</Badge></TableCell>
-                    <TableCell className="tabular-nums font-semibold text-gray-900">{p.stock_quantity}</TableCell>
+                    <TableCell className="tabular-nums font-semibold text-gray-900" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          disabled={p.stock_quantity <= 0 || deductingId === p.id}
+                          onClick={() => handleQuickDeduct(p)}
+                          title="1-Click Quick Sell (-1 Unit)"
+                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-700 hover:border-red-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-40 transition-colors"
+                        >
+                          <Minus size={13} strokeWidth={2.5} />
+                        </button>
+                        <span className="w-8 text-center font-bold text-gray-900 tabular-nums">{p.stock_quantity}</span>
+                        <button
+                          disabled={deductingId === p.id}
+                          onClick={() => handleQuickRestock(p)}
+                          title="1-Click Quick Restock (+1 Unit)"
+                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-700 hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-40 transition-colors"
+                        >
+                          <Plus size={13} strokeWidth={2.5} />
+                        </button>
+                      </div>
+                    </TableCell>
                     <TableCell className="font-heading font-bold text-gray-900 tabular-nums">
                       ₱{Number(p.selling_price).toFixed(2)}
                     </TableCell>
