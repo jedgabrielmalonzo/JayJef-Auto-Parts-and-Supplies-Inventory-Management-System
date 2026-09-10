@@ -195,6 +195,7 @@ function SidebarContent({ onCloseMobile }) {
 
 function AnimatedRoutes() {
   const location = useLocation();
+  const isAssistant = location.pathname.startsWith('/assistant');
 
   return (
     <AnimatePresence mode="wait">
@@ -204,7 +205,7 @@ function AnimatedRoutes() {
         initial="hidden"
         animate="visible"
         exit="exit"
-        className="w-full"
+        className={`w-full ${isAssistant ? 'h-full flex flex-col' : ''}`}
       >
         <Routes location={location}>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

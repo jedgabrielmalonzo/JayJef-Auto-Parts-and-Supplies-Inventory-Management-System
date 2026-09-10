@@ -46,6 +46,34 @@ const productCardVariants = {
   }),
 };
 
+function FormattedMessage({ text }) {
+  if (!text) return null;
+  const lines = text.split('\n');
+
+  return (
+    <div className="space-y-1.5 leading-relaxed">
+      {lines.map((line, lineIdx) => {
+        if (!line.trim()) return <div key={lineIdx} className="h-1" />;
+        const parts = line.split(/(\*\*.*?\*\*)/g);
+        return (
+          <p key={lineIdx} className={line.trim().startsWith('•') ? 'pl-3 font-normal' : ''}>
+            {parts.map((part, partIdx) => {
+              if (part.startsWith('**') && part.endsWith('**')) {
+                return (
+                  <strong key={partIdx} className="font-bold text-gray-900">
+                    {part.slice(2, -2)}
+                  </strong>
+                );
+              }
+              return part;
+            })}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function AssistantPage() {
   const [messages, setMessages] = useState([
     {
@@ -129,7 +157,7 @@ export default function AssistantPage() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="flex flex-col h-[calc(100vh-3.5rem)] rounded-3xl bg-white text-gray-900 overflow-hidden p-4 sm:p-6 border border-gray-200/90 shadow-sm relative"
+      className="flex flex-col h-[calc(100vh-7.5rem)] sm:h-[calc(100vh-8.5rem)] rounded-3xl bg-white text-gray-900 overflow-hidden p-4 sm:p-5 border border-gray-200/90 shadow-xs relative"
     >
       {/* Soft Ambient Red Radial Gradient Accent */}
       <div className="absolute top-0 left-1/3 w-96 h-96 bg-red-500/5 rounded-full blur-3xl pointer-events-none -z-0" />
@@ -234,7 +262,7 @@ export default function AssistantPage() {
                     : 'bg-white text-gray-900 border border-gray-200/90 rounded-tl-xs shadow-xs'
                 }`}
               >
-                {m.text}
+                <FormattedMessage text={m.text} />
               </div>
 
               {/* Product Cards in Assistant Message */}
