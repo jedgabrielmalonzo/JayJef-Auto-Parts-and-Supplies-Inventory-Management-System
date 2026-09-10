@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Component } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Wrench, LayoutDashboard, Package, ClipboardList, FileText, ScanLine, Map, BarChart3, Bot,
-  Search, Menu, X
+  Menu, X
 } from 'lucide-react';
 import { Toaster } from './components/ui/sonner.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
@@ -14,6 +14,47 @@ import OrdersPage from './pages/OrdersPage.jsx';
 import OcrPage from './pages/OcrPage.jsx';
 import MapPage from './pages/MapPage.jsx';
 import AssistantPage from './pages/AssistantPage.jsx';
+
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('App ErrorBoundary caught an error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[400px] p-8 text-center bg-white rounded-3xl border border-gray-200 shadow-sm">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-100 text-red-600 mb-4 font-bold text-xl">
+            !
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Something went wrong</h2>
+          <p className="text-sm text-gray-500 max-w-md mb-6">
+            {this.state.error?.message || 'An unexpected rendering error occurred.'}
+          </p>
+          <button
+            onClick={() => {
+              this.setState({ hasError: false, error: null });
+              window.location.reload();
+            }}
+            className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-md transition-colors"
+          >
+            Reload Page
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -266,7 +307,9 @@ export default function App() {
         <div className="flex min-w-0 flex-1 flex-col">
           <HeaderBar onToggleMobileSidebar={() => setMobileSidebarOpen(!mobileSidebarOpen)} />
           <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
-            <AnimatedRoutes />
+            <ErrorBoundary>
+              <AnimatedRoutes />
+            </ErrorBoundary>
           </main>
         </div>
       </div>

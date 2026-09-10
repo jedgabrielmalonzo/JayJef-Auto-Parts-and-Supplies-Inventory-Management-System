@@ -1,13 +1,14 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { AlertTriangle, ClipboardList, Loader2, Package, PlusCircle, Search, Truck } from 'lucide-react';
+import {
+  AlertTriangle, ClipboardList, Loader2, PlusCircle, Search, Layers, ListFilter, Calendar, Clock
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { lowStock, listMovements, createMovement } from '../api/inventory.js';
 import { getOverview } from '../api/dashboard.js';
 import { MOVEMENT_REASON_LABELS, formatCategory } from '../constants.js';
 import { Badge } from '../components/ui/badge.jsx';
-import StatCard from '../components/StatCard.jsx';
 import MicroStatCard from '../components/MicroStatCard.jsx';
 import { Button } from '../components/ui/button.jsx';
 import { Input } from '../components/ui/input.jsx';
@@ -29,6 +30,57 @@ const sectionVariants = {
     transition: { delay: i * 0.08, duration: 0.35, ease: 'easeOut' },
   }),
 };
+
+/**
+ * Groups raw movement logs by Product ID/SKU AND Calendar Date (YYYY-MM-DD).
+ * Multiple movements for the same product on the same day are stacked into 1 summary row.
+ * When a new day comes, movements on that date form a new row.
+ */
+function groupMovementsByDateAndProduct(movements) {
+  const groups = {};
+
+  movements.forEach((m) => {
+    const d = new Date(m.created_at);
+    const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const groupKey = `${m.product_id || m.product_sku}_${dateKey}`;
+
+    if (!groups[groupKey]) {
+      groups[groupKey] = {
+        id: groupKey,
+        product_id: m.product_id,
+        product_name: m.product_name,
+        product_sku: m.product_sku,
+        dateKey,
+        dateObj: d,
+        totalChange: 0,
+        count: 0,
+        reasons: new Set(),
+        latestTime: m.created_at,
+      };
+    }
+
+    groups[groupKey].totalChange += Number(m.quantity_change || 0);
+    groups[groupKey].count += 1;
+    if (m.reason) groups[groupKey].reasons.add(MOVEMENT_REASON_LABELS[m.reason] || m.reason);
+
+    if (new Date(m.created_at) > new Date(groups[groupKey].latestTime)) {
+      groups[groupKey].latestTime = m.created_at;
+    }
+  });
+
+  return Object.values(groups).sort((a, b) => new Date(b.latestTime) - new Date(a.latestTime));
+}
+
+function formatDateLabel(dateObj) {
+  const today = new Date();
+  const isToday =
+    dateObj.getDate() === today.getDate() &&
+    dateObj.getMonth() === today.getMonth() &&
+    dateObj.getFullYear() === today.getFullYear();
+
+  if (isToday) return `Today (${dateObj.toLocaleDateString()})`;
+  return dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
 
 function AdjustStockModal({ open, onClose, onSaved }) {
   const [product, setProduct] = useState(null);
@@ -129,13 +181,14 @@ export default function InventoryPage() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [adjustOpen, setAdjustOpen] = useState(false);
+  const [isStacked, setIsStacked] = useState(true); // Default to Stacked Daily View
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [low, movementResult] = await Promise.all([lowStock({}), listMovements({ page_size: 25 })]);
-      setLowStockItems(low);
-      setMovements(movementResult.items);
+      const [low, movementResult] = await Promise.all([lowStock({}).catch(() => []), listMovements({ page_size: 150 }).catch(() => ({ items: [] }))]);
+      setLowStockItems(Array.isArray(low) ? low : []);
+      setMovements(Array.isArray(movementResult?.items) ? movementResult.items : []);
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -145,6 +198,10 @@ export default function InventoryPage() {
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { getOverview().then(setSummary).catch(() => {}); }, []);
+
+  const stackedMovements = useMemo(() => {
+    return groupMovementsByDateAndProduct(movements);
+  }, [movements]);
 
   function handleAdjusted() {
     setAdjustOpen(false);
@@ -162,7 +219,7 @@ export default function InventoryPage() {
       <motion.div custom={0} variants={sectionVariants} initial="hidden" animate="visible" className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900">Stock and Movement</h1>
-          <p className="text-sm text-gray-500 mt-1">Real-time inventory levels, stock adjustments, and movements history</p>
+          <p className="text-sm text-gray-500 mt-1">Real-time inventory levels, daily stock movements, and audit log</p>
         </div>
         <Button onClick={() => setAdjustOpen(true)} className="bg-red-600 hover:bg-red-700 shadow-md">
           <PlusCircle size={16} strokeWidth={2.5} />
@@ -170,7 +227,7 @@ export default function InventoryPage() {
         </Button>
       </motion.div>
 
-      {/* LAYER 1: 4 KPI Micro-Stat Cards Matching Dashboard Design */}
+      {/* LAYER 1: 4 KPI Micro-Stat Cards */}
       <motion.section custom={1} variants={sectionVariants} initial="hidden" animate="visible">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <MicroStatCard
@@ -198,10 +255,10 @@ export default function InventoryPage() {
             type="gauge"
           />
           <MicroStatCard
-            title="Movement Log"
-            subtitle="Recent Adjustments"
-            value={movements.length.toString()}
-            change="Active"
+            title="Stacked Daily Groups"
+            subtitle="Unique Daily Products"
+            value={stackedMovements.length.toString()}
+            change="Stacked"
             isNegative={false}
             type="dots"
           />
@@ -215,6 +272,7 @@ export default function InventoryPage() {
         </div>
       ) : (
         <motion.div custom={2} variants={sectionVariants} initial="hidden" animate="visible" className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+          {/* Low Stock Alerts */}
           <section className="lg:col-span-2">
             <h2 className="font-heading font-bold text-sm uppercase tracking-wide text-gray-500 mb-3 flex items-center gap-2">
               <AlertTriangle size={15} className="text-amber-700" />
@@ -239,23 +297,52 @@ export default function InventoryPage() {
             </div>
           </section>
 
+          {/* Movements Table with Daily Stacking */}
           <section className="lg:col-span-3">
-            <h2 className="font-heading font-bold text-sm uppercase tracking-wide text-gray-500 mb-3 flex items-center gap-2">
-              <ClipboardList size={15} />
-              Recent Movements
-            </h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-heading font-bold text-sm uppercase tracking-wide text-gray-500 flex items-center gap-2">
+                <ClipboardList size={15} />
+                {isStacked ? 'Stacked Daily Movements' : 'All Raw Movement Logs'}
+              </h2>
+
+              {/* Toggle Switch: Stacked vs Raw Logs */}
+              <div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-white p-1 shadow-xs">
+                <button
+                  type="button"
+                  onClick={() => setIsStacked(true)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg transition-colors ${
+                    isStacked ? 'bg-black text-white' : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <Layers size={13} />
+                  Stacked View
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsStacked(false)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg transition-colors ${
+                    !isStacked ? 'bg-black text-white' : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <ListFilter size={13} />
+                  Raw Logs ({movements.length})
+                </button>
+              </div>
+            </div>
+
             <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xs">
               <Table>
                 <TableHeader className="bg-gray-50/80">
                   <TableRow>
-                    <TableHead className="font-semibold text-gray-700">Product</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Change</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Reason</TableHead>
-                    <TableHead className="font-semibold text-gray-700">When</TableHead>
+                    <TableHead className="font-bold text-gray-700">Product & SKU</TableHead>
+                    <TableHead className="font-bold text-gray-700">{isStacked ? 'Daily Net Change' : 'Change'}</TableHead>
+                    <TableHead className="font-bold text-gray-700">{isStacked ? 'Activity' : 'Reason'}</TableHead>
+                    <TableHead className="font-bold text-gray-700">Date & Time</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {movements.length === 0 && (
+                  {/* STACKED DAILY VIEW */}
+                  {isStacked && stackedMovements.length === 0 && (
                     <TableRow><TableCell colSpan={4} className="py-10 text-center text-gray-500">
                       <div className="flex flex-col items-center gap-2">
                         <Search size={24} className="text-gray-300" strokeWidth={1.5} />
@@ -263,7 +350,57 @@ export default function InventoryPage() {
                       </div>
                     </TableCell></TableRow>
                   )}
-                  {movements.map((m) => (
+
+                  {isStacked && stackedMovements.map((g) => (
+                    <TableRow key={g.id} className="hover:bg-gray-50/60 transition-colors">
+                      <TableCell>
+                        <p className="text-gray-900 font-bold">{g.product_name}</p>
+                        <p className="font-mono text-xs text-gray-500">{g.product_sku}</p>
+                      </TableCell>
+                      <TableCell className="tabular-nums">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold ${
+                            g.totalChange >= 0
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : 'bg-red-50 text-red-700 border border-red-200'
+                          }`}
+                        >
+                          {g.totalChange >= 0 ? `+${g.totalChange}` : g.totalChange} Total
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-0.5">
+                          <span className="inline-block rounded-md bg-gray-100 px-2 py-0.5 text-[11px] font-bold text-gray-800">
+                            {g.count} {g.count === 1 ? 'operation' : 'operations stacked'}
+                          </span>
+                          <p className="text-xs text-gray-500 font-medium">
+                            {Array.from(g.reasons).join(', ') || 'Manual Adjustment'}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-gray-500 text-xs">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-gray-900 flex items-center gap-1">
+                            <Calendar size={12} className="text-gray-400" />
+                            {formatDateLabel(g.dateObj)}
+                          </span>
+                          <span className="text-gray-400 text-[11px] flex items-center gap-1 mt-0.5">
+                            <Clock size={11} />
+                            Last at {new Date(g.latestTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+
+                  {/* UNSTACKED RAW LOGS VIEW */}
+                  {!isStacked && movements.length === 0 && (
+                    <TableRow><TableCell colSpan={4} className="py-10 text-center text-gray-500">
+                      No stock movements recorded yet.
+                    </TableCell></TableRow>
+                  )}
+
+                  {!isStacked && movements.map((m) => (
                     <TableRow key={m.id} className="hover:bg-gray-50/50">
                       <TableCell>
                         <p className="text-gray-900 font-medium">{m.product_name}</p>
@@ -285,4 +422,3 @@ export default function InventoryPage() {
     </div>
   );
 }
-

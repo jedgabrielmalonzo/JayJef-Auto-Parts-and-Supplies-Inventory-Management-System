@@ -1,20 +1,19 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Loader2, AlertTriangle, TrendingUp, PackageCheck, Box, Package, Layers, Activity } from 'lucide-react';
+import { Loader2, Activity, Plus, PackageCheck, AlertTriangle, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
-import { AreaChart, Area, BarChart, Bar, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { getOverview, getSalesPurchaseChart, getOrderSummaryChart, getTopSelling } from '../api/dashboard.js';
 import { lowStock } from '../api/inventory.js';
 import { Badge } from '../components/ui/badge.jsx';
+import { Button } from '../components/ui/button.jsx';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table.jsx';
-import MicroStatCard from '../components/MicroStatCard.jsx';
 import ProductThumb from '../components/ProductThumb.jsx';
 
 const BLUE = '#2563EB';
 const GREEN = '#10B981';
 const AMBER = '#F59E0B';
-const RED = '#DC2626';
 
 function monthLabel(iso) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short' });
@@ -64,29 +63,36 @@ export default function DashboardPage() {
       lowStock({}),
     ])
       .then(([o, sp, os, ts, ls]) => {
-        setOverview(o);
-        if (sp && sp.length > 0) {
+        setOverview(o || {});
+        if (Array.isArray(sp) && sp.length > 0) {
           setSalesPurchase(sp.map((b) => ({ ...b, label: monthLabel(b.label) })));
         } else {
           setSalesPurchase(DEFAULT_MOVEMENT_DATA);
         }
-        if (os && os.length > 0) {
+        if (Array.isArray(os) && os.length > 0) {
           setOrderSummary(os.map((b) => ({ ...b, label: monthLabel(b.label) })));
         } else {
           setOrderSummary(DEFAULT_SHIPMENT_DATA);
         }
-        setTopSelling(ts);
-        setLowQuantity(ls.slice(0, 4));
+        setTopSelling(Array.isArray(ts) ? ts : []);
+        setLowQuantity(Array.isArray(ls) ? ls.slice(0, 4) : []);
       })
-      .catch((err) => toast.error(err.message))
+      .catch((err) => {
+        toast.error(err.message);
+        setOverview({});
+        setSalesPurchase(DEFAULT_MOVEMENT_DATA);
+        setOrderSummary(DEFAULT_SHIPMENT_DATA);
+        setTopSelling([]);
+        setLowQuantity([]);
+      })
       .finally(() => setLoading(false));
   }, []);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center gap-2 py-20 text-gray-500">
-        <Loader2 size={20} className="animate-spin text-red-600" />
-        <span>Loading dashboard analytics...</span>
+      <div className="flex flex-col items-center justify-center gap-3 py-24 text-gray-500">
+        <Loader2 size={28} className="animate-spin text-red-600" />
+        <span className="text-sm font-medium">Loading dashboard analytics...</span>
       </div>
     );
   }
@@ -100,60 +106,86 @@ export default function DashboardPage() {
   const shipmentData = orderSummary.length > 0 ? orderSummary : DEFAULT_SHIPMENT_DATA;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Dashboard Title Header */}
-      <motion.div custom={0} variants={sectionVariants} initial="hidden" animate="visible">
-        <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900">Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-1">Real-time inventory overview, stock velocity, and reorder alerts</p>
+      <motion.div custom={0} variants={sectionVariants} initial="hidden" animate="visible" className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl font-extrabold tracking-tight text-gray-900">Dashboard</h1>
+          <p className="text-sm text-gray-500 mt-1">Real-time inventory overview, stock velocity, and reorder alerts</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button render={<Link to="/products/new" />} nativeButton={false} className="bg-red-600 hover:bg-red-700 font-bold text-white shadow-md rounded-xl">
+            <Plus size={16} strokeWidth={2.5} />
+            Add Product
+          </Button>
+        </div>
       </motion.div>
 
-      {/* LAYER 1: 5 Essential Inventory KPI Micro-Stat Cards with Dynamic Visuals */}
+      {/* LAYER 1: CLEAN BENTO GRID (Hero Essential Metric + 4 Clean Metric Bento Cards) */}
       <motion.section custom={1} variants={sectionVariants} initial="hidden" animate="visible">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <MicroStatCard
-            title="Total Stock Units"
-            subtitle="Quantity In Hand"
-            value={Number(stockQty).toLocaleString()}
-            change="+14.2% In Stock"
-            isNegative={false}
-            type="step"
-            color="red"
-          />
-          <MicroStatCard
-            title="Low Stock Alerts"
-            subtitle="Reorder Required"
-            value={lowQuantity.length}
-            change={lowQuantity.length > 0 ? `${lowQuantity.length} Urgent` : 'Optimal'}
-            isNegative={lowQuantity.length > 0}
-            type="gauge"
-          />
-          <MicroStatCard
-            title="Stock Outbound"
-            subtitle="Dispatched Units"
-            value={Number(salesCount).toLocaleString()}
-            change="+12.6% Velocity"
-            isNegative={false}
-            type="bar"
-            color="red"
-          />
-          <MicroStatCard
-            title="To Be Received"
-            subtitle="Inbound Restock"
-            value={Number(toBeReceived).toLocaleString()}
-            change="Pending Orders"
-            isNegative={false}
-            type="area"
-            color="emerald"
-          />
-          <MicroStatCard
-            title="Completed Restocks"
-            subtitle="Purchases Fulfilled"
-            value={Number(purchasesCount).toLocaleString()}
-            change="Supplier Delivery"
-            isNegative={false}
-            type="dots"
-            color="blue"
-          />
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+
+          {/* HERO BENTO CARD: Total Inventory Units On Hand */}
+          <div className="lg:col-span-6 rounded-3xl bg-[#09090b] p-8 text-white shadow-xl border border-gray-800 flex flex-col justify-center">
+            <span className="text-xs font-bold uppercase tracking-wider text-gray-400 block">
+              Total Inventory Units On Hand
+            </span>
+            <div className="mt-4 flex items-baseline gap-3">
+              <h2 className="font-display text-6xl font-extrabold tracking-tight text-white tabular-nums">
+                {Number(stockQty).toLocaleString()}
+              </h2>
+              <span className="text-lg font-semibold text-gray-400">Units</span>
+            </div>
+          </div>
+
+          {/* RIGHT SIDE BENTO GRID: 4 Clean Metric Bento Cards */}
+          <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+            {/* CARD 2: Reorder Alerts */}
+            <div className="rounded-3xl border border-amber-200 bg-amber-50/50 p-6 shadow-xs flex flex-col justify-center">
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-800">Reorder Alerts</span>
+              <div className="mt-3 font-display text-4xl font-extrabold text-amber-950 tabular-nums">
+                {lowQuantity.length}
+              </div>
+              <p className="text-xs font-semibold text-amber-800 mt-1">
+                {lowQuantity.length > 0 ? `${lowQuantity.length} parts below limit` : 'No urgent reorders'}
+              </p>
+            </div>
+
+            {/* CARD 3: Outbound Dispatched */}
+            <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-xs flex flex-col justify-center">
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Outbound Dispatched</span>
+              <div className="mt-3 font-display text-4xl font-extrabold text-gray-900 tabular-nums">
+                {Number(salesCount).toLocaleString()}
+              </div>
+              <p className="text-xs font-semibold text-gray-500 mt-1">
+                Dispatched Sales Units
+              </p>
+            </div>
+
+            {/* CARD 4: To Be Received */}
+            <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-xs flex flex-col justify-center">
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-500">To Be Received</span>
+              <div className="mt-3 font-display text-4xl font-extrabold text-gray-900 tabular-nums">
+                {Number(toBeReceived).toLocaleString()}
+              </div>
+              <p className="text-xs font-semibold text-gray-500 mt-1">
+                Pending Shipments
+              </p>
+            </div>
+
+            {/* CARD 5: Completed Restocks */}
+            <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-xs flex flex-col justify-center">
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Completed Restocks</span>
+              <div className="mt-3 font-display text-4xl font-extrabold text-gray-900 tabular-nums">
+                {Number(purchasesCount).toLocaleString()}
+              </div>
+              <p className="text-xs font-semibold text-gray-500 mt-1">
+                Fulfilled Orders
+              </p>
+            </div>
+
+          </div>
         </div>
       </motion.section>
 
@@ -161,7 +193,7 @@ export default function DashboardPage() {
       <motion.section custom={2} variants={sectionVariants} initial="hidden" animate="visible">
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           {/* Graph 1: Stock Inflow vs Outflow Volume (Curved Area Chart) */}
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs transition-all hover:shadow-md">
+          <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-xs transition-all hover:shadow-md">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="font-heading font-bold text-gray-900 text-base flex items-center gap-2">
@@ -203,7 +235,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Graph 2: Shipment Delivery & Stock Fulfillment (Glowing Bezier Line Area Chart) */}
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs transition-all hover:shadow-md">
+          <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-xs transition-all hover:shadow-md">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="font-heading font-bold text-gray-900 text-base flex items-center gap-2">
@@ -250,7 +282,7 @@ export default function DashboardPage() {
       <motion.section custom={3} variants={sectionVariants} initial="hidden" animate="visible">
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           {/* Alert Card 1: Low Quantity Stock */}
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-xs transition-all hover:shadow-md overflow-hidden flex flex-col justify-between">
+          <div className="rounded-3xl border border-gray-200 bg-white shadow-xs transition-all hover:shadow-md overflow-hidden flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between p-5 pb-3 border-b border-gray-100">
                 <div className="flex items-center gap-2">
@@ -297,7 +329,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Alert Card 2: Top Selling Fast Movers */}
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-xs transition-all hover:shadow-md overflow-hidden flex flex-col justify-between">
+          <div className="rounded-3xl border border-gray-200 bg-white shadow-xs transition-all hover:shadow-md overflow-hidden flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between p-5 pb-3 border-b border-gray-100">
                 <div className="flex items-center gap-2">

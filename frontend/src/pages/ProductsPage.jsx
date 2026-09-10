@@ -13,7 +13,6 @@ import { Input } from '../components/ui/input.jsx';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.jsx';
 import { Checkbox } from '../components/ui/checkbox.jsx';
 import { Label } from '../components/ui/label.jsx';
-import { Card } from '../components/ui/card.jsx';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table.jsx';
 import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
@@ -22,7 +21,6 @@ import {
 import ProductFormPage from './ProductFormPage.jsx';
 import ProductDetailPage from './ProductDetailPage.jsx';
 import ProductThumb from '../components/ProductThumb.jsx';
-import MicroStatCard from '../components/MicroStatCard.jsx';
 
 const sectionVariants = {
   hidden: { opacity: 0, y: 15 },
@@ -161,44 +159,6 @@ function ProductsListView({ modal }) {
           Add New Product
         </Button>
       </motion.div>
-
-      {/* LAYER 1: 4 KPI Micro-Stat Cards Matching Dashboard Design */}
-      <motion.section custom={1} variants={sectionVariants} initial="hidden" animate="visible">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MicroStatCard
-            title="Total Products"
-            subtitle="Active SKUs"
-            value={total.toLocaleString()}
-            change="+8.2%"
-            isNegative={false}
-            type="bar"
-          />
-          <MicroStatCard
-            title="Low Stock Alerts"
-            subtitle="Reorder Threshold"
-            value={lowStockTotal.toLocaleString()}
-            change={lowStockTotal > 0 ? `${lowStockTotal} Urgent` : 'Optimal'}
-            isNegative={lowStockTotal > 0}
-            type="gauge"
-          />
-          <MicroStatCard
-            title="Categories"
-            subtitle="System Groups"
-            value={CATEGORIES.length.toString()}
-            change="Active"
-            isNegative={false}
-            type="area"
-          />
-          <MicroStatCard
-            title="Catalog Health"
-            subtitle="In Stock Ratio"
-            value={total > 0 ? `${Math.round(((total - lowStockTotal) / total) * 100)}%` : '100%'}
-            change="High Availability"
-            isNegative={false}
-            type="dots"
-          />
-        </div>
-      </motion.section>
 
       {/* Modern Filter Toolbar */}
       <motion.div custom={2} variants={sectionVariants} initial="hidden" animate="visible" className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-xs">
