@@ -157,13 +157,49 @@ export default function ProductFormPage() {
 
   const displayedImage = imagePreview || (form.image_path ? `${API_ORIGIN}${form.image_path}` : null);
 
+  const [modalSize, setModalSize] = useState(() => localStorage.getItem('jayjef_modal_size') || 'standard');
+
+  function changeModalSize(newSize) {
+    setModalSize(newSize);
+    localStorage.setItem('jayjef_modal_size', newSize);
+  }
+
+  const SIZE_CLASSES = {
+    standard: 'sm:max-w-xl max-h-[90vh]',
+    wide: 'sm:max-w-4xl max-h-[92vh]',
+    'extra-wide': 'sm:max-w-6xl max-h-[94vh]',
+    fullscreen: 'w-[98vw] max-w-[98vw] h-[95vh] max-h-[95vh]',
+  };
+
   return (
     <Dialog open onOpenChange={(open) => !open && close()}>
-      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl p-6 shadow-2xl border border-gray-200">
-        <DialogHeader className="pb-3 border-b border-gray-100">
+      <DialogContent className={`${SIZE_CLASSES[modalSize] || SIZE_CLASSES.standard} overflow-y-auto rounded-2xl p-6 shadow-2xl border border-gray-200 transition-all duration-200`}>
+        <DialogHeader className="flex flex-row items-center justify-between pb-3 border-b border-gray-100 pr-8">
           <DialogTitle className="font-heading text-xl font-bold text-gray-900">
             {isEdit ? 'Edit Product' : 'Add New Auto Part'}
           </DialogTitle>
+
+          {/* Modal Size Switcher */}
+          <div className="flex items-center gap-1 bg-gray-100/80 p-1 rounded-xl">
+            <span className="text-[11px] text-gray-500 font-bold px-1.5 hidden sm:inline">Size:</span>
+            {[
+              { key: 'standard', label: 'Standard' },
+              { key: 'wide', label: 'Wide' },
+              { key: 'extra-wide', label: 'Extra Wide' },
+              { key: 'fullscreen', label: 'Full Screen' },
+            ].map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => changeModalSize(s.key)}
+                className={`px-2.5 py-0.5 rounded-lg text-[11px] font-bold transition-all ${
+                  modalSize === s.key ? 'bg-white text-gray-900 shadow-xs font-extrabold' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
         </DialogHeader>
 
         {loading ? (

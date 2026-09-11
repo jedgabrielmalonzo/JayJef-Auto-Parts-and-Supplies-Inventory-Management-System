@@ -81,29 +81,21 @@ function OrdersListView({ modal }) {
             title="Purchases Fulfilled"
             subtitle="Completed purchase orders"
             value={summary.purchases.count || 0}
-            change="+8.2%"
-            type="bar"
           />
           <MicroStatCard
             title="Total Purchase Cost"
             subtitle="Supplier expenditures"
             value={peso(summary.purchases.cost || 0)}
-            change="+12.4%"
-            type="area"
           />
           <MicroStatCard
             title="Sales Fulfilled"
             subtitle="Completed customer orders"
             value={summary.sales.count || 0}
-            change="+15.3%"
-            type="dots"
           />
           <MicroStatCard
             title="Sales Revenue"
             subtitle="Gross customer revenue"
             value={peso(summary.sales.revenue || 0)}
-            change="+18.7%"
-            type="step"
           />
         </motion.div>
       )}

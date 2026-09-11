@@ -192,25 +192,16 @@ export default function SuppliersPage() {
             title="Total Suppliers"
             subtitle="Registered Vendor Partners"
             value={total.toString()}
-            change="Active"
-            isNegative={false}
-            type="bar"
           />
           <MicroStatCard
             title="Constant Memory Products"
             subtitle="Suppliers with Products Memory"
             value={suppliersWithProductsCount.toString()}
-            change={`${suppliersWithProductsCount} Active`}
-            isNegative={false}
-            type="dots"
           />
           <MicroStatCard
             title="Catalog Status"
             subtitle="Inventory Integration"
             value="100%"
-            change="Synchronized"
-            isNegative={false}
-            type="step"
           />
         </div>
       </motion.section>

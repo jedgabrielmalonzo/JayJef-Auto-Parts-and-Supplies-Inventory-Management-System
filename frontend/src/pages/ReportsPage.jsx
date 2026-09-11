@@ -88,43 +88,28 @@ export default function ReportsPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <MicroStatCard
             title="Top Selling Part"
-            subtitle="Fastest Moving Product"
+            subtitle={topProduct ? topProduct.name : "Fastest Moving Product"}
             value={topProduct ? `${topProduct.sku}` : 'None'}
-            change={topProduct ? topProduct.name.slice(0, 18) : 'No Sales'}
-            isNegative={false}
-            type="bar"
           />
           <MicroStatCard
             title="Total Stocked Units"
             subtitle="Quantity In Hand"
             value={(overview?.sales ? overview.sales * 14 + 1840 : 1840).toLocaleString()}
-            change="Active Items"
-            isNegative={false}
-            type="step"
           />
           <MicroStatCard
             title="Low Stock Alerts"
             subtitle="Urgent Reorders Needed"
             value={lowStockList.length.toString()}
-            change={lowStockList.length > 0 ? `${lowStockList.length} Reorders` : 'Optimal'}
-            isNegative={lowStockList.length > 0}
-            type="gauge"
           />
           <MicroStatCard
             title="Stock Dispatched"
             subtitle="Outbound Movement"
             value={(overview?.sales || 0).toLocaleString()}
-            change="+14.2% Velocity"
-            isNegative={false}
-            type="dots"
           />
           <MicroStatCard
             title="Stock Restocked"
             subtitle="Inbound Replenishment"
             value={(overview?.sales ? overview.sales + 12 : 24).toLocaleString()}
-            change="Fulfilled Orders"
-            isNegative={false}
-            type="area"
           />
         </div>
       </motion.div>

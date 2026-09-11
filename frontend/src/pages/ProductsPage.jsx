@@ -42,7 +42,7 @@ function ProductsListView({ modal }) {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [lowStockOnly, setLowStockOnly] = useState(false);
-  const [view, setView] = useState('grid');
+  const [view, setView] = useState('list'); // Default to table list view
   const [loading, setLoading] = useState(true);
   const [pendingDelete, setPendingDelete] = useState(null);
   const [deductingId, setDeductingId] = useState(null);

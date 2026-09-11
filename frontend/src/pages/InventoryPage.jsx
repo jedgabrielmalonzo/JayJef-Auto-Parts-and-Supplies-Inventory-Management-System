@@ -119,11 +119,45 @@ function AdjustStockModal({ open, onClose, onSaved }) {
     }
   }
 
+  const [modalSize, setModalSize] = useState(() => localStorage.getItem('jayjef_modal_size') || 'standard');
+
+  function changeModalSize(newSize) {
+    setModalSize(newSize);
+    localStorage.setItem('jayjef_modal_size', newSize);
+  }
+
+  const SIZE_CLASSES = {
+    standard: 'sm:max-w-lg',
+    wide: 'sm:max-w-2xl',
+    'extra-wide': 'sm:max-w-4xl',
+    fullscreen: 'w-[95vw] max-w-[95vw] h-[90vh] max-h-[90vh]',
+  };
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Adjust Stock</DialogTitle>
+      <DialogContent className={`${SIZE_CLASSES[modalSize] || SIZE_CLASSES.standard} transition-all duration-200`}>
+        <DialogHeader className="flex flex-row items-center justify-between border-b border-gray-100 pb-3 pr-8">
+          <DialogTitle className="text-lg font-bold text-gray-900">Adjust Stock</DialogTitle>
+
+          {/* Modal Size Selector */}
+          <div className="flex items-center gap-1 bg-gray-100/80 p-1 rounded-xl">
+            {[
+              { key: 'standard', label: 'Standard' },
+              { key: 'wide', label: 'Wide' },
+              { key: 'extra-wide', label: 'Extra Wide' },
+            ].map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => changeModalSize(s.key)}
+                className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
+                  modalSize === s.key ? 'bg-white text-gray-900 shadow-xs font-extrabold' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
