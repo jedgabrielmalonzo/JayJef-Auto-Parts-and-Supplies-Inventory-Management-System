@@ -16,7 +16,13 @@ export async function list({ search, page = 1, pageSize = 25 }) {
 
   const [itemsResult, countResult] = await Promise.all([
     pool.query(
-      `SELECT * FROM suppliers ${where} ORDER BY name ASC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+      `SELECT s.*, COUNT(p.id)::int AS product_count 
+       FROM suppliers s 
+       LEFT JOIN products p ON p.supplier_id = s.id 
+       ${where ? where.replace(/WHERE /g, 'WHERE s.') : ''} 
+       GROUP BY s.id 
+       ORDER BY s.name ASC 
+       LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
       [...params, pageSize, offset]
     ),
     pool.query(`SELECT COUNT(*)::int AS total FROM suppliers ${where}`, params),
@@ -28,6 +34,47 @@ export async function list({ search, page = 1, pageSize = 25 }) {
 export async function findById(id) {
   const result = await pool.query('SELECT * FROM suppliers WHERE id = $1', [id]);
   return result.rows[0] || null;
+}
+
+export async function getSupplierProducts(id) {
+  const result = await pool.query(
+    `SELECT id, sku, name, brand, category, cost_price, selling_price, stock_quantity, reorder_threshold, unit
+     FROM products
+     WHERE supplier_id = $1 AND is_active = true
+     ORDER BY name ASC`,
+    [id]
+  );
+  return result.rows;
+}
+
+export async function updateSupplierProducts(id, productIds = []) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    // Unassign products no longer in the list for this supplier
+    if (productIds.length > 0) {
+      await client.query(
+        `UPDATE products SET supplier_id = NULL WHERE supplier_id = $1 AND NOT (id = ANY($2::bigint[]))`,
+        [id, productIds]
+      );
+      await client.query(
+        `UPDATE products SET supplier_id = $1 WHERE id = ANY($2::bigint[])`,
+        [id, productIds]
+      );
+    } else {
+      await client.query(
+        `UPDATE products SET supplier_id = NULL WHERE supplier_id = $1`,
+        [id]
+      );
+    }
+    await client.query('COMMIT');
+    return getSupplierProducts(id);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 export async function create(data) {
@@ -73,3 +120,4 @@ export async function remove(id) {
   const result = await pool.query('DELETE FROM suppliers WHERE id = $1 RETURNING id', [id]);
   return result.rows.length > 0;
 }
+

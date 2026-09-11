@@ -19,3 +19,15 @@ export function updateSupplier(id, data) {
 export function deleteSupplier(id) {
   return request(`/suppliers/${id}`, { method: 'DELETE' });
 }
+
+export function getSupplierProducts(id) {
+  return request(`/suppliers/${id}/products`);
+}
+
+export function updateSupplierProducts(id, productIds) {
+  return request(`/suppliers/${id}/products`, {
+    method: 'POST',
+    body: JSON.stringify({ product_ids: productIds }),
+  });
+}
+

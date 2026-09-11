@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation } from 're
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Wrench, LayoutDashboard, Package, ClipboardList, FileText, ScanLine, Map, BarChart3, Bot,
-  Menu, X, Settings
+  Menu, X, Settings, Truck
 } from 'lucide-react';
 import { Toaster } from './components/ui/sonner.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
@@ -12,6 +12,7 @@ import ProductsPage from './pages/ProductsPage.jsx';
 import InventoryPage from './pages/InventoryPage.jsx';
 import ReportsPage from './pages/ReportsPage.jsx';
 import OrdersPage from './pages/OrdersPage.jsx';
+import SuppliersPage from './pages/SuppliersPage.jsx';
 import OcrPage from './pages/OcrPage.jsx';
 import MapPage from './pages/MapPage.jsx';
 import AssistantPage from './pages/AssistantPage.jsx';
@@ -64,6 +65,7 @@ const NAV_ITEMS = [
   { to: '/products', label: 'Products and Catalog', icon: Package },
   { to: '/inventory', label: 'Stock and Movement', icon: ClipboardList },
   { to: '/orders', label: 'Orders and Receipts', icon: FileText },
+  { to: '/suppliers', label: 'Suppliers Catalog', icon: Truck },
   { to: '/reports', label: 'Report and Analytics', icon: BarChart3 },
   { to: '/ocr', label: 'OCR Smart Capture', icon: ScanLine },
   { to: '/map', label: 'Shop Map 3D', icon: Map },
@@ -272,6 +274,7 @@ function AnimatedRoutes() {
           <Route path="/products/*" element={<ProductsPage />} />
           <Route path="/inventory" element={<InventoryPage />} />
           <Route path="/orders/*" element={<OrdersPage />} />
+          <Route path="/suppliers/*" element={<SuppliersPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/ocr/*" element={<OcrPage />} />
           <Route path="/map" element={<MapPage />} />
@@ -282,6 +285,7 @@ function AnimatedRoutes() {
     </AnimatePresence>
   );
 }
+
 
 function MainAppLayout() {
   const { isAdmin } = useAuth();

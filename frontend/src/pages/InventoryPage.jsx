@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  AlertTriangle, ClipboardList, Loader2, PlusCircle, Search, Layers, ListFilter, Calendar, Clock
+  AlertTriangle, ClipboardList, Loader2, PlusCircle, Search, Layers, ListFilter, Calendar, Clock, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { lowStock, listMovements, createMovement } from '../api/inventory.js';
@@ -190,10 +190,20 @@ export default function InventoryPage() {
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [isStacked, setIsStacked] = useState(true); // Default to Stacked Daily View
 
+  // Pagination states
+  const [lowStockPage, setLowStockPage] = useState(1);
+  const lowStockPageSize = 5;
+
+  const [movementsPage, setMovementsPage] = useState(1);
+  const movementsPageSize = 10;
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [low, movementResult] = await Promise.all([lowStock({}).catch(() => []), listMovements({ page_size: 150 }).catch(() => ({ items: [] }))]);
+      const [low, movementResult] = await Promise.all([
+        lowStock({}).catch(() => []),
+        listMovements({ page_size: 150 }).catch(() => ({ items: [] }))
+      ]);
       setLowStockItems(Array.isArray(low) ? low : []);
       setMovements(Array.isArray(movementResult?.items) ? movementResult.items : []);
     } catch (err) {
@@ -210,6 +220,20 @@ export default function InventoryPage() {
     return groupMovementsByDateAndProduct(movements);
   }, [movements]);
 
+  // Derived Paginated Data
+  const totalLowStockPages = Math.ceil(lowStockItems.length / lowStockPageSize) || 1;
+  const paginatedLowStockItems = useMemo(() => {
+    const start = (lowStockPage - 1) * lowStockPageSize;
+    return lowStockItems.slice(start, start + lowStockPageSize);
+  }, [lowStockItems, lowStockPage, lowStockPageSize]);
+
+  const currentMovementsList = isStacked ? stackedMovements : movements;
+  const totalMovementsPages = Math.ceil(currentMovementsList.length / movementsPageSize) || 1;
+  const paginatedMovements = useMemo(() => {
+    const start = (movementsPage - 1) * movementsPageSize;
+    return currentMovementsList.slice(start, start + movementsPageSize);
+  }, [currentMovementsList, movementsPage, movementsPageSize]);
+
   function handleAdjusted() {
     setAdjustOpen(false);
     load();
@@ -220,7 +244,7 @@ export default function InventoryPage() {
   const toBeReceived = summary?.inventory?.toBeReceived || 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-gray-900">
       <AdjustStockModal open={adjustOpen} onClose={() => setAdjustOpen(false)} onSaved={handleAdjusted} />
 
       <motion.div custom={0} variants={sectionVariants} initial="hidden" animate="visible" className="flex items-center justify-between">
@@ -228,7 +252,7 @@ export default function InventoryPage() {
           <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900">Stock and Movement</h1>
           <p className="text-sm text-gray-500 mt-1">Real-time inventory levels, daily stock movements, and audit log</p>
         </div>
-        <Button onClick={() => setAdjustOpen(true)} className="bg-red-600 hover:bg-red-700 shadow-md">
+        <Button onClick={() => setAdjustOpen(true)} className="bg-red-600 hover:bg-red-700 shadow-md rounded-xl text-xs font-bold">
           <PlusCircle size={16} strokeWidth={2.5} />
           Adjust Stock
         </Button>
@@ -279,150 +303,226 @@ export default function InventoryPage() {
         </div>
       ) : (
         <motion.div custom={2} variants={sectionVariants} initial="hidden" animate="visible" className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-          {/* Low Stock Alerts */}
-          <section className="lg:col-span-2">
-            <h2 className="font-heading font-bold text-sm uppercase tracking-wide text-gray-500 mb-3 flex items-center gap-2">
-              <AlertTriangle size={15} className="text-amber-700" />
-              Low Stock Alerts ({lowStockItems.length})
-            </h2>
-            <div className="rounded-2xl border border-gray-200 bg-white shadow-xs divide-y divide-gray-100 overflow-hidden">
-              {lowStockItems.length === 0 && (
-                <p className="px-4 py-6 text-sm text-gray-500">Nothing below its reorder threshold right now.</p>
-              )}
-              {lowStockItems.map((p) => (
-                <Link key={p.id} to={`/products/${p.id}/edit`} className="flex items-center justify-between px-4 py-3 text-sm hover:bg-gray-50 transition-colors">
-                  <div>
-                    <p className="text-gray-900 font-semibold">{p.name}</p>
-                    <p className="font-mono text-xs text-gray-500">{p.sku} · <Badge>{formatCategory(p.category)}</Badge></p>
-                  </div>
-                  <div className="text-right tabular-nums">
-                    <p className="text-gray-900 font-bold">{p.stock_quantity} / {p.reorder_threshold}</p>
-                    <Badge variant="warning">Low Stock</Badge>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </section>
-
-          {/* Movements Table with Daily Stacking */}
-          <section className="lg:col-span-3">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-heading font-bold text-sm uppercase tracking-wide text-gray-500 flex items-center gap-2">
-                <ClipboardList size={15} />
-                {isStacked ? 'Stacked Daily Movements' : 'All Raw Movement Logs'}
-              </h2>
-
-              {/* Toggle Switch: Stacked vs Raw Logs */}
-              <div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-white p-1 shadow-xs">
-                <button
-                  type="button"
-                  onClick={() => setIsStacked(true)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg transition-colors ${
-                    isStacked ? 'bg-black text-white' : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  <Layers size={13} />
-                  Stacked View
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsStacked(false)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg transition-colors ${
-                    !isStacked ? 'bg-black text-white' : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  <ListFilter size={13} />
-                  Raw Logs ({movements.length})
-                </button>
+          {/* Low Stock Alerts (with Pagination) */}
+          <section className="lg:col-span-2 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-heading font-bold text-sm uppercase tracking-wide text-gray-500 flex items-center gap-2">
+                  <AlertTriangle size={15} className="text-amber-700" />
+                  Low Stock Alerts ({lowStockItems.length})
+                </h2>
+                {lowStockItems.length > 0 && (
+                  <span className="text-[11px] text-gray-400 font-medium">
+                    Page {lowStockPage} of {totalLowStockPages}
+                  </span>
+                )}
+              </div>
+              <div className="rounded-2xl border border-gray-200 bg-white shadow-xs divide-y divide-gray-100 overflow-hidden">
+                {lowStockItems.length === 0 && (
+                  <p className="px-4 py-6 text-sm text-gray-500">Nothing below its reorder threshold right now.</p>
+                )}
+                {paginatedLowStockItems.map((p) => (
+                  <Link key={p.id} to={`/products/${p.id}/edit`} className="flex items-center justify-between px-4 py-3 text-sm hover:bg-gray-50 transition-colors">
+                    <div>
+                      <p className="text-gray-900 font-semibold">{p.name}</p>
+                      <p className="font-mono text-xs text-gray-500">{p.sku} · <Badge>{formatCategory(p.category)}</Badge></p>
+                    </div>
+                    <div className="text-right tabular-nums">
+                      <p className="text-gray-900 font-bold">{p.stock_quantity} / {p.reorder_threshold}</p>
+                      <Badge variant="warning">Low Stock</Badge>
+                    </div>
+                  </Link>
+                ))}
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xs">
-              <Table>
-                <TableHeader className="bg-gray-50/80">
-                  <TableRow>
-                    <TableHead className="font-bold text-gray-700">Product & SKU</TableHead>
-                    <TableHead className="font-bold text-gray-700">{isStacked ? 'Daily Net Change' : 'Change'}</TableHead>
-                    <TableHead className="font-bold text-gray-700">{isStacked ? 'Activity' : 'Reason'}</TableHead>
-                    <TableHead className="font-bold text-gray-700">Date & Time</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {/* STACKED DAILY VIEW */}
-                  {isStacked && stackedMovements.length === 0 && (
-                    <TableRow><TableCell colSpan={4} className="py-10 text-center text-gray-500">
-                      <div className="flex flex-col items-center gap-2">
-                        <Search size={24} className="text-gray-300" strokeWidth={1.5} />
+            {/* Low Stock Pagination Controls */}
+            {lowStockItems.length > lowStockPageSize && (
+              <div className="flex items-center justify-between pt-3 border-t border-gray-100 mt-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={lowStockPage <= 1}
+                  onClick={() => setLowStockPage((p) => Math.max(1, p - 1))}
+                  className="rounded-xl text-xs font-bold h-8 px-3"
+                >
+                  <ChevronLeft size={13} /> Prev
+                </Button>
+                <span className="text-[11px] text-gray-500 font-semibold">
+                  {lowStockPage} / {totalLowStockPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={lowStockPage >= totalLowStockPages}
+                  onClick={() => setLowStockPage((p) => Math.min(totalLowStockPages, p + 1))}
+                  className="rounded-xl text-xs font-bold h-8 px-3"
+                >
+                  Next <ChevronRight size={13} />
+                </Button>
+              </div>
+            )}
+          </section>
+
+          {/* Movements Table with Daily Stacking & Pagination */}
+          <section className="lg:col-span-3 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                <h2 className="font-heading font-bold text-sm uppercase tracking-wide text-gray-500 flex items-center gap-2">
+                  <ClipboardList size={15} />
+                  {isStacked ? 'Stacked Daily Movements' : 'All Raw Movement Logs'}
+                </h2>
+
+                {/* Toggle Switch: Stacked vs Raw Logs */}
+                <div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-white p-1 shadow-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsStacked(true);
+                      setMovementsPage(1);
+                    }}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg transition-colors ${
+                      isStacked ? 'bg-black text-white' : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <Layers size={13} />
+                    Stacked View
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsStacked(false);
+                      setMovementsPage(1);
+                    }}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg transition-colors ${
+                      !isStacked ? 'bg-black text-white' : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <ListFilter size={13} />
+                    Raw Logs ({movements.length})
+                  </button>
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xs">
+                <Table>
+                  <TableHeader className="bg-gray-50/80">
+                    <TableRow>
+                      <TableHead className="font-bold text-gray-700">Product & SKU</TableHead>
+                      <TableHead className="font-bold text-gray-700">{isStacked ? 'Daily Net Change' : 'Change'}</TableHead>
+                      <TableHead className="font-bold text-gray-700">{isStacked ? 'Activity' : 'Reason'}</TableHead>
+                      <TableHead className="font-bold text-gray-700">Date & Time</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {/* STACKED DAILY VIEW */}
+                    {isStacked && stackedMovements.length === 0 && (
+                      <TableRow><TableCell colSpan={4} className="py-10 text-center text-gray-500">
+                        <div className="flex flex-col items-center gap-2">
+                          <Search size={24} className="text-gray-300" strokeWidth={1.5} />
+                          No stock movements recorded yet.
+                        </div>
+                      </TableCell></TableRow>
+                    )}
+
+                    {isStacked && paginatedMovements.map((g) => (
+                      <TableRow key={g.id} className="hover:bg-gray-50/60 transition-colors">
+                        <TableCell>
+                          <p className="text-gray-900 font-bold">{g.product_name}</p>
+                          <p className="font-mono text-xs text-gray-500">{g.product_sku}</p>
+                        </TableCell>
+                        <TableCell className="tabular-nums">
+                          <span
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold ${
+                              g.totalChange >= 0
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : 'bg-red-50 text-red-700 border border-red-200'
+                            }`}
+                          >
+                            {g.totalChange >= 0 ? `+${g.totalChange}` : g.totalChange} Total
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-0.5">
+                            <span className="inline-block rounded-md bg-gray-100 px-2 py-0.5 text-[11px] font-bold text-gray-800">
+                              {g.count} {g.count === 1 ? 'operation' : 'operations stacked'}
+                            </span>
+                            <p className="text-xs text-gray-500 font-medium">
+                              {Array.from(g.reasons).join(', ') || 'Manual Adjustment'}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-gray-500 text-xs">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-gray-900 flex items-center gap-1">
+                              <Calendar size={12} className="text-gray-400" />
+                              {formatDateLabel(g.dateObj)}
+                            </span>
+                            <span className="text-gray-400 text-[11px] flex items-center gap-1 mt-0.5">
+                              <Clock size={11} />
+                              Last at {new Date(g.latestTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+
+                    {/* UNSTACKED RAW LOGS VIEW */}
+                    {!isStacked && movements.length === 0 && (
+                      <TableRow><TableCell colSpan={4} className="py-10 text-center text-gray-500">
                         No stock movements recorded yet.
-                      </div>
-                    </TableCell></TableRow>
-                  )}
+                      </TableCell></TableRow>
+                    )}
 
-                  {isStacked && stackedMovements.map((g) => (
-                    <TableRow key={g.id} className="hover:bg-gray-50/60 transition-colors">
-                      <TableCell>
-                        <p className="text-gray-900 font-bold">{g.product_name}</p>
-                        <p className="font-mono text-xs text-gray-500">{g.product_sku}</p>
-                      </TableCell>
-                      <TableCell className="tabular-nums">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold ${
-                            g.totalChange >= 0
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : 'bg-red-50 text-red-700 border border-red-200'
-                          }`}
-                        >
-                          {g.totalChange >= 0 ? `+${g.totalChange}` : g.totalChange} Total
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-0.5">
-                          <span className="inline-block rounded-md bg-gray-100 px-2 py-0.5 text-[11px] font-bold text-gray-800">
-                            {g.count} {g.count === 1 ? 'operation' : 'operations stacked'}
-                          </span>
-                          <p className="text-xs text-gray-500 font-medium">
-                            {Array.from(g.reasons).join(', ') || 'Manual Adjustment'}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-gray-500 text-xs">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-gray-900 flex items-center gap-1">
-                            <Calendar size={12} className="text-gray-400" />
-                            {formatDateLabel(g.dateObj)}
-                          </span>
-                          <span className="text-gray-400 text-[11px] flex items-center gap-1 mt-0.5">
-                            <Clock size={11} />
-                            Last at {new Date(g.latestTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-
-                  {/* UNSTACKED RAW LOGS VIEW */}
-                  {!isStacked && movements.length === 0 && (
-                    <TableRow><TableCell colSpan={4} className="py-10 text-center text-gray-500">
-                      No stock movements recorded yet.
-                    </TableCell></TableRow>
-                  )}
-
-                  {!isStacked && movements.map((m) => (
-                    <TableRow key={m.id} className="hover:bg-gray-50/50">
-                      <TableCell>
-                        <p className="text-gray-900 font-medium">{m.product_name}</p>
-                        <p className="font-mono text-xs text-gray-500">{m.product_sku}</p>
-                      </TableCell>
-                      <TableCell className={`tabular-nums font-bold ${m.quantity_change >= 0 ? 'text-emerald-600' : 'text-gray-900'}`}>
-                        {m.quantity_change >= 0 ? '+' : '−'}{Math.abs(m.quantity_change)}
-                      </TableCell>
-                      <TableCell className="text-gray-700 font-medium">{MOVEMENT_REASON_LABELS[m.reason] || m.reason}</TableCell>
-                      <TableCell className="text-gray-500 text-xs">{new Date(m.created_at).toLocaleString()}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                    {!isStacked && paginatedMovements.map((m) => (
+                      <TableRow key={m.id} className="hover:bg-gray-50/50">
+                        <TableCell>
+                          <p className="text-gray-900 font-medium">{m.product_name}</p>
+                          <p className="font-mono text-xs text-gray-500">{m.product_sku}</p>
+                        </TableCell>
+                        <TableCell className={`tabular-nums font-bold ${m.quantity_change >= 0 ? 'text-emerald-600' : 'text-gray-900'}`}>
+                          {m.quantity_change >= 0 ? '+' : '−'}{Math.abs(m.quantity_change)}
+                        </TableCell>
+                        <TableCell className="text-gray-700 font-medium">{MOVEMENT_REASON_LABELS[m.reason] || m.reason}</TableCell>
+                        <TableCell className="text-gray-500 text-xs">{new Date(m.created_at).toLocaleString()}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
+
+            {/* Movements Pagination Controls */}
+            {currentMovementsList.length > movementsPageSize && (
+              <div className="flex items-center justify-between pt-3 border-t border-gray-100 mt-3">
+                <span className="text-xs text-gray-500 font-medium">
+                  Showing {paginatedMovements.length} of {currentMovementsList.length} items
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={movementsPage <= 1}
+                    onClick={() => setMovementsPage((p) => Math.max(1, p - 1))}
+                    className="rounded-xl text-xs font-bold h-8 px-3"
+                  >
+                    <ChevronLeft size={13} /> Prev
+                  </Button>
+                  <span className="text-xs text-gray-700 font-bold px-1">
+                    {movementsPage} / {totalMovementsPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={movementsPage >= totalMovementsPages}
+                    onClick={() => setMovementsPage((p) => Math.min(totalMovementsPages, p + 1))}
+                    className="rounded-xl text-xs font-bold h-8 px-3"
+                  >
+                    Next <ChevronRight size={13} />
+                  </Button>
+                </div>
+              </div>
+            )}
           </section>
         </motion.div>
       )}

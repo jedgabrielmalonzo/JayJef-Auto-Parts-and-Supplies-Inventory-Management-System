@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Trash2, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 import { getOrder, createOrder, updateOrder } from '../api/orders.js';
-import { listSuppliers } from '../api/suppliers.js';
+import { listSuppliers, getSupplierProducts } from '../api/suppliers.js';
 import { Button } from '../components/ui/button.jsx';
 import { Input } from '../components/ui/input.jsx';
 import { Label } from '../components/ui/label.jsx';
@@ -34,6 +34,8 @@ export default function OrderFormPage() {
 
   const [type, setType] = useState(searchParams.get('type') === 'sale' ? 'sale' : 'purchase');
   const [supplierId, setSupplierId] = useState('');
+  const [supplierProducts, setSupplierProducts] = useState([]);
+  const [loadingSupplierProds, setLoadingSupplierProds] = useState(false);
   const [partyName, setPartyName] = useState('');
   const [partyContact, setPartyContact] = useState('');
   const [orderDate, setOrderDate] = useState('');
@@ -48,6 +50,49 @@ export default function OrderFormPage() {
   useEffect(() => {
     listSuppliers({ page_size: 500 }).then((r) => setSuppliers(r.items)).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!supplierId) {
+      setSupplierProducts([]);
+      return;
+    }
+    setLoadingSupplierProds(true);
+    getSupplierProducts(supplierId)
+      .then(setSupplierProducts)
+      .catch(() => setSupplierProducts([]))
+      .finally(() => setLoadingSupplierProds(false));
+  }, [supplierId]);
+
+  function loadConstantProducts() {
+    if (supplierProducts.length === 0) {
+      toast.info('No constant products recorded for this supplier.');
+      return;
+    }
+    let addedCount = 0;
+    setItems((prev) => {
+      const existingIds = new Set(prev.map((i) => i.product_id));
+      const newItems = [...prev];
+      supplierProducts.forEach((p) => {
+        if (!existingIds.has(p.id)) {
+          newItems.push({
+            product_id: p.id,
+            sku: p.sku,
+            name: p.name,
+            quantity: 1,
+            unit_price: p.cost_price,
+          });
+          addedCount++;
+        }
+      });
+      return newItems;
+    });
+    if (addedCount > 0) {
+      toast.success(`Loaded ${addedCount} constant product(s) for this supplier.`);
+    } else {
+      toast.info('All constant products for this supplier are already added.');
+    }
+  }
+
 
   useEffect(() => {
     if (!isEdit) return;
@@ -159,16 +204,31 @@ export default function OrderFormPage() {
             <div className="grid grid-cols-2 gap-4">
               {type === 'purchase' ? (
                 <Field label="Supplier">
-                  <Select value={supplierId} onValueChange={setSupplierId}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="No catalog supplier (use party name)">
-                        {(v) => suppliers.find((s) => String(s.id) === v)?.name}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {suppliers.map((s) => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <div className="space-y-1.5">
+                    <Select value={supplierId} onValueChange={setSupplierId}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="No catalog supplier (use party name)">
+                          {(v) => suppliers.find((s) => String(s.id) === v)?.name}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {suppliers.map((s) => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    {supplierId && (
+                      <button
+                        type="button"
+                        onClick={loadConstantProducts}
+                        disabled={loadingSupplierProds}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-2.5 py-1 rounded-lg transition-colors"
+                      >
+                        <Layers size={13} />
+                        {loadingSupplierProds
+                          ? 'Loading products...'
+                          : `Load Supplier Constant Products (${supplierProducts.length})`}
+                      </button>
+                    )}
+                  </div>
                 </Field>
               ) : (
                 <Field label="Customer Name">
@@ -179,6 +239,7 @@ export default function OrderFormPage() {
                 <Input placeholder="Phone or email" value={partyContact} onChange={(e) => setPartyContact(e.target.value)} />
               </Field>
             </div>
+
 
             <Field label="Order Date">
               <Input type="date" value={orderDate} onChange={(e) => setOrderDate(e.target.value)} />

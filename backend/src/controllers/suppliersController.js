@@ -47,6 +47,29 @@ export async function updateSupplier(req, res, next) {
   }
 }
 
+export async function getSupplierProducts(req, res, next) {
+  try {
+    const supplier = await supplierModel.findById(req.params.id);
+    if (!supplier) return res.status(404).json({ error: 'Supplier not found' });
+    const products = await supplierModel.getSupplierProducts(req.params.id);
+    res.json(products);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateSupplierProducts(req, res, next) {
+  try {
+    const supplier = await supplierModel.findById(req.params.id);
+    if (!supplier) return res.status(404).json({ error: 'Supplier not found' });
+    const productIds = Array.isArray(req.body.product_ids) ? req.body.product_ids : [];
+    const products = await supplierModel.updateSupplierProducts(req.params.id, productIds);
+    res.json(products);
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function deleteSupplier(req, res, next) {
   try {
     const existing = await supplierModel.findById(req.params.id);
@@ -63,3 +86,4 @@ export async function deleteSupplier(req, res, next) {
     next(err);
   }
 }
+
