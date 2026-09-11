@@ -70,7 +70,16 @@ the real stock count.
 
 Where this shows up:
 - A dashboard widget/list of currently low-stock products.
-- Optionally, a warning badge on the product list/detail view.
+- Low Stock Alerts list in the Stock & Movement page (`/inventory`), paginated (5 items per page) with page navigation.
+- Real-time Web Audio API chimes triggering when items breach threshold.
 - Reorder-threshold breaches don't block any action (staff can still sell
   down to 0) — they're informational, prompting a restock via a purchase
   order or OCR receipt capture.
+
+## Movement Audit Views & Stacking
+
+The Stock & Movement audit interface (`/inventory`) provides two complementary views:
+- **Stacked Daily Movements**: Groups multiple operations on the same product occurring on the same date into a single summary row displaying daily net change, operation counts, and reasons.
+- **Raw Movement Logs**: Displays individual line-by-line stock audit entries.
+- Both views feature built-in client pagination (10 items per page with Previous/Next controls) for clean rendering and navigation.
+

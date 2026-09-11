@@ -30,17 +30,14 @@ moves when it's fulfilled.
 
 ## Flow
 
-1. **Select products** — staff searches/picks products from the active
-   catalog (same product picker used elsewhere in the app).
-2. **Input quantities** (and unit price, pre-filled from `cost_price` for
+1. **Select counterparty / supplier** — for purchase orders, selecting a catalog supplier automatically presents a 1-click **"Load Supplier Constant Products"** action to pre-fill all memorized products regularly ordered from that supplier.
+2. **Select products** — staff searches/picks additional products from the active catalog (using `ProductPicker`).
+3. **Input quantities** (and unit price, pre-filled from `cost_price` for
    purchases or `selling_price` for sales, but editable per line — prices
    can vary by negotiation).
-3. **Preview** — a rendered view of the document exactly as it will print,
-   so mistakes are caught before generating a PDF.
-4. **Generate PDF** — server renders the final document to PDF (see
-   [PDF Generation Approach](#pdf-generation-approach)).
-5. **Print** — staff prints directly from the browser's PDF viewer, or
-   saves the file.
+4. **Preview & Save Draft** — preview document totals and save draft.
+5. **Fulfill & Generate PDF** — server renders final printable document.
+
 
 Orders start as `draft` (editable freely), move to `confirmed` once
 finalized, and to `fulfilled` once the goods have actually moved (which is

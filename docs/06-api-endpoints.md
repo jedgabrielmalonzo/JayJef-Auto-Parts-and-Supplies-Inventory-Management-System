@@ -76,11 +76,14 @@ Both directions share one resource, distinguished by `type` (see
 
 | Method | Path | Request | Response |
 |---|---|---|---|
-| GET | `/suppliers` | Query params: `search`, `page`, `page_size` | `{ items: Supplier[], total, page, page_size }` |
+| GET | `/suppliers` | Query params: `search`, `page`, `page_size` | `{ items: (Supplier & { product_count: number })[], total, page, page_size }` |
 | GET | `/suppliers/:id` | — | `Supplier` |
+| GET | `/suppliers/:id/products` | — | `Product[]` — active constant products assigned to this supplier |
+| POST | `/suppliers/:id/products` | `{ product_ids: number[] }` | `Product[]` — updates constant products memory for this supplier |
 | POST | `/suppliers` | `{ name, contact_person?, phone?, email?, address?, notes? }` | `Supplier` (201) |
 | PUT | `/suppliers/:id` | Partial | `Supplier` |
 | DELETE | `/suppliers/:id` | — | `204`, or `409` if referenced by products/orders |
+
 
 ## Users
 

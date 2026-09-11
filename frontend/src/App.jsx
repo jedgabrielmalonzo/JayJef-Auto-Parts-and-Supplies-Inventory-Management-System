@@ -3,13 +3,14 @@ import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation } from 're
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Wrench, LayoutDashboard, Package, ClipboardList, FileText, ScanLine, Map, BarChart3, Bot,
-  Menu, X, Settings, Truck
+  Menu, X, Settings, Truck, ShieldCheck
 } from 'lucide-react';
 import { Toaster } from './components/ui/sonner.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import ProductsPage from './pages/ProductsPage.jsx';
 import InventoryPage from './pages/InventoryPage.jsx';
+import AuditLogPage from './pages/AuditLogPage.jsx';
 import ReportsPage from './pages/ReportsPage.jsx';
 import OrdersPage from './pages/OrdersPage.jsx';
 import SuppliersPage from './pages/SuppliersPage.jsx';
@@ -64,6 +65,7 @@ const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/products', label: 'Products and Catalog', icon: Package },
   { to: '/inventory', label: 'Stock and Movement', icon: ClipboardList },
+  { to: '/audit-log', label: 'System Audit Log', icon: ShieldCheck },
   { to: '/orders', label: 'Orders and Receipts', icon: FileText },
   { to: '/suppliers', label: 'Suppliers Catalog', icon: Truck },
   { to: '/reports', label: 'Report and Analytics', icon: BarChart3 },
@@ -273,6 +275,7 @@ function AnimatedRoutes() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/products/*" element={<ProductsPage />} />
           <Route path="/inventory" element={<InventoryPage />} />
+          <Route path="/audit-log" element={<AuditLogPage />} />
           <Route path="/orders/*" element={<OrdersPage />} />
           <Route path="/suppliers/*" element={<SuppliersPage />} />
           <Route path="/reports" element={<ReportsPage />} />

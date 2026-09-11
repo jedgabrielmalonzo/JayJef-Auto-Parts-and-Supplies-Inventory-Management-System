@@ -170,7 +170,7 @@ export default function OrderFormPage() {
 
   return (
     <Dialog open onOpenChange={(v) => !v && close()}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Edit Order' : 'New Order'}</DialogTitle>
         </DialogHeader>
@@ -251,14 +251,14 @@ export default function OrderFormPage() {
 
             {itemsError && <p className="text-sm text-red-700">{itemsError}</p>}
 
-            <div className="rounded-lg border border-gray-200">
+            <div className="rounded-xl border border-gray-200 overflow-hidden">
               <Table>
-                <TableHeader>
+                <TableHeader className="bg-gray-50/80">
                   <TableRow>
-                    <TableHead>Item</TableHead>
-                    <TableHead className="w-24">Qty</TableHead>
-                    <TableHead className="w-28">Unit Price</TableHead>
-                    <TableHead className="w-28 text-right">Line Total</TableHead>
+                    <TableHead className="font-bold text-gray-700">Item</TableHead>
+                    <TableHead className="w-28 font-bold text-gray-700">Qty</TableHead>
+                    <TableHead className="w-40 font-bold text-gray-700">Unit Price</TableHead>
+                    <TableHead className="w-36 text-right font-bold text-gray-700">Line Total</TableHead>
                     <TableHead className="w-10"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -267,23 +267,38 @@ export default function OrderFormPage() {
                     <TableRow><TableCell colSpan={5} className="py-6 text-center text-black-500">No line items yet — search above to add one.</TableCell></TableRow>
                   )}
                   {items.map((i) => (
-                    <TableRow key={i.product_id}>
+                    <TableRow key={i.product_id} className="hover:bg-gray-50/50">
                       <TableCell>
-                        <p className="text-black-900">{i.name}</p>
+                        <p className="text-black-900 font-bold">{i.name}</p>
                         <p className="font-mono text-xs text-black-500">{i.sku}</p>
                       </TableCell>
                       <TableCell>
-                        <Input type="number" min="1" className="h-9 tabular-nums" value={i.quantity} onChange={(e) => updateItem(i.product_id, 'quantity', e.target.value)} />
+                        <Input
+                          type="number"
+                          min="1"
+                          className="h-9 w-24 px-3 tabular-nums font-semibold border-gray-300 rounded-xl [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          value={i.quantity}
+                          onChange={(e) => updateItem(i.product_id, 'quantity', e.target.value)}
+                        />
                       </TableCell>
                       <TableCell>
-                        <div className="relative flex items-center">
-                          <span className="absolute left-2.5 text-xs font-bold text-gray-500">₱</span>
-                          <Input type="number" min="0" step="0.01" className="h-9 pl-6 tabular-nums" value={i.unit_price} onChange={(e) => updateItem(i.product_id, 'unit_price', e.target.value)} />
+                        <div className="relative flex items-center min-w-[130px]">
+                          <span className="absolute left-3 text-xs font-bold text-gray-500">₱</span>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className="h-9 w-36 pl-7 pr-3 tabular-nums font-semibold border-gray-300 rounded-xl [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            value={i.unit_price}
+                            onChange={(e) => updateItem(i.product_id, 'unit_price', e.target.value)}
+                          />
                         </div>
                       </TableCell>
-                      <TableCell className="text-right tabular-nums text-black-900 font-bold">{peso(i.quantity * i.unit_price)}</TableCell>
+                      <TableCell className="text-right tabular-nums text-black-900 font-bold text-sm">
+                        {peso(i.quantity * i.unit_price)}
+                      </TableCell>
                       <TableCell className="text-right">
-                        <Button type="button" variant="ghost" size="icon-sm" title="Remove" className="hover:bg-red-50 hover:text-red-600" onClick={() => removeItem(i.product_id)}>
+                        <Button type="button" variant="ghost" size="icon-sm" title="Remove" className="hover:bg-red-50 hover:text-red-600 rounded-lg" onClick={() => removeItem(i.product_id)}>
                           <Trash2 size={15} />
                         </Button>
                       </TableCell>
@@ -292,6 +307,7 @@ export default function OrderFormPage() {
                 </TableBody>
               </Table>
             </div>
+
 
             <div className="flex justify-end">
               <div className="w-48 text-right">
