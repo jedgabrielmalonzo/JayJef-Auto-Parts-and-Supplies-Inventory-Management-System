@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "npx concurrently -k -n \"BACKEND,FRONTEND\" -c \"blue,green\" \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
-    "dev:all": "npx concurrently -k -n \"BACKEND,FRONTEND,OCR\" -c \"blue,green,magenta\" \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\" \"ocr-service\\.venv\\Scripts\\uvicorn.exe app:app --reload --port 8000 --app-dir ocr-service\""
+    "dev:all": "npx concurrently -k -n \"BACKEND,FRONTEND,OCR\" -c \"blue,green,magenta\" \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\" \"ocr-service\\.venv\\Scripts\\uvicorn.exe app:app --reload --port 8000 --app-dir ocr-service\"",
+    "build": "npm --prefix frontend run build",
+    "vercel-build": "npm --prefix frontend run build"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
