@@ -84,3 +84,10 @@ The Stock & Movement audit interface (`/inventory`) provides two complementary v
 - **Raw Movement Logs**: Displays individual line-by-line stock audit entries with search, product, and reason filters.
 - Both views feature built-in pagination (10 items per page with Previous/Next controls) for clean rendering and navigation.
 
+## Bundle & Order Stock Adjustments
+
+Instead of manually performing single-product adjustments one by one, staff can use **Adjust by Bundle / Whole Order** in the Adjust Stock modal (`/inventory`):
+- **Load from Existing Orders**: Selecting any Purchase Order (PO) or Sales Order (Invoice) automatically populates all line items into a batch editing grid, setting appropriate movement directions (`+` for PO restocks, `−` for Sale fulfillments).
+- **Custom Multi-Product Bundles**: Staff can search and append multiple catalog products into a custom bundle list, setting per-item quantities and directions.
+- **Atomic Single-Transaction Execution**: Clicking "Adjust Stock for Bundle" submits all movements in a single atomic database transaction via `POST /api/inventory/movements/batch`, ensuring zero partial states or data inconsistency.
+

@@ -42,7 +42,8 @@ resources here there's no soft-delete or history protection.
 | Method | Path | Request | Response |
 |---|---|---|---|
 | GET | `/inventory/movements` | Query params: `product_id`, `reason`, `date_from`, `date_to`, `page`, `page_size` | `{ items: StockMovement[], total, page, page_size }` |
-| POST | `/inventory/movements` | `{ product_id, quantity_change, reason: 'manual_adjustment' \| 'correction', note? }` | `StockMovement` (201) — used for manual adjustments only; other reasons are created internally by the OCR-confirm and order-fulfill endpoints below |
+| POST | `/inventory/movements` | `{ product_id, quantity_change, reason: 'manual_adjustment' \| 'correction', note? }` | `StockMovement` (201) — single item stock movement |
+| POST | `/inventory/movements/batch` | `{ movements: [{ product_id, quantity_change, reason, note? }], user_id? }` | `{ movements: StockMovement[], count: number }` (201) — atomic multi-product bundle or order stock adjustment in a single transaction |
 | GET | `/inventory/low-stock` | Query params: `category?` | `Product[]` — products where `stock_quantity <= reorder_threshold` |
 
 ## OCR

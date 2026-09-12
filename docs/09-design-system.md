@@ -163,7 +163,7 @@ animation should never make them wait.
 
 The frontend utilizes **Shadcn UI** primitives (built on Radix UI / Base UI) styled with Tailwind CSS, micro-animated with **Framer Motion**, and notified via **Sonner** toasts:
 
-- **Shadcn Components**: `<Button>`, `<Card>`, `<Badge>`, `<Dialog>`, `<AlertDialog>`, `<Select>`, `<Input>`, `<Popover>`, `<Calendar>`, `<Tabs>`, `<Table>`, `<Checkbox>`.
+- **Shadcn Components**: `<Button>`, `<Card>`, `<Badge>`, `<Dialog>`, `<AlertDialog>`, `<Select>`, `<Input>`, `<Popover>`, `<Calendar>`, `<Pagination>`, `<Tabs>`, `<Table>`, `<Checkbox>`.
 - **Date Pickers**: `DatePickerWithRange` leverages `react-day-picker` and `date-fns` inside a Radix Popover primitive for selecting custom audit log and report date ranges.
 - **Global AI Assistant Modal**: Floating `<AiChatbot />` overlay mounted globally in `App.jsx`, styled with glassmorphism backdrop blurs and Framer Motion spring physics.
 - **Animations**: `framer-motion` handles page transitions, card hover elevation (`scale-102`), and smooth modal pop-overs.

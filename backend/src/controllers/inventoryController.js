@@ -1,7 +1,7 @@
 import * as stockMovementModel from '../models/stockMovementModel.js';
-import { createMovementStandalone, InsufficientStockError } from '../services/stockMovements.js';
+import { createMovementStandalone, createBatchMovementsStandalone, InsufficientStockError } from '../services/stockMovements.js';
 
-const MANUAL_REASONS = ['manual_adjustment', 'correction'];
+const MANUAL_REASONS = ['manual_adjustment', 'correction', 'purchase_order_received', 'order_fulfillment'];
 
 export async function listMovements(req, res, next) {
   try {
@@ -51,6 +51,33 @@ export async function createMovement(req, res, next) {
   }
 }
 
+export async function createBatchMovements(req, res, next) {
+  try {
+    const { movements, user_id } = req.body;
+    if (!Array.isArray(movements) || movements.length === 0) {
+      return res.status(400).json({ error: 'Missing or empty movements array' });
+    }
+
+    const itemsToProcess = movements.map((m) => ({
+      productId: m.product_id,
+      userId: m.user_id || user_id,
+      quantityChange: Number(m.quantity_change),
+      reason: m.reason || 'manual_adjustment',
+      referenceType: m.reference_type || null,
+      referenceId: m.reference_id || null,
+      note: m.note || null,
+    }));
+
+    const results = await createBatchMovementsStandalone(itemsToProcess);
+    res.status(201).json({ movements: results, count: results.length });
+  } catch (err) {
+    if (err instanceof InsufficientStockError) {
+      return res.status(409).json({ error: err.message });
+    }
+    next(err);
+  }
+}
+
 export async function lowStock(req, res, next) {
   try {
     res.json(await stockMovementModel.lowStock({ category: req.query.category }));
@@ -58,3 +85,4 @@ export async function lowStock(req, res, next) {
     next(err);
   }
 }
+

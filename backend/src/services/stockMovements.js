@@ -57,3 +57,24 @@ export async function createMovementStandalone(data) {
     client.release();
   }
 }
+
+/** Convenient wrapper to execute multiple stock movements inside a single database transaction. */
+export async function createBatchMovementsStandalone(items) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const movements = [];
+    for (const item of items) {
+      const movement = await createMovement(client, item);
+      movements.push(movement);
+    }
+    await client.query('COMMIT');
+    return movements;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+

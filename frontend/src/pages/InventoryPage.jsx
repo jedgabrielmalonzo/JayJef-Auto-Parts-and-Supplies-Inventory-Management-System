@@ -2,10 +2,12 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  AlertTriangle, ClipboardList, Loader2, PlusCircle, Search, Layers, ListFilter, Calendar, Clock, ChevronLeft, ChevronRight
+  AlertTriangle, ClipboardList, Loader2, PlusCircle, Search, Layers, ListFilter, Calendar, Clock, ChevronLeft, ChevronRight,
+  Package, Boxes, Trash2, ArrowRightLeft, FileText
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { lowStock, listMovements, createMovement } from '../api/inventory.js';
+import { lowStock, listMovements, createMovement, createBatchMovements } from '../api/inventory.js';
+import { listOrders, getOrder } from '../api/orders.js';
 import { getOverview } from '../api/dashboard.js';
 import { MOVEMENT_REASON_LABELS, formatCategory } from '../constants.js';
 import { soundService } from '../lib/sound.js';
@@ -20,6 +22,15 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '.
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.jsx';
 import ProductPicker from '../components/ProductPicker.jsx';
 import { DatePickerWithRange } from '../components/DatePickerWithRange.jsx';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationPrevious,
+  PaginationNext,
+  PaginationEllipsis,
+} from '../components/ui/pagination.jsx';
 
 const DIRECTION_LABELS = { in: 'Stock In (+)', out: 'Stock Out (−)' };
 const REASON_OPTIONS = { manual_adjustment: 'Manual Adjustment', correction: 'Correction' };
@@ -84,21 +95,101 @@ function formatDateLabel(dateObj) {
 }
 
 function AdjustStockModal({ open, onClose, onSaved }) {
+  const [mode, setMode] = useState('single'); // 'single' | 'bundle'
+
+  // Single mode state
   const [product, setProduct] = useState(null);
   const [direction, setDirection] = useState('in');
   const [quantity, setQuantity] = useState('');
   const [reason, setReason] = useState('manual_adjustment');
   const [note, setNote] = useState('');
+
+  // Bundle mode state
+  const [orders, setOrders] = useState([]);
+  const [selectedOrderId, setSelectedOrderId] = useState('');
+  const [loadingOrder, setLoadingOrder] = useState(false);
+  const [bundleItems, setBundleItems] = useState([]);
+  const [bundleReason, setBundleReason] = useState('manual_adjustment');
+  const [bundleNote, setBundleNote] = useState('');
+  const [addItemProduct, setAddItemProduct] = useState(null);
+
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!open) {
+      setMode('single');
       setProduct(null); setDirection('in');
       setQuantity(''); setReason('manual_adjustment'); setNote('');
+      setSelectedOrderId(''); setBundleItems([]);
+      setBundleReason('manual_adjustment'); setBundleNote('');
+      setAddItemProduct(null);
+    } else {
+      listOrders({ pageSize: 100 }).then((res) => {
+        setOrders(res?.items || []);
+      }).catch(() => {});
     }
   }, [open]);
 
-  async function handleSubmit(e) {
+  async function handleSelectOrder(orderId) {
+    setSelectedOrderId(orderId);
+    if (!orderId) return;
+    setLoadingOrder(true);
+    try {
+      const order = await getOrder(orderId);
+      if (order && Array.isArray(order.items)) {
+        const mapped = order.items.map((item) => ({
+          product_id: item.product_id,
+          product_name: item.product_name,
+          product_sku: item.product_sku,
+          quantity: item.quantity || 1,
+          direction: order.type === 'purchase' ? 'in' : 'out',
+          stock_quantity: item.stock_quantity,
+        }));
+        setBundleItems(mapped);
+        setBundleNote(`Adjusted via Order #${order.order_number}`);
+        setBundleReason(order.type === 'purchase' ? 'purchase_order_received' : 'order_fulfillment');
+        toast.success(`Loaded ${mapped.length} items from ${order.order_number}`);
+      }
+    } catch (err) {
+      toast.error('Failed to load order details: ' + err.message);
+    } finally {
+      setLoadingOrder(false);
+    }
+  }
+
+  function handleAddProductToBundle(p) {
+    if (!p) return;
+    if (bundleItems.some((item) => item.product_id === p.id)) {
+      toast.error('Product is already in the bundle list');
+      return;
+    }
+    setBundleItems((prev) => [
+      ...prev,
+      {
+        product_id: p.id,
+        product_name: p.name,
+        product_sku: p.sku,
+        quantity: 1,
+        direction: 'in',
+        stock_quantity: p.stock_quantity || 0,
+      },
+    ]);
+    setAddItemProduct(null);
+  }
+
+  function updateBundleItem(index, field, value) {
+    setBundleItems((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: value };
+      return next;
+    });
+  }
+
+  function removeBundleItem(index) {
+    setBundleItems((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  async function handleSubmitSingle(e) {
     e.preventDefault();
     if (!product || !quantity) return;
     setSaving(true);
@@ -120,74 +211,269 @@ function AdjustStockModal({ open, onClose, onSaved }) {
     }
   }
 
+  async function handleSubmitBundle(e) {
+    e.preventDefault();
+    if (bundleItems.length === 0) {
+      toast.error('Please add at least one product to the bundle');
+      return;
+    }
+    setSaving(true);
+    try {
+      const movements = bundleItems.map((item) => ({
+        product_id: item.product_id,
+        quantity_change: item.direction === 'in' ? Number(item.quantity) : -Number(item.quantity),
+        reason: bundleReason,
+        note: bundleNote || `Bundle Stock Adjustment (${bundleItems.length} items)`,
+      }));
+
+      await createBatchMovements(movements);
+
+      // Check alerts for outgoing items
+      bundleItems.forEach((item) => {
+        const change = item.direction === 'in' ? Number(item.quantity) : -Number(item.quantity);
+        if (change < 0) {
+          const newQty = Math.max(0, (item.stock_quantity || 0) + change);
+          soundService.checkAndPlayAlert(newQty, 5);
+        }
+      });
+
+      toast.success(`Successfully adjusted stock for ${bundleItems.length} items in bundle!`);
+      onSaved();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent showCloseButton className="sm:max-w-md">
+      <DialogContent showCloseButton className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-lg font-bold text-gray-900">Adjust Stock</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <Label>Product<span className="text-red-600">*</span></Label>
-            <ProductPicker selected={product} onSelect={setProduct} onClear={() => setProduct(null)} />
+          <DialogTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+            <ArrowRightLeft size={18} className="text-red-600" />
+            Adjust Inventory Stock
+          </DialogTitle>
+          {/* Mode Switcher */}
+          <div className="flex items-center gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setMode('single')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
+                mode === 'single' ? 'bg-red-600 text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <Package size={14} />
+              Single Product
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('bundle')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
+                mode === 'bundle' ? 'bg-red-600 text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <Boxes size={14} />
+              Adjust by Bundle / Whole Order
+            </button>
           </div>
+        </DialogHeader>
 
-          <div className="grid grid-cols-2 gap-4">
+        {mode === 'single' ? (
+          <form onSubmit={handleSubmitSingle} className="space-y-4 pt-1">
             <div className="space-y-1.5">
-              <Label>Direction</Label>
-              <Select value={direction} onValueChange={setDirection}>
+              <Label>Product<span className="text-red-600">*</span></Label>
+              <ProductPicker selected={product} onSelect={setProduct} onClear={() => setProduct(null)} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Direction</Label>
+                <Select value={direction} onValueChange={setDirection}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue>{(v) => DIRECTION_LABELS[v]}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="in">Stock In (+)</SelectItem>
+                    <SelectItem value="out">Stock Out (−)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Quantity<span className="text-red-600">*</span></Label>
+                <Input
+                  type="number"
+                  min="1"
+                  placeholder="1"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Reason</Label>
+              <Select value={reason} onValueChange={setReason}>
                 <SelectTrigger className="w-full">
-                  <SelectValue>{(v) => DIRECTION_LABELS[v]}</SelectValue>
+                  <SelectValue>{(v) => REASON_OPTIONS[v]}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="in">Stock In (+)</SelectItem>
-                  <SelectItem value="out">Stock Out (−)</SelectItem>
+                  <SelectItem value="manual_adjustment">Manual Adjustment</SelectItem>
+                  <SelectItem value="correction">Correction</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
             <div className="space-y-1.5">
-              <Label>Quantity<span className="text-red-600">*</span></Label>
-              <Input
-                type="number"
-                min="1"
-                placeholder="1"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                required
+              <Label>Note (optional)</Label>
+              <Textarea
+                placeholder="Reason for adjustment, PO #, etc."
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                rows={2}
               />
             </div>
-          </div>
 
-          <div className="space-y-1.5">
-            <Label>Reason</Label>
-            <Select value={reason} onValueChange={setReason}>
-              <SelectTrigger className="w-full">
-                <SelectValue>{(v) => REASON_OPTIONS[v]}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="manual_adjustment">Manual Adjustment</SelectItem>
-                <SelectItem value="correction">Correction</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+            <div className="flex gap-3 pt-2">
+              <Button type="submit" disabled={saving || !product || !quantity} className="bg-red-600 hover:bg-red-700 text-white font-semibold">
+                {saving ? 'Saving...' : 'Record Movement'}
+              </Button>
+              <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={handleSubmitBundle} className="space-y-4 pt-1">
+            {/* Load from Existing Order */}
+            <div className="space-y-1.5 p-3 bg-gray-50 rounded-xl border border-gray-200">
+              <Label className="font-bold text-xs text-gray-700 flex items-center gap-1.5">
+                <FileText size={14} className="text-red-600" />
+                Option A: Load Items from Existing Order
+              </Label>
+              <div className="flex gap-2 items-center">
+                <Select value={selectedOrderId} onValueChange={handleSelectOrder}>
+                  <SelectTrigger className="w-full bg-white">
+                    <SelectValue placeholder="Select an order (PO / Invoice)..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {orders.map((o) => (
+                      <SelectItem key={o.id} value={o.id.toString()}>
+                        {o.order_number} ({o.type === 'purchase' ? 'PO' : 'Sale Invoice'}) — {o.party_name || o.supplier_name || 'No Party'} ({o.status})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {loadingOrder && <Loader2 size={16} className="animate-spin text-red-600 shrink-0" />}
+              </div>
+            </div>
 
-          <div className="space-y-1.5">
-            <Label>Note (optional)</Label>
-            <Textarea
-              placeholder="Reason for adjustment, PO #, etc."
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              rows={2}
-            />
-          </div>
+            {/* Add Custom Products to Bundle */}
+            <div className="space-y-1.5">
+              <Label className="font-bold text-xs text-gray-700">Option B: Add Products to Bundle Manually</Label>
+              <ProductPicker selected={addItemProduct} onSelect={handleAddProductToBundle} onClear={() => setAddItemProduct(null)} placeholder="Search and pick product to add..." />
+            </div>
 
-          <div className="flex gap-3 pt-2">
-            <Button type="submit" disabled={saving || !product || !quantity} className="bg-red-600 hover:bg-red-700 text-white font-semibold">
-              {saving ? 'Saving...' : 'Record Movement'}
-            </Button>
-            <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
-          </div>
-        </form>
+            {/* Bundle Items Table */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="font-bold text-xs uppercase tracking-wide text-gray-500">
+                  Bundle Items ({bundleItems.length})
+                </Label>
+                {bundleItems.length > 0 && (
+                  <button type="button" onClick={() => setBundleItems([])} className="text-xs text-red-600 hover:underline">
+                    Clear All Items
+                  </button>
+                )}
+              </div>
+
+              {bundleItems.length === 0 ? (
+                <div className="border border-dashed border-gray-300 rounded-xl py-8 text-center text-xs text-gray-500">
+                  No items in bundle yet. Select an order above or pick products to add.
+                </div>
+              ) : (
+                <div className="border border-gray-200 rounded-xl overflow-hidden max-h-56 overflow-y-auto">
+                  <Table className="text-xs">
+                    <TableHeader className="bg-gray-50">
+                      <TableRow>
+                        <TableHead className="font-bold text-gray-700">Product</TableHead>
+                        <TableHead className="font-bold text-gray-700">Direction</TableHead>
+                        <TableHead className="font-bold text-gray-700 w-24">Qty</TableHead>
+                        <TableHead className="w-8"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {bundleItems.map((item, idx) => (
+                        <TableRow key={`${item.product_id}_${idx}`}>
+                          <TableCell className="py-2">
+                            <p className="font-bold text-gray-900">{item.product_name}</p>
+                            <p className="font-mono text-[11px] text-gray-500">{item.product_sku}</p>
+                          </TableCell>
+                          <TableCell className="py-2">
+                            <Select value={item.direction} onValueChange={(val) => updateBundleItem(idx, 'direction', val)}>
+                              <SelectTrigger className="h-7 text-xs w-28">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="in">In (+)</SelectItem>
+                                <SelectItem value="out">Out (−)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell className="py-2">
+                            <Input
+                              type="number"
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) => updateBundleItem(idx, 'quantity', e.target.value)}
+                              className="h-7 text-xs"
+                            />
+                          </TableCell>
+                          <TableCell className="py-2 text-right">
+                            <button type="button" onClick={() => removeBundleItem(idx)} className="text-gray-400 hover:text-red-600">
+                              <Trash2 size={14} />
+                            </button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Batch Reason</Label>
+                <Select value={bundleReason} onValueChange={setBundleReason}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manual_adjustment">Manual Adjustment</SelectItem>
+                    <SelectItem value="purchase_order_received">Purchase Order Restock</SelectItem>
+                    <SelectItem value="order_fulfillment">Sales Order Fulfillment</SelectItem>
+                    <SelectItem value="correction">Correction</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Batch Note (optional)</Label>
+                <Input
+                  placeholder="Order #, Restock batch, etc."
+                  value={bundleNote}
+                  onChange={(e) => setBundleNote(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <Button type="submit" disabled={saving || bundleItems.length === 0} className="bg-red-600 hover:bg-red-700 text-white font-semibold">
+                {saving ? 'Saving Bundle...' : `Adjust Stock for Bundle (${bundleItems.length} items)`}
+              </Button>
+              <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+            </div>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -353,30 +639,37 @@ export default function InventoryPage() {
               </div>
             </div>
 
-            {/* Low Stock Pagination Controls */}
+            {/* Low Stock Shadcn UI Pagination Controls */}
             {lowStockItems.length > lowStockPageSize && (
-              <div className="flex items-center justify-between pt-3 border-t border-gray-100 mt-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={lowStockPage <= 1}
-                  onClick={() => setLowStockPage((p) => Math.max(1, p - 1))}
-                  className="rounded-xl text-xs font-bold h-8 px-3"
-                >
-                  <ChevronLeft size={13} /> Prev
-                </Button>
-                <span className="text-[11px] text-gray-500 font-semibold">
-                  {lowStockPage} / {totalLowStockPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={lowStockPage >= totalLowStockPages}
-                  onClick={() => setLowStockPage((p) => Math.min(totalLowStockPages, p + 1))}
-                  className="rounded-xl text-xs font-bold h-8 px-3"
-                >
-                  Next <ChevronRight size={13} />
-                </Button>
+              <div className="pt-3 border-t border-gray-100 mt-3 flex justify-center">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        disabled={lowStockPage <= 1}
+                        onClick={() => setLowStockPage((p) => Math.max(1, p - 1))}
+                      />
+                    </PaginationItem>
+
+                    {Array.from({ length: totalLowStockPages }, (_, i) => i + 1).map((pageNum) => (
+                      <PaginationItem key={pageNum}>
+                        <PaginationLink
+                          isActive={pageNum === lowStockPage}
+                          onClick={() => setLowStockPage(pageNum)}
+                        >
+                          {pageNum}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        disabled={lowStockPage >= totalLowStockPages}
+                        onClick={() => setLowStockPage((p) => Math.min(totalLowStockPages, p + 1))}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
               </div>
             )}
           </section>
@@ -538,30 +831,37 @@ export default function InventoryPage() {
             </div>
             </div>
 
-            {/* Movements / Audit Log Pagination Controls */}
+            {/* Movements / Audit Log Shadcn UI Pagination Controls */}
             {currentMovementsList.length > movementsPageSize && (
-              <div className="flex items-center justify-between pt-3 border-t border-gray-100 mt-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={movementsPage <= 1}
-                  onClick={() => setMovementsPage((p) => Math.max(1, p - 1))}
-                  className="rounded-xl text-xs font-bold h-8 px-3"
-                >
-                  <ChevronLeft size={13} /> Prev
-                </Button>
-                <span className="text-[11px] text-gray-500 font-semibold">
-                  Page {movementsPage} of {totalMovementsPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={movementsPage >= totalMovementsPages}
-                  onClick={() => setMovementsPage((p) => Math.min(totalMovementsPages, p + 1))}
-                  className="rounded-xl text-xs font-bold h-8 px-3"
-                >
-                  Next <ChevronRight size={13} />
-                </Button>
+              <div className="pt-3 border-t border-gray-100 mt-3 flex justify-center">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        disabled={movementsPage <= 1}
+                        onClick={() => setMovementsPage((p) => Math.max(1, p - 1))}
+                      />
+                    </PaginationItem>
+
+                    {Array.from({ length: totalMovementsPages }, (_, i) => i + 1).map((pageNum) => (
+                      <PaginationItem key={pageNum}>
+                        <PaginationLink
+                          isActive={pageNum === movementsPage}
+                          onClick={() => setMovementsPage(pageNum)}
+                        >
+                          {pageNum}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        disabled={movementsPage >= totalMovementsPages}
+                        onClick={() => setMovementsPage((p) => Math.min(totalMovementsPages, p + 1))}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
               </div>
             )}
           </section>
