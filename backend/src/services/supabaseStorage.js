@@ -3,14 +3,27 @@ import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 
-const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+function getSupabaseCredentials() {
+  let url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
+  const key = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+
+  if (!url && process.env.DATABASE_URL) {
+    const match = process.env.DATABASE_URL.match(/postgres\.([a-z0-9]+):/);
+    if (match && match[1]) {
+      url = `https://${match[1]}.supabase.co`;
+    }
+  }
+
+  return { url, key };
+}
+
+const { url: supabaseUrl, key: supabaseKey } = getSupabaseCredentials();
 
 let supabase = null;
 if (supabaseUrl && supabaseKey) {
   try {
     supabase = createClient(supabaseUrl, supabaseKey);
-    console.log('⚡ Supabase Storage client initialized for bucket uploads.');
+    console.log(`⚡ Supabase Storage client initialized for ${supabaseUrl}`);
   } catch (err) {
     console.warn('⚠️ Supabase client initialization warning:', err.message);
   }
