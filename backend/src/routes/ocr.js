@@ -5,6 +5,7 @@ import { uploadReceiptImage } from '../services/uploads.js';
 const router = Router();
 
 router.post('/receipts', uploadReceiptImage.single('image'), ocrController.uploadReceipt);
+router.get('/folders', ocrController.getFolders);
 router.get('/receipts', ocrController.listReceipts);
 router.get('/receipts/:id', ocrController.getReceipt);
 router.put('/receipts/:id/items', ocrController.updateItems);

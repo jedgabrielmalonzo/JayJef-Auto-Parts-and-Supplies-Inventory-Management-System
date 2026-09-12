@@ -7,14 +7,23 @@ export class NoConfirmedItemsError extends Error {
   }
 }
 
-export async function create({ imagePath, rawOcrJson, supplierId, items }) {
+export async function create({ imagePath, rawOcrJson, supplierId, items, receiptDate }) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const receiptResult = await client.query(
-      `INSERT INTO ocr_receipts (image_path, raw_ocr_json, supplier_id) VALUES ($1, $2, $3) RETURNING *`,
-      [imagePath, rawOcrJson ?? null, supplierId ?? null]
-    );
+    const dateValue = receiptDate || new Date().toISOString().split('T')[0];
+    let receiptResult;
+    try {
+      receiptResult = await client.query(
+        `INSERT INTO ocr_receipts (image_path, raw_ocr_json, supplier_id, receipt_date) VALUES ($1, $2, $3, $4) RETURNING *`,
+        [imagePath, rawOcrJson ?? null, supplierId ?? null, dateValue]
+      );
+    } catch {
+      receiptResult = await client.query(
+        `INSERT INTO ocr_receipts (image_path, raw_ocr_json, supplier_id) VALUES ($1, $2, $3) RETURNING *`,
+        [imagePath, rawOcrJson ?? null, supplierId ?? null]
+      );
+    }
     const receipt = receiptResult.rows[0];
 
     for (const item of items) {
@@ -35,12 +44,46 @@ export async function create({ imagePath, rawOcrJson, supplierId, items }) {
   }
 }
 
-export async function list({ status, page = 1, pageSize = 25 }) {
+export async function listFolders() {
+  try {
+    const result = await pool.query(
+      `SELECT 
+         TO_CHAR(COALESCE(r.receipt_date, r.created_at::date), 'YYYY-MM-DD') AS folder_date,
+         COUNT(*)::int AS total_receipts,
+         COUNT(CASE WHEN r.status = 'pending_review' THEN 1 END)::int AS pending_count,
+         COUNT(CASE WHEN r.status = 'confirmed' THEN 1 END)::int AS confirmed_count,
+         COALESCE(SUM((SELECT COUNT(*) FROM ocr_receipt_items WHERE ocr_receipt_id = r.id)), 0)::int AS total_items
+       FROM ocr_receipts r
+       GROUP BY TO_CHAR(COALESCE(r.receipt_date, r.created_at::date), 'YYYY-MM-DD')
+       ORDER BY folder_date DESC`
+    );
+    return result.rows;
+  } catch {
+    const fallback = await pool.query(
+      `SELECT 
+         TO_CHAR(r.created_at::date, 'YYYY-MM-DD') AS folder_date,
+         COUNT(*)::int AS total_receipts,
+         COUNT(CASE WHEN r.status = 'pending_review' THEN 1 END)::int AS pending_count,
+         COUNT(CASE WHEN r.status = 'confirmed' THEN 1 END)::int AS confirmed_count,
+         COALESCE(SUM((SELECT COUNT(*) FROM ocr_receipt_items WHERE ocr_receipt_id = r.id)), 0)::int AS total_items
+       FROM ocr_receipts r
+       GROUP BY TO_CHAR(r.created_at::date, 'YYYY-MM-DD')
+       ORDER BY folder_date DESC`
+    );
+    return fallback.rows;
+  }
+}
+
+export async function list({ status, folderDate, page = 1, pageSize = 25 }) {
   const conditions = [];
   const params = [];
   if (status) {
     params.push(status);
-    conditions.push(`status = $${params.length}`);
+    conditions.push(`r.status = $${params.length}`);
+  }
+  if (folderDate) {
+    params.push(folderDate);
+    conditions.push(`TO_CHAR(COALESCE(r.receipt_date, r.created_at::date), 'YYYY-MM-DD') = $${params.length}`);
   }
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const offset = (page - 1) * pageSize;

@@ -1,8 +1,10 @@
+import fs from 'fs';
+import path from 'path';
 import * as ocrReceiptModel from '../models/ocrReceiptModel.js';
 import { NoConfirmedItemsError } from '../models/ocrReceiptModel.js';
 import * as productModel from '../models/productModel.js';
 import { requestOcrParse, OcrServiceUnavailableError } from '../services/ocrClient.js';
-import { parseReceiptText, matchProduct } from '../services/ocrParser.js';
+import { parseReceiptText, matchProduct, extractReceiptDate } from '../services/ocrParser.js';
 import { getHotFolderInfo, getScanEvents, processScannedFile } from '../services/hotFolderWatcher.js';
 
 
@@ -11,21 +13,44 @@ export async function uploadReceipt(req, res, next) {
     if (!req.file) {
       return res.status(400).json({ error: 'Missing required file', fields: { image: 'required' } });
     }
-    const imagePath = `/uploads/receipts/${req.file.filename}`;
     const supplierId = req.body.supplier_id || null;
 
     let ocrResult;
+    let extractedDate = null;
     try {
       ocrResult = await requestOcrParse(req.file.path);
+      if (ocrResult?.raw_text) {
+        extractedDate = extractReceiptDate(ocrResult.raw_text);
+      }
     } catch (err) {
       if (err instanceof OcrServiceUnavailableError) {
-        // docs/03 error handling: image stays saved, receipt opens with zero
-        // items and a prominent "add item manually" path — never a dead end.
-        const receipt = await ocrReceiptModel.create({ imagePath, rawOcrJson: null, supplierId, items: [] });
+        const todayDate = new Date().toISOString().split('T')[0];
+        const dateDir = path.join(path.dirname(req.file.path), todayDate);
+        if (!fs.existsSync(dateDir)) fs.mkdirSync(dateDir, { recursive: true });
+        const targetPath = path.join(dateDir, req.file.filename);
+        if (fs.existsSync(req.file.path)) {
+          fs.renameSync(req.file.path, targetPath);
+        }
+        const imagePath = `/uploads/receipts/${todayDate}/${req.file.filename}`;
+        const receipt = await ocrReceiptModel.create({ imagePath, rawOcrJson: null, supplierId, items: [], receiptDate: todayDate });
         return res.status(201).json({ ...receipt, ocr_warning: err.message });
       }
       throw err;
     }
+
+    const receiptDate = req.body.receipt_date || extractedDate || new Date().toISOString().split('T')[0];
+
+    // Move file into date-specific Google Drive style folder: /uploads/receipts/YYYY-MM-DD/filename
+    const uploadsDir = path.dirname(req.file.path);
+    const dateSubfolder = path.join(uploadsDir, receiptDate);
+    if (!fs.existsSync(dateSubfolder)) {
+      fs.mkdirSync(dateSubfolder, { recursive: true });
+    }
+    const finalFilePath = path.join(dateSubfolder, req.file.filename);
+    if (fs.existsSync(req.file.path)) {
+      fs.renameSync(req.file.path, finalFilePath);
+    }
+    const imagePath = `/uploads/receipts/${receiptDate}/${req.file.filename}`;
 
     const candidateLines = parseReceiptText(ocrResult.raw_text);
     const { items: catalog } = await productModel.list({ isActive: true, pageSize: 10000 });
@@ -34,8 +59,17 @@ export async function uploadReceipt(req, res, next) {
       matched_product_id: matchProduct(line.parsed_name, catalog)?.id ?? null,
     }));
 
-    const receipt = await ocrReceiptModel.create({ imagePath, rawOcrJson: ocrResult, supplierId, items });
+    const receipt = await ocrReceiptModel.create({ imagePath, rawOcrJson: ocrResult, supplierId, items, receiptDate });
     res.status(201).json(receipt);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getFolders(req, res, next) {
+  try {
+    const folders = await ocrReceiptModel.listFolders();
+    res.json({ folders });
   } catch (err) {
     next(err);
   }
@@ -43,11 +77,12 @@ export async function uploadReceipt(req, res, next) {
 
 export async function listReceipts(req, res, next) {
   try {
-    const { status, page, page_size } = req.query;
+    const { status, folder_date, page, page_size } = req.query;
     res.json(await ocrReceiptModel.list({
       status,
+      folderDate: folder_date,
       page: page ? Number(page) : 1,
-      pageSize: page_size ? Number(page_size) : 25,
+      pageSize: page_size ? Number(page_size) : 100,
     }));
   } catch (err) {
     next(err);

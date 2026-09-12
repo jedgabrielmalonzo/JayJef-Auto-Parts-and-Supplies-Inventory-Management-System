@@ -7,6 +7,10 @@ export function uploadReceipt(file, supplierId) {
   return request('/ocr/receipts', { method: 'POST', body: form });
 }
 
+export function listOcrFolders() {
+  return request('/ocr/folders');
+}
+
 export function listReceipts(params = {}) {
   return request(`/ocr/receipts${toQuery(params)}`);
 }

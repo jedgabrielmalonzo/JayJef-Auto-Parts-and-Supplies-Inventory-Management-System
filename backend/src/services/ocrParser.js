@@ -41,6 +41,69 @@ export function parseReceiptText(rawText) {
     .filter(Boolean);
 }
 
+export function extractReceiptDate(rawText) {
+  if (!rawText) return null;
+  const lines = rawText.split('\n');
+
+  const months = {
+    jan: '01', january: '01',
+    feb: '02', february: '02',
+    mar: '03', march: '03',
+    apr: '04', april: '04',
+    may: '05',
+    jun: '06', june: '06',
+    jul: '07', july: '07',
+    aug: '08', august: '08',
+    sep: '09', sept: '09', september: '09',
+    oct: '10', october: '10',
+    nov: '11', november: '11',
+    dec: '12', december: '12'
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    // Pattern 1: ISO YYYY-MM-DD or YYYY/MM/DD or YYYY.MM.DD
+    const isoMatch = trimmed.match(/\b(20\d{2})[-/.](0[1-9]|1[0-2])[-/.](0[1-9]|[12]\d|3[01])\b/);
+    if (isoMatch) {
+      return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+    }
+
+    // Pattern 2: Sep 12 2026 or Sep 12, 2026
+    const monthWordMatch = trimmed.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\s+([0-3]?\d)[,.\s]+(20\d{2})\b/i);
+    if (monthWordMatch) {
+      const m = months[monthWordMatch[1].toLowerCase()];
+      const d = monthWordMatch[2].padStart(2, '0');
+      const y = monthWordMatch[3];
+      return `${y}-${m}-${d}`;
+    }
+
+    // Pattern 3: 12 Sep 2026 or 12 September 2026
+    const dayMonthWordMatch = trimmed.match(/\b([0-3]?\d)\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*[,.\s]+(20\d{2})\b/i);
+    if (dayMonthWordMatch) {
+      const d = dayMonthWordMatch[1].padStart(2, '0');
+      const m = months[dayMonthWordMatch[2].toLowerCase()];
+      const y = dayMonthWordMatch[3];
+      return `${y}-${m}-${d}`;
+    }
+
+    // Pattern 4: MM/DD/YYYY or DD/MM/YYYY
+    const slashMatch = trimmed.match(/\b(0[1-9]|1[0-2]|[1-9])[-/.](0[1-9]|[12]\d|3[01]|[1-9])[-/.](20\d{2})\b/);
+    if (slashMatch) {
+      const p1 = slashMatch[1].padStart(2, '0');
+      const p2 = slashMatch[2].padStart(2, '0');
+      const y = slashMatch[3];
+      if (Number(p1) > 12) {
+        return `${y}-${p2}-${p1}`;
+      }
+      return `${y}-${p1}-${p2}`;
+    }
+  }
+
+  return null;
+}
+
 function normalize(text) {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
