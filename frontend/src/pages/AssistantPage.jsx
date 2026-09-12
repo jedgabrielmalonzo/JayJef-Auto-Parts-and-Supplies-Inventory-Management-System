@@ -164,18 +164,13 @@ export default function AssistantPage() {
 
       {/* Header */}
       <div className="relative z-10 flex items-center justify-between pb-3 shrink-0 border-b border-gray-200/80">
-        <div className="flex items-center gap-3">
-          <motion.div
-            whileHover={{ rotate: 15, scale: 1.05 }}
-            className="flex h-10 w-10 items-center justify-center rounded-2xl bg-red-600 text-white shadow-md shadow-red-600/20"
-          >
-            <Sparkles size={20} />
-          </motion.div>
-          <div>
-            <h1 className="font-heading text-lg font-bold text-gray-900">
-              JayJef AI Assistant
-            </h1>
-          </div>
+        <div>
+          <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900">
+            AI Assistant
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Real-time inventory lookup, pricing, and automated stock queries
+          </p>
         </div>
         <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
           <Button

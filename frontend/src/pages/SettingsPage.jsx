@@ -47,18 +47,15 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-12 text-gray-900">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-200 pb-5">
+      <div className="border-b border-gray-200 pb-5">
         <div>
-          <h1 className="font-display text-3xl font-extrabold tracking-tight text-gray-900">
+          <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900">
             System Settings
           </h1>
           <p className="text-sm text-gray-500 mt-1">
             Manage store profile, audio notification signals, administrator session, and system configurations.
           </p>
         </div>
-        <Badge variant="success" className="h-7 px-3 text-xs font-bold rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-800">
-          Admin Session Active
-        </Badge>
       </div>
 
       {/* Settings Navigation Tabs */}

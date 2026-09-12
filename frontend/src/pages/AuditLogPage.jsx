@@ -105,19 +105,12 @@ export default function AuditLogPage() {
         className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
       >
         <div>
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-red-100 text-red-600 shadow-xs">
-              <ShieldCheck size={22} />
-            </div>
-            <div>
-              <h1 className="font-heading font-extrabold text-2xl tracking-tight text-gray-900">
-                System Audit Log
-              </h1>
-              <p className="text-xs text-gray-500 font-medium">
-                Complete timeline of inventory adjustments, staff actions, PO receipts &amp; system overrides
-              </p>
-            </div>
-          </div>
+          <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900">
+            System Audit Log
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Complete timeline of inventory adjustments, staff actions, PO receipts, and system overrides
+          </p>
         </div>
 
         <div className="flex items-center gap-2">

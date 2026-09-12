@@ -1,27 +1,27 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Calendar, 
-  CheckCircle2, 
-  ChevronRight, 
-  Clock, 
-  Eye, 
-  FileText, 
-  Folder, 
-  FolderOpen, 
-  Grid, 
-  HardDrive, 
-  List, 
-  Loader2, 
-  Pencil, 
-  Printer, 
-  Radio, 
-  ScanLine, 
-  Search, 
-  Sparkles, 
-  Trash2, 
-  UploadCloud 
+import {
+  Calendar,
+  CheckCircle2,
+  ChevronRight,
+  Clock,
+  Eye,
+  FileText,
+  Folder,
+  FolderOpen,
+  Grid,
+  HardDrive,
+  List,
+  Loader2,
+  Pencil,
+  Printer,
+  Radio,
+  ScanLine,
+  Search,
+  Sparkles,
+  Trash2,
+  UploadCloud
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { deleteReceipt, getScannerEvents, getScannerStatus, ingestScannedDocument, listOcrFolders, listReceipts, uploadReceipt } from '../api/ocr.js';
@@ -153,7 +153,7 @@ function UploadModal({ onClose }) {
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    listSuppliers({ page_size: 500 }).then((r) => setSuppliers(r.items)).catch(() => {});
+    listSuppliers({ page_size: 500 }).then((r) => setSuppliers(r.items)).catch(() => { });
   }, []);
 
   async function handleSubmit(e) {
@@ -284,7 +284,7 @@ function OcrListView({ modal, hardwareModal }) {
 
   // Poll hardware scanner events and status
   useEffect(() => {
-    getScannerStatus().catch(() => {});
+    getScannerStatus().catch(() => { });
 
     const interval = setInterval(async () => {
       try {
@@ -303,7 +303,7 @@ function OcrListView({ modal, hardwareModal }) {
           loadFolders();
           loadReceipts();
         }
-      } catch {}
+      } catch { }
     }, 3000);
 
     return () => clearInterval(interval);
@@ -345,24 +345,8 @@ function OcrListView({ modal, hardwareModal }) {
       {/* Title & Actions Bar */}
       <motion.div custom={0} variants={sectionVariants} initial="hidden" animate="visible" className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="flex items-center gap-2 text-xs font-medium text-gray-500 mb-1">
-            <span className="flex items-center gap-1 text-gray-700 font-semibold cursor-pointer hover:text-red-600" onClick={() => setSelectedFolder(null)}>
-              <HardDrive size={14} className="text-amber-500" /> Receipt Vault
-            </span>
-            {selectedFolder && (
-              <>
-                <ChevronRight size={14} className="text-gray-400" />
-                <span className="flex items-center gap-1 font-mono text-gray-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
-                  <FolderOpen size={13} className="text-amber-600" /> {selectedFolder}
-                </span>
-              </>
-            )}
-          </div>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-2">
+          <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900">
             OCR Smart Capture
-            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300/80">
-              Google Drive Vault
-            </span>
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">Automated receipt date scanning & Google Drive-style folder vault</p>
         </div>
@@ -449,11 +433,10 @@ function OcrListView({ modal, hardwareModal }) {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => setSelectedFolder(f.folder_date)}
-                    className={`group cursor-pointer rounded-2xl border p-4 transition-all shadow-xs hover:shadow-md ${
-                      isSelected
+                    className={`group cursor-pointer rounded-2xl border p-4 transition-all shadow-xs hover:shadow-md ${isSelected
                         ? 'border-amber-500 bg-amber-50/80 ring-2 ring-amber-500/20'
                         : 'border-gray-200 bg-white hover:border-amber-300 hover:bg-amber-50/30'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
@@ -510,83 +493,83 @@ function OcrListView({ modal, hardwareModal }) {
       {(selectedFolder || viewMode === 'table') && (
         <motion.div custom={4} variants={sectionVariants} initial="hidden" animate="visible" className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xs">
           <Table>
-          <TableHeader className="bg-gray-50/80">
-            <TableRow>
-              <TableHead className="font-semibold text-gray-700">Receipt File</TableHead>
-              <TableHead className="font-semibold text-gray-700">Date Folder</TableHead>
-              <TableHead className="font-semibold text-gray-700">Supplier</TableHead>
-              <TableHead className="font-semibold text-gray-700">Items</TableHead>
-              <TableHead className="font-semibold text-gray-700">Status</TableHead>
-              <TableHead className="font-semibold text-gray-700">Uploaded</TableHead>
-              <TableHead className="text-right font-semibold text-gray-700">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading && (
-              <TableRow><TableCell colSpan={7} className="py-12 text-center text-gray-500">
-                <div className="flex items-center justify-center gap-2"><Loader2 size={16} className="animate-spin text-red-600" />Loading receipt vault...</div>
-              </TableCell></TableRow>
-            )}
-            {!loading && filteredReceipts.length === 0 && (
-              <TableRow><TableCell colSpan={7} className="py-14 text-center text-gray-500">
-                <div className="flex flex-col items-center gap-2">
-                  <ScanLine size={28} className="text-gray-300" strokeWidth={1.5} />
-                  No receipts found in this view — scan a receipt on HP 4275 or upload a photo to populate your vault.
-                </div>
-              </TableCell></TableRow>
-            )}
-            {!loading && filteredReceipts.map((r) => (
-              <TableRow key={r.id} className="cursor-pointer hover:bg-amber-50/30 transition-colors" onClick={() => navigate(`/ocr/${r.id}`)}>
-                <TableCell className="text-gray-900 font-bold text-xs font-mono flex items-center gap-2">
-                  <FileText size={16} className="text-red-500" />
-                  <span>Receipt #{r.id}</span>
-                </TableCell>
-                <TableCell className="text-xs">
-                  <span className="inline-flex items-center gap-1 font-mono font-semibold text-amber-900 bg-amber-100/70 border border-amber-200 px-2 py-0.5 rounded">
-                    <Folder size={12} className="text-amber-600" fill="currentColor" />
-                    {r.receipt_date || new Date(r.created_at).toISOString().split('T')[0]}
-                  </span>
-                </TableCell>
-                <TableCell className="text-gray-700 font-medium text-xs">{r.supplier_name || '—'}</TableCell>
-                <TableCell className="tabular-nums font-semibold text-gray-900 text-xs">{r.item_count}</TableCell>
-                <TableCell><Badge variant={OCR_STATUS_BADGE[r.status]}>{r.status.replace('_', ' ')}</Badge></TableCell>
-                <TableCell className="text-gray-500 text-xs">{new Date(r.created_at).toLocaleString()}</TableCell>
-                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                  <div className="flex items-center justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      title="View Details"
-                      onClick={() => navigate(`/ocr/${r.id}`)}
-                      className="text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                    >
-                      <Eye size={16} />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      title="Review / Update"
-                      onClick={() => navigate(`/ocr/${r.id}`)}
-                      className="text-blue-600 hover:bg-blue-50 hover:text-blue-700"
-                    >
-                      <Pencil size={16} />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      title="Delete Receipt"
-                      onClick={() => setPendingDelete(r)}
-                      className="text-red-500 hover:bg-red-50 hover:text-red-600"
-                    >
-                      <Trash2 size={16} />
-                    </Button>
-                  </div>
-                </TableCell>
+            <TableHeader className="bg-gray-50/80">
+              <TableRow>
+                <TableHead className="font-semibold text-gray-700">Receipt File</TableHead>
+                <TableHead className="font-semibold text-gray-700">Date Folder</TableHead>
+                <TableHead className="font-semibold text-gray-700">Supplier</TableHead>
+                <TableHead className="font-semibold text-gray-700">Items</TableHead>
+                <TableHead className="font-semibold text-gray-700">Status</TableHead>
+                <TableHead className="font-semibold text-gray-700">Uploaded</TableHead>
+                <TableHead className="text-right font-semibold text-gray-700">Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </motion.div>
+            </TableHeader>
+            <TableBody>
+              {loading && (
+                <TableRow><TableCell colSpan={7} className="py-12 text-center text-gray-500">
+                  <div className="flex items-center justify-center gap-2"><Loader2 size={16} className="animate-spin text-red-600" />Loading receipt vault...</div>
+                </TableCell></TableRow>
+              )}
+              {!loading && filteredReceipts.length === 0 && (
+                <TableRow><TableCell colSpan={7} className="py-14 text-center text-gray-500">
+                  <div className="flex flex-col items-center gap-2">
+                    <ScanLine size={28} className="text-gray-300" strokeWidth={1.5} />
+                    No receipts found in this view — scan a receipt on HP 4275 or upload a photo to populate your vault.
+                  </div>
+                </TableCell></TableRow>
+              )}
+              {!loading && filteredReceipts.map((r) => (
+                <TableRow key={r.id} className="cursor-pointer hover:bg-amber-50/30 transition-colors" onClick={() => navigate(`/ocr/${r.id}`)}>
+                  <TableCell className="text-gray-900 font-bold text-xs font-mono flex items-center gap-2">
+                    <FileText size={16} className="text-red-500" />
+                    <span>Receipt #{r.id}</span>
+                  </TableCell>
+                  <TableCell className="text-xs">
+                    <span className="inline-flex items-center gap-1 font-mono font-semibold text-amber-900 bg-amber-100/70 border border-amber-200 px-2 py-0.5 rounded">
+                      <Folder size={12} className="text-amber-600" fill="currentColor" />
+                      {r.receipt_date || new Date(r.created_at).toISOString().split('T')[0]}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-gray-700 font-medium text-xs">{r.supplier_name || '—'}</TableCell>
+                  <TableCell className="tabular-nums font-semibold text-gray-900 text-xs">{r.item_count}</TableCell>
+                  <TableCell><Badge variant={OCR_STATUS_BADGE[r.status]}>{r.status.replace('_', ' ')}</Badge></TableCell>
+                  <TableCell className="text-gray-500 text-xs">{new Date(r.created_at).toLocaleString()}</TableCell>
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        title="View Details"
+                        onClick={() => navigate(`/ocr/${r.id}`)}
+                        className="text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                      >
+                        <Eye size={16} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        title="Review / Update"
+                        onClick={() => navigate(`/ocr/${r.id}`)}
+                        className="text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                      >
+                        <Pencil size={16} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        title="Delete Receipt"
+                        onClick={() => setPendingDelete(r)}
+                        className="text-red-500 hover:bg-red-50 hover:text-red-600"
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </motion.div>
       )}
 
       {!loading && total > 0 && (

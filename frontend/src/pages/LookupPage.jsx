@@ -46,9 +46,8 @@ export default function LookupPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="font-display text-3xl text-black-900">Quick Stock Lookup</h1>
-        <div className="mt-2 h-1 w-16 bg-black-900" />
-        <p className="mt-3 text-sm text-black-500">Search by SKU, name, brand, or vehicle — for fast answers while a customer is on the phone.</p>
+        <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900">Quick Stock Lookup</h1>
+        <p className="text-sm text-gray-500 mt-1">Read-only stock availability and shelf location lookup</p>
       </div>
 
       <div className="relative mb-6">
