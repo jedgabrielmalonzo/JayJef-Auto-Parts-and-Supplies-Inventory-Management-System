@@ -378,28 +378,7 @@ function OcrListView({ modal, hardwareModal }) {
         </div>
       </motion.div>
 
-      {/* HP DeskJet 4275 Auto-Scan Hardware Status Banner */}
-      <motion.div custom={1} variants={sectionVariants} initial="hidden" animate="visible" className="flex items-center justify-between rounded-2xl border border-gray-200/80 bg-linear-to-r from-gray-900 via-gray-850 to-gray-800 p-4 text-white shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-red-600/90 text-white shadow-xs">
-            <Printer size={20} />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-sm">HP DeskJet / LaserJet 4275 Network Watcher</h3>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[11px] font-medium text-emerald-300 border border-emerald-500/30">
-                <Radio size={10} className="animate-pulse text-emerald-400" /> Smart Folder Listener Active
-              </span>
-            </div>
-            <p className="text-xs text-gray-300 mt-0.5">
-              Receipts saved to <code className="rounded bg-gray-800 px-1.5 py-0.5 font-mono text-[11px] text-amber-300">C:\JayJef\ScannedReceipts</code> are parsed & auto-organized into date folders.
-            </p>
-          </div>
-        </div>
-        <Button onClick={() => navigate('/ocr/hardware')} size="sm" variant="secondary" className="bg-white/10 text-white hover:bg-white/20 border border-white/20">
-          <Sparkles size={14} /> Scan from HP 4275
-        </Button>
-      </motion.div>
+
 
       {/* Toolbar: Search, Status Filter, View Toggle */}
       <motion.div custom={2} variants={sectionVariants} initial="hidden" animate="visible" className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-white p-3 rounded-2xl border border-gray-200/80 shadow-xs">
