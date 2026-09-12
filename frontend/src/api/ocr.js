@@ -1,9 +1,11 @@
 import { request, toQuery } from './client.js';
 
-export function uploadReceipt(file, supplierId) {
+export function uploadReceipt(file, supplierId, receiptDate) {
   const form = new FormData();
   form.append('image', file);
   if (supplierId) form.append('supplier_id', supplierId);
+  const localDate = receiptDate || new Intl.DateTimeFormat('en-CA').format(new Date());
+  form.append('receipt_date', localDate);
   return request('/ocr/receipts', { method: 'POST', body: form });
 }
 

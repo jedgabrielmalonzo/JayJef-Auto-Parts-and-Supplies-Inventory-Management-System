@@ -1,6 +1,9 @@
 import pg from 'pg';
 import 'dotenv/config';
 
+// Ensure PostgreSQL DATE (OID 1082) columns are returned as 'YYYY-MM-DD' strings, not Date objects
+pg.types.setTypeParser(1082, (val) => val);
+
 const connectionString = process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/jayjef_ims';
 const isCloud = connectionString?.includes('supabase.com') || connectionString?.includes('pooler.supabase') || process.env.NODE_ENV === 'production';
 
@@ -44,9 +47,9 @@ function executeMemQuery(text, params = []) {
 
   const toCharDate = (d) => {
     try {
-      return new Date(d).toISOString().split('T')[0];
+      return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(d));
     } catch {
-      return new Date().toISOString().split('T')[0];
+      return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
     }
   };
 
@@ -107,7 +110,7 @@ function executeMemQuery(text, params = []) {
   if (lowerSql.startsWith('insert into ocr_receipts')) {
     const id = nextIds.ocr_receipts++;
     const now = new Date().toISOString();
-    const receiptDate = params[3] || params[0] || now.split('T')[0];
+    const receiptDate = params[3] || toCharDate(now);
     const newReceipt = {
       id,
       image_path: params[0],

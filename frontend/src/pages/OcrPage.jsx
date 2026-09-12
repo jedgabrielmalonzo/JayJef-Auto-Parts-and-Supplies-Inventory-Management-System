@@ -81,7 +81,8 @@ function HardwareScanModal({ onClose, onScanComplete }) {
     if (!file) return;
     setIngesting(true);
     try {
-      const receipt = await uploadReceipt(file);
+      const todayDate = new Intl.DateTimeFormat('en-CA').format(new Date());
+      const receipt = await uploadReceipt(file, undefined, todayDate);
       toast.success(`Scan ingested: ${file.name}`);
       if (onScanComplete) {
         onScanComplete(receipt);
@@ -211,6 +212,8 @@ function UploadModal({ onClose }) {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const [file, setFile] = useState(null);
+  const todayStr = new Intl.DateTimeFormat('en-CA').format(new Date());
+  const [receiptDate, setReceiptDate] = useState(todayStr);
   const [supplierId, setSupplierId] = useState('');
   const [suppliers, setSuppliers] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -230,7 +233,7 @@ function UploadModal({ onClose }) {
     if (!file) return;
     setUploading(true);
     try {
-      const receipt = await uploadReceipt(file, supplierId || undefined);
+      const receipt = await uploadReceipt(file, supplierId || undefined, receiptDate || todayStr);
       toast.success('Receipt uploaded & auto-folder organized!');
       navigate(`/ocr/${receipt.id}`);
     } catch (err) {
@@ -334,6 +337,22 @@ function UploadModal({ onClose }) {
             </Select>
           </div>
 
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold text-gray-700">Receipt / Folder Date</Label>
+              <span className="text-[11px] text-gray-400">Target Folder</span>
+            </div>
+            <Input
+              type="date"
+              value={receiptDate}
+              onChange={(e) => setReceiptDate(e.target.value)}
+              className="w-full rounded-xl border-gray-300 font-mono text-xs"
+            />
+            <p className="text-[11px] text-gray-500">
+              Receipt will be organized into folder <span className="font-semibold text-gray-800 font-mono">{receiptDate || todayStr}</span>. If receipt contains a detected date, OCR will auto-align.
+            </p>
+          </div>
+
           <div className="flex gap-3 pt-3 border-t border-gray-100">
             <Button type="submit" disabled={uploading || !file} className="rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-md font-semibold">
               {uploading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
@@ -345,6 +364,21 @@ function UploadModal({ onClose }) {
       </DialogContent>
     </Dialog>
   );
+}
+
+function formatFolderDisplay(receipt) {
+  if (!receipt) return '—';
+  if (receipt.display_folder_date) return receipt.display_folder_date;
+  const val = receipt.receipt_date || receipt.created_at;
+  if (!val) return '—';
+  if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+  try {
+    const d = new Date(val);
+    if (!isNaN(d.getTime())) {
+      return new Intl.DateTimeFormat('en-CA').format(d);
+    }
+  } catch {}
+  return String(val).split('T')[0];
 }
 
 function OcrListView({ modal, hardwareModal }) {
@@ -645,7 +679,7 @@ function OcrListView({ modal, hardwareModal }) {
                   <TableCell className="text-xs">
                     <span className="inline-flex items-center gap-1 font-mono font-semibold text-amber-900 bg-amber-100/70 border border-amber-200 px-2 py-0.5 rounded">
                       <Folder size={12} className="text-amber-600" fill="currentColor" />
-                      {r.receipt_date || new Date(r.created_at).toISOString().split('T')[0]}
+                      {formatFolderDisplay(r)}
                     </span>
                   </TableCell>
                   <TableCell className="text-gray-700 font-medium text-xs">{r.supplier_name || '—'}</TableCell>

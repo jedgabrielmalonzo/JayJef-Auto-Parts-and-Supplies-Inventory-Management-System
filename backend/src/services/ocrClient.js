@@ -1,7 +1,7 @@
 import { readFile } from 'fs/promises';
 import path from 'path';
 
-const OCR_SERVICE_URL = process.env.OCR_SERVICE_URL || 'http://localhost:8001';
+const OCR_SERVICE_URL = process.env.OCR_SERVICE_URL || 'http://localhost:8000';
 
 export class OcrServiceUnavailableError extends Error {
   constructor(cause) {

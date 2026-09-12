@@ -36,7 +36,8 @@ if (supabaseUrl && supabaseKey) {
  */
 export async function uploadToSupabaseStorage({ filePath, fileBuffer, originalName, mimeType, receiptDate }) {
   const filename = `receipt-${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(originalName || 'image.jpg') || '.jpg'}`;
-  const folder = receiptDate || new Date().toISOString().split('T')[0];
+  const localToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const folder = receiptDate || localToday;
   const storagePath = `${folder}/${filename}`;
 
   let buffer = fileBuffer;

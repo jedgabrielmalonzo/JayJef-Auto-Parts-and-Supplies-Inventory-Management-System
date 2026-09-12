@@ -9,12 +9,17 @@ import { getHotFolderInfo, getScanEvents, processScannedFile } from '../services
 import { uploadToSupabaseStorage } from '../services/supabaseStorage.js';
 
 
+function getLocalDateString(date = new Date(), timeZone = 'Asia/Manila') {
+  return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+}
+
 export async function uploadReceipt(req, res, next) {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'Missing required file', fields: { image: 'required' } });
     }
     const supplierId = req.body.supplier_id || null;
+    const localToday = getLocalDateString();
 
     let ocrResult;
     let extractedDate = null;
@@ -25,20 +30,27 @@ export async function uploadReceipt(req, res, next) {
       }
     } catch (err) {
       if (err instanceof OcrServiceUnavailableError) {
-        const todayDate = new Date().toISOString().split('T')[0];
+        const receiptDate = req.body.receipt_date || localToday;
         const imagePath = await uploadToSupabaseStorage({
           filePath: req.file.path,
           originalName: req.file.originalname,
           mimeType: req.file.mimetype,
-          receiptDate: todayDate
+          receiptDate
         });
-        const receipt = await ocrReceiptModel.create({ imagePath, rawOcrJson: null, supplierId, items: [], receiptDate: todayDate });
+        const receipt = await ocrReceiptModel.create({ imagePath, rawOcrJson: null, supplierId, items: [], receiptDate });
         return res.status(201).json({ ...receipt, ocr_warning: err.message });
       }
       throw err;
     }
 
-    const receiptDate = req.body.receipt_date || extractedDate || new Date().toISOString().split('T')[0];
+    let receiptDate;
+    if (extractedDate) {
+      receiptDate = extractedDate;
+    } else if (req.body.receipt_date) {
+      receiptDate = req.body.receipt_date;
+    } else {
+      receiptDate = localToday;
+    }
 
     // Upload photo to Supabase Storage (or Data URI fallback for cross-device visibility)
     const imagePath = await uploadToSupabaseStorage({

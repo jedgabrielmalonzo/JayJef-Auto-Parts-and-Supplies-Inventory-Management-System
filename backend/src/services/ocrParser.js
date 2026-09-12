@@ -64,36 +64,37 @@ export function extractReceiptDate(rawText) {
     const trimmed = line.trim();
     if (!trimmed) continue;
 
-    // Pattern 1: ISO YYYY-MM-DD or YYYY/MM/DD or YYYY.MM.DD
-    const isoMatch = trimmed.match(/\b(20\d{2})[-/.](0[1-9]|1[0-2])[-/.](0[1-9]|[12]\d|3[01])\b/);
+    // Pattern 1: ISO YYYY-MM-DD or YYYY/MM/DD or YYYY.MM.DD (also YY-MM-DD)
+    const isoMatch = trimmed.match(/\b(20\d{2}|\d{2})[-/.](0[1-9]|1[0-2])[-/.](0[1-9]|[12]\d|3[01])\b/);
     if (isoMatch) {
-      return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+      const y = isoMatch[1].length === 2 ? `20${isoMatch[1]}` : isoMatch[1];
+      return `${y}-${isoMatch[2]}-${isoMatch[3]}`;
     }
 
-    // Pattern 2: Sep 12 2026 or Sep 12, 2026
-    const monthWordMatch = trimmed.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\s+([0-3]?\d)[,.\s]+(20\d{2})\b/i);
+    // Pattern 2: Sep 12 2026 or Sep 12, 26
+    const monthWordMatch = trimmed.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\s+([0-3]?\d)[,.\s]+(20\d{2}|\d{2})\b/i);
     if (monthWordMatch) {
       const m = months[monthWordMatch[1].toLowerCase()];
       const d = monthWordMatch[2].padStart(2, '0');
-      const y = monthWordMatch[3];
+      const y = monthWordMatch[3].length === 2 ? `20${monthWordMatch[3]}` : monthWordMatch[3];
       return `${y}-${m}-${d}`;
     }
 
-    // Pattern 3: 12 Sep 2026 or 12 September 2026
-    const dayMonthWordMatch = trimmed.match(/\b([0-3]?\d)\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*[,.\s]+(20\d{2})\b/i);
+    // Pattern 3: 12 Sep 2026 or 12 Sep 26
+    const dayMonthWordMatch = trimmed.match(/\b([0-3]?\d)\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*[,.\s]+(20\d{2}|\d{2})\b/i);
     if (dayMonthWordMatch) {
       const d = dayMonthWordMatch[1].padStart(2, '0');
       const m = months[dayMonthWordMatch[2].toLowerCase()];
-      const y = dayMonthWordMatch[3];
+      const y = dayMonthWordMatch[3].length === 2 ? `20${dayMonthWordMatch[3]}` : dayMonthWordMatch[3];
       return `${y}-${m}-${d}`;
     }
 
-    // Pattern 4: MM/DD/YYYY or DD/MM/YYYY
-    const slashMatch = trimmed.match(/\b(0[1-9]|1[0-2]|[1-9])[-/.](0[1-9]|[12]\d|3[01]|[1-9])[-/.](20\d{2})\b/);
+    // Pattern 4: MM/DD/YYYY, MM/DD/YY, DD/MM/YYYY, DD/MM/YY
+    const slashMatch = trimmed.match(/\b(0[1-9]|1[0-2]|[1-9])[-/.](0[1-9]|[12]\d|3[01]|[1-9])[-/.](20\d{2}|\d{2})\b/);
     if (slashMatch) {
       const p1 = slashMatch[1].padStart(2, '0');
       const p2 = slashMatch[2].padStart(2, '0');
-      const y = slashMatch[3];
+      const y = slashMatch[3].length === 2 ? `20${slashMatch[3]}` : slashMatch[3];
       if (Number(p1) > 12) {
         return `${y}-${p2}-${p1}`;
       }

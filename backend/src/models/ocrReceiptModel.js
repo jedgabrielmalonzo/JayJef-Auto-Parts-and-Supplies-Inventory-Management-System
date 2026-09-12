@@ -11,7 +11,8 @@ export async function create({ imagePath, rawOcrJson, supplierId, items, receipt
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const dateValue = receiptDate || new Date().toISOString().split('T')[0];
+    const localToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+    const dateValue = receiptDate || localToday;
     let receiptResult;
     try {
       receiptResult = await client.query(
@@ -48,26 +49,26 @@ export async function listFolders() {
   try {
     const result = await pool.query(
       `SELECT 
-         TO_CHAR(COALESCE(r.receipt_date, r.created_at::date), 'YYYY-MM-DD') AS folder_date,
+         TO_CHAR(COALESCE(r.receipt_date, (r.created_at AT TIME ZONE 'Asia/Manila')::date), 'YYYY-MM-DD') AS folder_date,
          COUNT(*)::int AS total_receipts,
          COUNT(CASE WHEN r.status = 'pending_review' THEN 1 END)::int AS pending_count,
          COUNT(CASE WHEN r.status = 'confirmed' THEN 1 END)::int AS confirmed_count,
          COALESCE(SUM((SELECT COUNT(*) FROM ocr_receipt_items WHERE ocr_receipt_id = r.id)), 0)::int AS total_items
        FROM ocr_receipts r
-       GROUP BY TO_CHAR(COALESCE(r.receipt_date, r.created_at::date), 'YYYY-MM-DD')
+       GROUP BY TO_CHAR(COALESCE(r.receipt_date, (r.created_at AT TIME ZONE 'Asia/Manila')::date), 'YYYY-MM-DD')
        ORDER BY folder_date DESC`
     );
     return result.rows;
   } catch {
     const fallback = await pool.query(
       `SELECT 
-         TO_CHAR(r.created_at::date, 'YYYY-MM-DD') AS folder_date,
+         TO_CHAR((r.created_at AT TIME ZONE 'Asia/Manila')::date, 'YYYY-MM-DD') AS folder_date,
          COUNT(*)::int AS total_receipts,
          COUNT(CASE WHEN r.status = 'pending_review' THEN 1 END)::int AS pending_count,
          COUNT(CASE WHEN r.status = 'confirmed' THEN 1 END)::int AS confirmed_count,
          COALESCE(SUM((SELECT COUNT(*) FROM ocr_receipt_items WHERE ocr_receipt_id = r.id)), 0)::int AS total_items
        FROM ocr_receipts r
-       GROUP BY TO_CHAR(r.created_at::date, 'YYYY-MM-DD')
+       GROUP BY TO_CHAR((r.created_at AT TIME ZONE 'Asia/Manila')::date, 'YYYY-MM-DD')
        ORDER BY folder_date DESC`
     );
     return fallback.rows;
@@ -83,14 +84,16 @@ export async function list({ status, folderDate, page = 1, pageSize = 25 }) {
   }
   if (folderDate) {
     params.push(folderDate);
-    conditions.push(`TO_CHAR(COALESCE(r.receipt_date, r.created_at::date), 'YYYY-MM-DD') = $${params.length}`);
+    conditions.push(`TO_CHAR(COALESCE(r.receipt_date, (r.created_at AT TIME ZONE 'Asia/Manila')::date), 'YYYY-MM-DD') = $${params.length}`);
   }
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const offset = (page - 1) * pageSize;
 
   const [itemsResult, countResult] = await Promise.all([
     pool.query(
-      `SELECT r.*, s.name AS supplier_name,
+      `SELECT r.*, 
+         TO_CHAR(COALESCE(r.receipt_date, (r.created_at AT TIME ZONE 'Asia/Manila')::date), 'YYYY-MM-DD') AS display_folder_date,
+         s.name AS supplier_name,
          (SELECT COUNT(*)::int FROM ocr_receipt_items WHERE ocr_receipt_id = r.id) AS item_count
        FROM ocr_receipts r
        LEFT JOIN suppliers s ON s.id = r.supplier_id
@@ -108,7 +111,12 @@ export async function list({ status, folderDate, page = 1, pageSize = 25 }) {
 export async function findById(id) {
   const [receiptResult, itemsResult] = await Promise.all([
     pool.query(
-      `SELECT r.*, s.name AS supplier_name FROM ocr_receipts r LEFT JOIN suppliers s ON s.id = r.supplier_id WHERE r.id = $1`,
+      `SELECT r.*, 
+         TO_CHAR(COALESCE(r.receipt_date, (r.created_at AT TIME ZONE 'Asia/Manila')::date), 'YYYY-MM-DD') AS display_folder_date,
+         s.name AS supplier_name 
+       FROM ocr_receipts r 
+       LEFT JOIN suppliers s ON s.id = r.supplier_id 
+       WHERE r.id = $1`,
       [id]
     ),
     pool.query(
