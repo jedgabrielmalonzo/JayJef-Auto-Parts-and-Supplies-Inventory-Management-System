@@ -144,7 +144,11 @@ export default function OcrReviewPage() {
         <div className="lg:col-span-1">
           <h3 className="font-heading font-bold text-xs uppercase tracking-wide text-black-500 mb-2">Receipt Image</h3>
           <img
-            src={`${API_ORIGIN}${receipt.image_path}`}
+            src={
+              receipt.image_path?.startsWith('http') || receipt.image_path?.startsWith('data:')
+                ? receipt.image_path
+                : `${API_ORIGIN}${receipt.image_path}`
+            }
             alt="Uploaded receipt"
             className="w-full rounded-lg border border-gray-200 object-contain"
           />

@@ -6,6 +6,7 @@ import * as productModel from '../models/productModel.js';
 import { requestOcrParse, OcrServiceUnavailableError } from '../services/ocrClient.js';
 import { parseReceiptText, matchProduct, extractReceiptDate } from '../services/ocrParser.js';
 import { getHotFolderInfo, getScanEvents, processScannedFile } from '../services/hotFolderWatcher.js';
+import { uploadToSupabaseStorage } from '../services/supabaseStorage.js';
 
 
 export async function uploadReceipt(req, res, next) {
@@ -25,13 +26,12 @@ export async function uploadReceipt(req, res, next) {
     } catch (err) {
       if (err instanceof OcrServiceUnavailableError) {
         const todayDate = new Date().toISOString().split('T')[0];
-        const dateDir = path.join(path.dirname(req.file.path), todayDate);
-        if (!fs.existsSync(dateDir)) fs.mkdirSync(dateDir, { recursive: true });
-        const targetPath = path.join(dateDir, req.file.filename);
-        if (fs.existsSync(req.file.path)) {
-          fs.renameSync(req.file.path, targetPath);
-        }
-        const imagePath = `/uploads/receipts/${todayDate}/${req.file.filename}`;
+        const imagePath = await uploadToSupabaseStorage({
+          filePath: req.file.path,
+          originalName: req.file.originalname,
+          mimeType: req.file.mimetype,
+          receiptDate: todayDate
+        });
         const receipt = await ocrReceiptModel.create({ imagePath, rawOcrJson: null, supplierId, items: [], receiptDate: todayDate });
         return res.status(201).json({ ...receipt, ocr_warning: err.message });
       }
@@ -40,17 +40,13 @@ export async function uploadReceipt(req, res, next) {
 
     const receiptDate = req.body.receipt_date || extractedDate || new Date().toISOString().split('T')[0];
 
-    // Move file into date-specific Google Drive style folder: /uploads/receipts/YYYY-MM-DD/filename
-    const uploadsDir = path.dirname(req.file.path);
-    const dateSubfolder = path.join(uploadsDir, receiptDate);
-    if (!fs.existsSync(dateSubfolder)) {
-      fs.mkdirSync(dateSubfolder, { recursive: true });
-    }
-    const finalFilePath = path.join(dateSubfolder, req.file.filename);
-    if (fs.existsSync(req.file.path)) {
-      fs.renameSync(req.file.path, finalFilePath);
-    }
-    const imagePath = `/uploads/receipts/${receiptDate}/${req.file.filename}`;
+    // Upload photo to Supabase Storage (or Data URI fallback for cross-device visibility)
+    const imagePath = await uploadToSupabaseStorage({
+      filePath: req.file.path,
+      originalName: req.file.originalname,
+      mimeType: req.file.mimetype,
+      receiptDate
+    });
 
     const candidateLines = parseReceiptText(ocrResult.raw_text);
     const { items: catalog } = await productModel.list({ isActive: true, pageSize: 10000 });
