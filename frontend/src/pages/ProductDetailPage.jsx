@@ -47,11 +47,10 @@ function MovementsTable({ movements, emptyText }) {
           <TableRow key={m.id} className="hover:bg-gray-50/60 transition-colors">
             <TableCell className="tabular-nums font-bold">
               <span
-                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs ${
-                  m.quantity_change >= 0
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                    : 'bg-red-50 text-red-700 border border-red-200'
-                }`}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs ${m.quantity_change >= 0
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  : 'bg-red-50 text-red-700 border border-red-200'
+                  }`}
               >
                 {m.quantity_change >= 0 ? `+${m.quantity_change}` : m.quantity_change}
               </span>
@@ -372,7 +371,7 @@ export default function ProductDetailPage() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     <div className="space-y-1">
-                      <span className="text-xs font-medium text-gray-500">Stock Keeping Unit (SKU)</span>
+                      <span className="text-xs font-medium text-gray-500">Part Number</span>
                       <p className="font-mono text-sm font-bold text-gray-900 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-200/80 inline-block">
                         {product.sku}
                       </p>
