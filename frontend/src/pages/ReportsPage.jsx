@@ -144,10 +144,10 @@ export default function ReportsPage() {
         )}
       </motion.div>
 
-      {/* LAYER 3: Most Selling Products & Category Movement Tables */}
-      <motion.div custom={3} variants={sectionVariants} initial="hidden" animate="visible" className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        {/* Most Selling Products */}
-        <div className="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
+      {/* LAYER 3: Most Selling Products & Category Movement Tables (Full Row Stacked Layout) */}
+      <motion.div custom={3} variants={sectionVariants} initial="hidden" animate="visible" className="space-y-6 w-full">
+        {/* Most Selling Products (Full Row) */}
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden w-full">
           <div className="p-4 pb-3 border-b border-gray-100 flex items-center justify-between">
             <h3 className="font-heading font-bold text-gray-900 text-base flex items-center gap-2">
               <Flame size={18} className="text-red-600" />
@@ -158,8 +158,8 @@ export default function ReportsPage() {
           {products.length === 0 ? (
             <p className="p-8 text-center text-sm text-gray-500">No sales recorded yet.</p>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
+            <div className="overflow-x-auto w-full">
+              <Table className="w-full">
                 <TableHeader className="bg-gray-50/80">
                   <TableRow>
                     <TableHead className="font-semibold text-gray-700">Rank &amp; Product</TableHead>
@@ -199,8 +199,8 @@ export default function ReportsPage() {
           )}
         </div>
 
-        {/* Category Stock Distribution & Growth */}
-        <div className="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
+        {/* Category Stock Distribution & Growth (Full Row at Bottom) */}
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden w-full">
           <div className="p-4 pb-3 border-b border-gray-100 flex items-center justify-between">
             <h3 className="font-heading font-bold text-gray-900 text-base flex items-center gap-2">
               <Layers size={18} className="text-gray-700" />
@@ -211,29 +211,31 @@ export default function ReportsPage() {
           {categories.length === 0 ? (
             <p className="p-8 text-center text-sm text-gray-500">No category stock data available.</p>
           ) : (
-            <Table>
-              <TableHeader className="bg-gray-50/80">
-                <TableRow>
-                  <TableHead className="font-semibold text-gray-700">Category</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Movement Rate</TableHead>
-                  <TableHead className="font-semibold text-gray-700 text-right">Trend Growth</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {categories.map((c) => (
-                  <TableRow key={c.category} className="hover:bg-gray-50/50">
-                    <TableCell className="text-gray-900 font-medium">{formatCategory(c.category)}</TableCell>
-                    <TableCell className="tabular-nums font-bold text-gray-900">
-                      <span className="inline-flex items-center gap-1.5">
-                        <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                        Active Turnover
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right"><ChangeBadge pct={c.increaseByPct} /></TableCell>
+            <div className="overflow-x-auto w-full">
+              <Table className="w-full">
+                <TableHeader className="bg-gray-50/80">
+                  <TableRow>
+                    <TableHead className="font-semibold text-gray-700">Category</TableHead>
+                    <TableHead className="font-semibold text-gray-700">Movement Rate</TableHead>
+                    <TableHead className="font-semibold text-gray-700 text-right">Trend Growth</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {categories.map((c) => (
+                    <TableRow key={c.category} className="hover:bg-gray-50/50">
+                      <TableCell className="text-gray-900 font-medium">{formatCategory(c.category)}</TableCell>
+                      <TableCell className="tabular-nums font-bold text-gray-900">
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                          Active Turnover
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right"><ChangeBadge pct={c.increaseByPct} /></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </div>
       </motion.div>

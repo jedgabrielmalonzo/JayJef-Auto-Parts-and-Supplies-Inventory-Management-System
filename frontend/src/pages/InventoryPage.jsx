@@ -19,6 +19,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table.jsx';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.jsx';
 import ProductPicker from '../components/ProductPicker.jsx';
+import { DatePickerWithRange } from '../components/DatePickerWithRange.jsx';
 
 const DIRECTION_LABELS = { in: 'Stock In (+)', out: 'Stock Out (−)' };
 const REASON_OPTIONS = { manual_adjustment: 'Manual Adjustment', correction: 'Correction' };
@@ -39,10 +40,10 @@ const sectionVariants = {
 function groupMovementsByDateAndProduct(movements) {
   const groups = {};
 
-  movements.forEach((m) => {
+  (movements || []).forEach((m) => {
     const d = new Date(m.created_at);
     const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    const groupKey = `${m.product_id || m.product_sku}_${dateKey}`;
+    const groupKey = `${dateKey}_${m.product_id}`;
 
     if (!groups[groupKey]) {
       groups[groupKey] = {
@@ -119,45 +120,11 @@ function AdjustStockModal({ open, onClose, onSaved }) {
     }
   }
 
-  const [modalSize, setModalSize] = useState(() => localStorage.getItem('jayjef_modal_size') || 'standard');
-
-  function changeModalSize(newSize) {
-    setModalSize(newSize);
-    localStorage.setItem('jayjef_modal_size', newSize);
-  }
-
-  const SIZE_CLASSES = {
-    standard: 'sm:max-w-lg',
-    wide: 'sm:max-w-2xl',
-    'extra-wide': 'sm:max-w-4xl',
-    fullscreen: 'w-[95vw] max-w-[95vw] h-[90vh] max-h-[90vh]',
-  };
-
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className={`${SIZE_CLASSES[modalSize] || SIZE_CLASSES.standard} transition-all duration-200`}>
-        <DialogHeader className="flex flex-row items-center justify-between border-b border-gray-100 pb-3 pr-8">
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent showCloseButton className="sm:max-w-md">
+        <DialogHeader>
           <DialogTitle className="text-lg font-bold text-gray-900">Adjust Stock</DialogTitle>
-
-          {/* Modal Size Selector */}
-          <div className="flex items-center gap-1 bg-gray-100/80 p-1 rounded-xl">
-            {[
-              { key: 'standard', label: 'Standard' },
-              { key: 'wide', label: 'Wide' },
-              { key: 'extra-wide', label: 'Extra Wide' },
-            ].map((s) => (
-              <button
-                key={s.key}
-                type="button"
-                onClick={() => changeModalSize(s.key)}
-                className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
-                  modalSize === s.key ? 'bg-white text-gray-900 shadow-xs font-extrabold' : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
@@ -180,7 +147,14 @@ function AdjustStockModal({ open, onClose, onSaved }) {
             </div>
             <div className="space-y-1.5">
               <Label>Quantity<span className="text-red-600">*</span></Label>
-              <Input type="number" min="1" className="tabular-nums" placeholder="0" value={quantity} onChange={(e) => setQuantity(e.target.value)} required />
+              <Input
+                type="number"
+                min="1"
+                placeholder="1"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                required
+              />
             </div>
           </div>
 
@@ -198,13 +172,17 @@ function AdjustStockModal({ open, onClose, onSaved }) {
           </div>
 
           <div className="space-y-1.5">
-            <Label>Note</Label>
-            <Textarea className="min-h-20" placeholder="e.g. shelf recount, damaged in transit" value={note} onChange={(e) => setNote(e.target.value)} />
+            <Label>Note (optional)</Label>
+            <Textarea
+              placeholder="Reason for adjustment, PO #, etc."
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={2}
+            />
           </div>
 
-          <div className="flex gap-3 pt-1">
+          <div className="flex gap-3 pt-2">
             <Button type="submit" disabled={saving || !product || !quantity} className="bg-red-600 hover:bg-red-700 text-white font-semibold">
-              {saving && <Loader2 size={16} className="animate-spin" />}
               {saving ? 'Saving...' : 'Record Movement'}
             </Button>
             <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
@@ -219,11 +197,12 @@ export default function InventoryPage() {
   const [lowStockItems, setLowStockItems] = useState([]);
   const [movements, setMovements] = useState([]);
   const [summary, setSummary] = useState(null);
+  const [viewMode, setViewMode] = useState('stacked'); // 'stacked' | 'raw'
   const [loading, setLoading] = useState(true);
   const [adjustOpen, setAdjustOpen] = useState(false);
-  const [viewMode, setViewMode] = useState('stacked'); // 'stacked' | 'raw'
+  const [dateRange, setDateRange] = useState(undefined); // { from: Date, to: Date } or undefined
 
-  // Pagination states
+  // Pagination States
   const [lowStockPage, setLowStockPage] = useState(1);
   const lowStockPageSize = 5;
 
@@ -234,8 +213,8 @@ export default function InventoryPage() {
     setLoading(true);
     try {
       const [low, movementResult] = await Promise.all([
-        lowStock({}).catch(() => []),
-        listMovements({ page_size: 150 }).catch(() => ({ items: [] }))
+        lowStock(),
+        listMovements({ page_size: 500 }),
       ]);
       setLowStockItems(Array.isArray(low) ? low : []);
       setMovements(Array.isArray(movementResult?.items) ? movementResult.items : []);
@@ -249,9 +228,21 @@ export default function InventoryPage() {
   useEffect(() => { load(); }, [load]);
   useEffect(() => { getOverview().then(setSummary).catch(() => {}); }, []);
 
+  // Filter movements by Date Range
+  const filteredMovements = useMemo(() => {
+    if (!dateRange || (!dateRange.from && !dateRange.to)) return movements;
+    const fromTime = dateRange.from ? new Date(dateRange.from).setHours(0, 0, 0, 0) : 0;
+    const toTime = dateRange.to ? new Date(dateRange.to).setHours(23, 59, 59, 999) : Infinity;
+
+    return movements.filter((m) => {
+      const time = new Date(m.created_at).getTime();
+      return time >= fromTime && time <= toTime;
+    });
+  }, [movements, dateRange]);
+
   const stackedMovements = useMemo(() => {
-    return groupMovementsByDateAndProduct(movements);
-  }, [movements]);
+    return groupMovementsByDateAndProduct(filteredMovements);
+  }, [filteredMovements]);
 
   // Derived Paginated Data
   const totalLowStockPages = Math.ceil(lowStockItems.length / lowStockPageSize) || 1;
@@ -260,7 +251,7 @@ export default function InventoryPage() {
     return lowStockItems.slice(start, start + lowStockPageSize);
   }, [lowStockItems, lowStockPage, lowStockPageSize]);
 
-  const currentMovementsList = viewMode === 'stacked' ? stackedMovements : movements;
+  const currentMovementsList = viewMode === 'stacked' ? stackedMovements : filteredMovements;
 
   const totalMovementsPages = Math.ceil(currentMovementsList.length / movementsPageSize) || 1;
   const paginatedMovements = useMemo(() => {
@@ -328,9 +319,9 @@ export default function InventoryPage() {
           Loading inventory movements...
         </div>
       ) : (
-        <motion.div custom={2} variants={sectionVariants} initial="hidden" animate="visible" className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-          {/* Low Stock Alerts (with Pagination) */}
-          <section className="lg:col-span-2 flex flex-col justify-between">
+        <motion.div custom={2} variants={sectionVariants} initial="hidden" animate="visible" className="space-y-6 w-full">
+          {/* Low Stock Alerts (Full Width Row) */}
+          <section className="w-full">
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-heading font-bold text-sm uppercase tracking-wide text-gray-500 flex items-center gap-2">
@@ -343,14 +334,14 @@ export default function InventoryPage() {
                   </span>
                 )}
               </div>
-              <div className="rounded-2xl border border-gray-200 bg-white shadow-xs divide-y divide-gray-100 overflow-hidden">
+              <div className="rounded-2xl border border-gray-200 bg-white shadow-xs divide-y divide-gray-100 overflow-hidden w-full">
                 {lowStockItems.length === 0 && (
                   <p className="px-4 py-6 text-sm text-gray-500">Nothing below its reorder threshold right now.</p>
                 )}
                 {paginatedLowStockItems.map((p) => (
-                  <Link key={p.id} to={`/products/${p.id}/edit`} className="flex items-center justify-between px-4 py-3 text-sm hover:bg-gray-50 transition-colors">
+                  <Link key={p.id} to={`/products/${p.id}/edit`} className="flex items-center justify-between px-4 py-3.5 text-sm hover:bg-gray-50 transition-colors">
                     <div>
-                      <p className="text-gray-900 font-semibold">{p.name}</p>
+                      <p className="text-gray-900 font-bold">{p.name}</p>
                       <p className="font-mono text-xs text-gray-500">{p.sku} · <Badge>{formatCategory(p.category)}</Badge></p>
                     </div>
                     <div className="text-right tabular-nums">
@@ -390,8 +381,8 @@ export default function InventoryPage() {
             )}
           </section>
 
-          {/* Movements Table / Audit Log Section */}
-          <section className="lg:col-span-3 flex flex-col justify-between">
+          {/* Movements Table / Audit Log Section (Full Width Row at Bottom) */}
+          <section className="w-full">
             <div>
               <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                 <h2 className="font-heading font-bold text-sm uppercase tracking-wide text-gray-500 flex items-center gap-2">
@@ -399,40 +390,51 @@ export default function InventoryPage() {
                   {viewMode === 'stacked' ? 'Stacked Daily Movements' : 'All Raw Movement Logs'}
                 </h2>
 
-                {/* View Switcher Controls */}
-                <div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-white p-1 shadow-xs">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setViewMode('stacked');
+                {/* View Switcher & Date Range Picker Controls */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <DatePickerWithRange
+                    date={dateRange}
+                    setDate={(d) => {
+                      setDateRange(d);
                       setMovementsPage(1);
                     }}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg transition-colors ${
-                      viewMode === 'stacked' ? 'bg-black text-white' : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    <Layers size={13} />
-                    Stacked
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setViewMode('raw');
-                      setMovementsPage(1);
-                    }}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg transition-colors ${
-                      viewMode === 'raw' ? 'bg-black text-white' : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    <ListFilter size={13} />
-                    Raw Logs ({movements.length})
-                  </button>
+                  />
+
+                  <div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-white p-1 shadow-xs">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setViewMode('stacked');
+                        setMovementsPage(1);
+                      }}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg transition-colors ${
+                        viewMode === 'stacked' ? 'bg-black text-white' : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      <Layers size={13} />
+                      Stacked
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setViewMode('raw');
+                        setMovementsPage(1);
+                      }}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg transition-colors ${
+                        viewMode === 'raw' ? 'bg-black text-white' : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      <ListFilter size={13} />
+                      Raw Logs ({filteredMovements.length})
+                    </button>
+                  </div>
                 </div>
               </div>
 
               {/* MAIN TABLE */}
-              <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xs">
-                <Table>
+              <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xs w-full">
+                <div className="overflow-x-auto w-full">
+                  <Table className="w-full">
                   {/* 1. STACKED DAILY VIEW */}
                   {viewMode === 'stacked' && (
                     <>
@@ -533,6 +535,7 @@ export default function InventoryPage() {
                   )}
                 </Table>
               </div>
+            </div>
             </div>
 
             {/* Movements / Audit Log Pagination Controls */}
