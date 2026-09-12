@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, Loader2, Plus, Trash2, XCircle } from 'lucide-react';
+import {
+  ArrowLeft, CheckCircle2, Download, ExternalLink, Loader2, Maximize2,
+  Plus, RotateCw, Trash2, X, XCircle, ZoomIn, ZoomOut
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { getReceipt, updateReceiptItems, confirmReceipt, rejectReceipt } from '../api/ocr.js';
 import { API_ORIGIN } from '../api/client.js';
@@ -28,6 +31,11 @@ export default function OcrReviewPage() {
   const [confirming, setConfirming] = useState(false);
   const [confirmReject, setConfirmReject] = useState(false);
 
+  // Lightbox & image zoom state
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [rotation, setRotation] = useState(0);
+
   const load = useCallback(() => {
     setLoading(true);
     getReceipt(id)
@@ -40,6 +48,28 @@ export default function OcrReviewPage() {
   }, [id]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.key === 'Escape' && isImageModalOpen) {
+        setIsImageModalOpen(false);
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isImageModalOpen]);
+
+  function handleZoomIn() { setZoomLevel((z) => Math.min(z + 0.5, 4)); }
+  function handleZoomOut() { setZoomLevel((z) => Math.max(z - 0.5, 0.5)); }
+  function handleResetZoom() { setZoomLevel(1); setRotation(0); }
+  function handleRotate() { setRotation((r) => (r + 90) % 360); }
+
+  function openInspector() {
+    setZoomLevel(1);
+    setRotation(0);
+    setIsImageModalOpen(true);
+  }
 
   function updateItem(key, field, value) {
     setItems((list) => list.map((i) => (i._key === key ? { ...i, [field]: value } : i)));
@@ -56,8 +86,6 @@ export default function OcrReviewPage() {
     }]);
   }
 
-  // `announce` is false when called internally from handleConfirm, so the
-  // "changes saved" toast doesn't fire redundantly alongside "receipt confirmed".
   async function saveChanges(announce = true) {
     setSaving(true);
     try {
@@ -110,9 +138,9 @@ export default function OcrReviewPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-black-500">
-        <Loader2 size={16} className="animate-spin" />
-        Loading...
+      <div className="flex items-center gap-2 text-black-500 py-12">
+        <Loader2 size={18} className="animate-spin text-red-600" />
+        <span>Loading receipt details...</span>
       </div>
     );
   }
@@ -123,16 +151,19 @@ export default function OcrReviewPage() {
 
   const isPending = receipt.status === 'pending_review';
   const hasConfirmedLine = items.some((i) => i.is_confirmed);
+  const imageUrl = receipt.image_path?.startsWith('http') || receipt.image_path?.startsWith('data:')
+    ? receipt.image_path
+    : `${API_ORIGIN}${receipt.image_path}`;
 
   return (
-    <div className="max-w-4xl">
+    <div className="max-w-7xl w-full pb-12">
       <Link to="/ocr" className="inline-flex items-center gap-1.5 text-sm font-medium text-black-500 hover:text-black-900 mb-4 transition-colors">
         <ArrowLeft size={16} />
         Back to Receipts
       </Link>
 
       <div className="flex items-center gap-3 mb-6">
-        <h1 className="font-display text-3xl text-black-900">Receipt #{receipt.id}</h1>
+        <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900">Receipt #{receipt.id}</h1>
         <Badge variant={OCR_STATUS_BADGE[receipt.status]}>{receipt.status.replace('_', ' ')}</Badge>
       </div>
 
@@ -141,19 +172,53 @@ export default function OcrReviewPage() {
       )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-1">
-          <h3 className="font-heading font-bold text-xs uppercase tracking-wide text-black-500 mb-2">Receipt Image</h3>
-          <img
-            src={
-              receipt.image_path?.startsWith('http') || receipt.image_path?.startsWith('data:')
-                ? receipt.image_path
-                : `${API_ORIGIN}${receipt.image_path}`
-            }
-            alt="Uploaded receipt"
-            className="w-full rounded-lg border border-gray-200 object-contain"
-          />
+        {/* Receipt Image Card Column */}
+        <div className="lg:col-span-1 space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="font-heading font-bold text-xs uppercase tracking-wide text-black-500">Receipt Image</h3>
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs text-gray-600 hover:text-gray-900"
+                onClick={openInspector}
+              >
+                <Maximize2 size={13} className="mr-1 text-red-600" />
+                Enlarge
+              </Button>
+              <a
+                href={imageUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900 p-1"
+                title="Open raw image in new window"
+              >
+                <ExternalLink size={13} />
+              </a>
+            </div>
+          </div>
+
+          <div
+            onClick={openInspector}
+            className="group relative cursor-zoom-in overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 shadow-xs transition-all hover:border-red-500 hover:shadow-md"
+          >
+            <img
+              src={imageUrl}
+              alt="Uploaded receipt"
+              className="w-full max-h-[520px] object-contain transition-transform duration-200 group-hover:scale-[1.02]"
+            />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-4 py-2 text-xs font-bold text-gray-900 shadow-xl backdrop-blur-xs">
+                <ZoomIn size={15} className="text-red-600" />
+                Click to inspect clear image
+              </span>
+            </div>
+          </div>
+          <p className="text-[11px] text-gray-400 text-center">Click image to open high-resolution lightbox with zoom & rotate controls</p>
         </div>
 
+        {/* Line Items Editor Column */}
         <div className="lg:col-span-2">
           <div className="flex items-center justify-between mb-2">
             <h3 className="font-heading font-bold text-xs uppercase tracking-wide text-black-500">Line Items</h3>
@@ -250,6 +315,127 @@ export default function OcrReviewPage() {
         </div>
       </div>
 
+      {/* Lightbox / High-Resolution Image Inspector Modal */}
+      {isImageModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={() => setIsImageModalOpen(false)}
+        >
+          <div
+            className="relative flex flex-col max-w-6xl w-full h-[90vh] rounded-2xl bg-gray-950 border border-gray-800 shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header Toolbar */}
+            <div className="flex items-center justify-between border-b border-gray-800 bg-gray-900/90 px-4 py-3 text-white">
+              <div className="flex items-center gap-3">
+                <span className="font-bold text-sm text-gray-100">Receipt #{receipt.id} Image Inspector</span>
+                <span className="text-xs text-gray-400 font-mono">Zoom: {Math.round(zoomLevel * 100)}% | Rotation: {rotation}°</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center bg-gray-800 rounded-lg p-0.5 border border-gray-700">
+                  <button
+                    type="button"
+                    onClick={handleZoomOut}
+                    disabled={zoomLevel <= 0.5}
+                    className="p-1.5 hover:bg-gray-700 rounded text-gray-300 hover:text-white disabled:opacity-30 transition-colors"
+                    title="Zoom Out (-)"
+                  >
+                    <ZoomOut size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleResetZoom}
+                    className="px-2 py-1 text-xs font-mono text-gray-300 hover:bg-gray-700 rounded hover:text-white transition-colors"
+                    title="Reset Zoom to 100%"
+                  >
+                    {Math.round(zoomLevel * 100)}%
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleZoomIn}
+                    disabled={zoomLevel >= 4}
+                    className="p-1.5 hover:bg-gray-700 rounded text-gray-300 hover:text-white disabled:opacity-30 transition-colors"
+                    title="Zoom In (+)"
+                  >
+                    <ZoomIn size={16} />
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleRotate}
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 rounded-lg text-gray-300 hover:text-white border border-gray-700 transition-colors"
+                  title="Rotate 90 degrees clockwise"
+                >
+                  <RotateCw size={14} />
+                  Rotate
+                </button>
+
+                <a
+                  href={imageUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 rounded-lg text-gray-300 hover:text-white border border-gray-700 transition-colors"
+                  title="Open original image in new tab"
+                >
+                  <ExternalLink size={14} />
+                  Original
+                </a>
+
+                <a
+                  href={imageUrl}
+                  download={`receipt-${receipt.id}.png`}
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 rounded-lg text-gray-300 hover:text-white border border-gray-700 transition-colors"
+                  title="Download picture"
+                >
+                  <Download size={14} />
+                  Download
+                </a>
+
+                <button
+                  type="button"
+                  onClick={() => setIsImageModalOpen(false)}
+                  className="p-1.5 bg-gray-800 hover:bg-red-600 rounded-lg text-gray-300 hover:text-white transition-colors ml-2"
+                  title="Close Inspector (Esc)"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable Viewport */}
+            <div
+              className="relative flex-1 overflow-auto p-6 flex items-center justify-center bg-black/60 select-none cursor-grab active:cursor-grabbing"
+              onWheel={(e) => {
+                if (e.deltaY < 0) handleZoomIn();
+                else if (e.deltaY > 0) handleZoomOut();
+              }}
+            >
+              <div
+                className="transition-transform duration-150 ease-out origin-center flex items-center justify-center"
+                style={{
+                  transform: `scale(${zoomLevel}) rotate(${rotation}deg)`,
+                }}
+              >
+                <img
+                  src={imageUrl}
+                  alt="High Resolution Receipt"
+                  className="max-w-full max-h-[72vh] object-contain rounded-lg shadow-2xl border border-gray-800"
+                  style={{ imageRendering: 'high-quality' }}
+                />
+              </div>
+            </div>
+
+            {/* Modal Footer Bar */}
+            <div className="flex items-center justify-between border-t border-gray-800 bg-gray-900/80 px-4 py-2 text-xs text-gray-400">
+              <span>Scroll wheel to zoom in/out | Click & drag window to pan around</span>
+              <span>Press <kbd className="px-1.5 py-0.5 bg-gray-800 border border-gray-700 rounded font-mono text-[10px] text-gray-300">ESC</kbd> to close viewer</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Confirmation Dialog */}
       <AlertDialog open={confirmReject} onOpenChange={(v) => !v && setConfirmReject(false)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -267,3 +453,4 @@ export default function OcrReviewPage() {
     </div>
   );
 }
+
