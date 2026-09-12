@@ -57,26 +57,41 @@ const sectionVariants = {
   }),
 };
 
-function HardwareScanModal({ onClose }) {
+const OCR_MODAL_SIZE_CLASSES = {
+  standard: 'sm:max-w-xl max-h-[90vh]',
+  wide: 'sm:max-w-4xl max-h-[92vh]',
+  'extra-wide': 'sm:max-w-6xl max-h-[94vh]',
+  fullscreen: 'sm:max-w-[98vw] sm:w-[98vw] w-[98vw] max-w-[98vw] h-[95vh] max-h-[95vh]',
+};
+
+function HardwareScanModal({ onClose, onScanComplete }) {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const [file, setFile] = useState(null);
   const [ingesting, setIngesting] = useState(false);
+  const [modalSize, setModalSize] = useState(() => localStorage.getItem('jayjef_modal_size') || 'standard');
+
+  function changeModalSize(newSize) {
+    setModalSize(newSize);
+    localStorage.setItem('jayjef_modal_size', newSize);
+  }
 
   async function handleScanSubmit(e) {
     e.preventDefault();
     if (!file) return;
     setIngesting(true);
     try {
-      const res = await ingestScannedDocument(file);
-      toast.success('📄 Document ingested from HP DeskJet 4275 scanner!');
-      if (res.event?.id) {
-        navigate(`/ocr/${res.event.id}`);
+      const receipt = await uploadReceipt(file);
+      toast.success(`Scan ingested: ${file.name}`);
+      if (onScanComplete) {
+        onScanComplete(receipt);
+      } else if (receipt?.id) {
+        navigate(`/ocr/${receipt.id}`);
       } else {
         onClose();
       }
     } catch (err) {
-      toast.error(err.message || 'Failed to ingest scan');
+      toast.error(err.message || 'Error processing scan file');
     } finally {
       setIngesting(false);
     }
@@ -84,15 +99,36 @@ function HardwareScanModal({ onClose }) {
 
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Printer className="text-red-600" size={20} />
+      <DialogContent className={`${OCR_MODAL_SIZE_CLASSES[modalSize] || OCR_MODAL_SIZE_CLASSES.standard} overflow-y-auto rounded-2xl p-6 shadow-2xl border border-gray-200 transition-all duration-200`}>
+        <DialogHeader className="flex flex-row items-center justify-between border-b border-gray-100 pb-3 mb-2 pr-8">
+          <DialogTitle className="font-heading text-xl font-bold text-gray-900">
             HP DeskJet / LaserJet 4275 Network Scanner Setup
           </DialogTitle>
+
+          {/* Modal Size Switcher */}
+          <div className="hidden sm:flex items-center gap-1 bg-gray-100/80 p-1 rounded-xl">
+            <span className="text-[11px] text-gray-500 font-bold px-1.5">Size:</span>
+            {[
+              { key: 'standard', label: 'Standard' },
+              { key: 'wide', label: 'Wide' },
+              { key: 'extra-wide', label: 'Extra Wide' },
+              { key: 'fullscreen', label: 'Full Screen' },
+            ].map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => changeModalSize(s.key)}
+                className={`px-2.5 py-0.5 rounded-lg text-[11px] font-bold transition-all ${
+                  modalSize === s.key ? 'bg-white text-gray-900 shadow-xs font-extrabold' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
         </DialogHeader>
 
-        <div className="space-y-3 text-xs">
+        <div className="space-y-4 text-xs">
           <div className="rounded-xl border border-blue-200 bg-blue-50/75 p-3.5 text-blue-900 space-y-1.5">
             <div className="flex items-center gap-1.5 font-bold">
               <CheckCircle2 size={15} className="text-blue-600" />
@@ -107,20 +143,47 @@ function HardwareScanModal({ onClose }) {
             </ul>
           </div>
 
-          <form onSubmit={handleScanSubmit} className="space-y-3 pt-1">
+          <form onSubmit={handleScanSubmit} className="space-y-4 pt-1">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-gray-700">Select Scanned Receipt File from Network / Computer</Label>
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-gray-300 px-4 py-6 text-center transition-colors hover:border-red-600 hover:bg-gray-50/80"
-              >
-                <Printer size={28} className="text-red-500" strokeWidth={1.5} />
-                <span className="text-sm font-medium text-gray-800">
-                  {file ? file.name : 'Click to upload scanned receipt image from HP 4275'}
-                </span>
-                <span className="text-xs text-gray-400">Supports JPG, PNG, WEBP, TIFF</span>
-              </button>
+              {file ? (
+                <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-50/80 p-3.5 shadow-xs">
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-white">
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt="Scan preview"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <p className="text-sm font-bold text-gray-900 truncate" title={file.name}>
+                      {file.name}
+                    </p>
+                    <p className="text-xs text-gray-500 font-mono">
+                      {(file.size / 1024).toFixed(1)} KB
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => { setFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                      className="text-xs text-red-600 hover:underline font-semibold"
+                    >
+                      Change scanned file
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-gray-300 px-4 py-6 text-center transition-colors hover:border-red-600 hover:bg-gray-50/80"
+                >
+                  <Printer size={28} className="text-red-500" strokeWidth={1.5} />
+                  <span className="text-sm font-medium text-gray-800">
+                    Click to upload scanned receipt image from HP 4275
+                  </span>
+                  <span className="text-xs text-gray-400">Supports JPG, PNG, WEBP, TIFF</span>
+                </button>
+              )}
               <input
                 ref={fileInputRef}
                 type="file"
@@ -130,12 +193,12 @@ function HardwareScanModal({ onClose }) {
               />
             </div>
 
-            <div className="flex gap-3 pt-2">
-              <Button type="submit" disabled={ingesting || !file} className="bg-red-600 hover:bg-red-700">
+            <div className="flex gap-3 pt-3 border-t border-gray-100">
+              <Button type="submit" disabled={ingesting || !file} className="rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-md font-semibold">
                 {ingesting ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
                 {ingesting ? 'Processing Scan...' : 'Ingest & Run OCR'}
               </Button>
-              <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+              <Button type="button" variant="secondary" onClick={onClose} className="rounded-xl border border-gray-200">Cancel</Button>
             </div>
           </form>
         </div>
@@ -151,6 +214,12 @@ function UploadModal({ onClose }) {
   const [supplierId, setSupplierId] = useState('');
   const [suppliers, setSuppliers] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [modalSize, setModalSize] = useState(() => localStorage.getItem('jayjef_modal_size') || 'standard');
+
+  function changeModalSize(newSize) {
+    setModalSize(newSize);
+    localStorage.setItem('jayjef_modal_size', newSize);
+  }
 
   useEffect(() => {
     listSuppliers({ page_size: 500 }).then((r) => setSuppliers(r.items)).catch(() => { });
@@ -173,25 +242,74 @@ function UploadModal({ onClose }) {
 
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <UploadCloud className="text-red-600" size={20} />
+      <DialogContent className={`${OCR_MODAL_SIZE_CLASSES[modalSize] || OCR_MODAL_SIZE_CLASSES.standard} overflow-y-auto rounded-2xl p-6 shadow-2xl border border-gray-200 transition-all duration-200`}>
+        <DialogHeader className="flex flex-row items-center justify-between border-b border-gray-100 pb-3 mb-2 pr-8">
+          <DialogTitle className="font-heading text-xl font-bold text-gray-900">
             Upload Receipt Photo
           </DialogTitle>
+
+          {/* Modal Size Switcher */}
+          <div className="hidden sm:flex items-center gap-1 bg-gray-100/80 p-1 rounded-xl">
+            <span className="text-[11px] text-gray-500 font-bold px-1.5">Size:</span>
+            {[
+              { key: 'standard', label: 'Standard' },
+              { key: 'wide', label: 'Wide' },
+              { key: 'extra-wide', label: 'Extra Wide' },
+              { key: 'fullscreen', label: 'Full Screen' },
+            ].map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => changeModalSize(s.key)}
+                className={`px-2.5 py-0.5 rounded-lg text-[11px] font-bold transition-all ${
+                  modalSize === s.key ? 'bg-white text-gray-900 shadow-xs font-extrabold' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
         </DialogHeader>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label>Receipt Photo<span className="text-red-600">*</span></Label>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-gray-300 px-4 py-8 text-center transition-colors hover:border-red-600 hover:bg-gray-50"
-            >
-              <UploadCloud size={28} className="text-gray-400" strokeWidth={1.5} />
-              <span className="text-sm font-medium text-gray-700">{file ? file.name : 'Click to choose a photo, or drag one here'}</span>
-              <span className="text-xs text-gray-400">OCR will automatically detect receipt date & organize into folder</span>
-            </button>
+            <Label className="text-xs font-semibold text-gray-700">Receipt Photo<span className="text-red-600">*</span></Label>
+            {file ? (
+              <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-50/80 p-3.5 shadow-xs">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-white">
+                  <img
+                    src={URL.createObjectURL(file)}
+                    alt="Receipt preview"
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <div className="min-w-0 flex-1 space-y-1">
+                  <p className="text-sm font-bold text-gray-900 truncate" title={file.name}>
+                    {file.name}
+                  </p>
+                  <p className="text-xs text-gray-500 font-mono">
+                    {(file.size / 1024).toFixed(1)} KB
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => { setFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                    className="text-xs text-red-600 hover:underline font-semibold"
+                  >
+                    Remove & choose another file
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-gray-300 px-4 py-8 text-center transition-colors hover:border-red-600 hover:bg-gray-50"
+              >
+                <UploadCloud size={32} className="text-gray-400" strokeWidth={1.5} />
+                <span className="text-sm font-medium text-gray-700">Click to choose a photo, or drag one here</span>
+                <span className="text-xs text-gray-400">OCR will automatically detect receipt date & organize into folder</span>
+              </button>
+            )}
             <input
               ref={fileInputRef}
               type="file"
@@ -203,9 +321,9 @@ function UploadModal({ onClose }) {
           </div>
 
           <div className="space-y-1.5">
-            <Label>Supplier (optional)</Label>
+            <Label className="text-xs font-semibold text-gray-700">Supplier (optional)</Label>
             <Select value={supplierId} onValueChange={setSupplierId}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full rounded-xl border-gray-300">
                 <SelectValue placeholder="Unknown / not in catalog">
                   {(v) => suppliers.find((s) => String(s.id) === v)?.name}
                 </SelectValue>
@@ -216,12 +334,12 @@ function UploadModal({ onClose }) {
             </Select>
           </div>
 
-          <div className="flex gap-3 pt-1">
-            <Button type="submit" disabled={uploading || !file} className="bg-red-600 hover:bg-red-700">
+          <div className="flex gap-3 pt-3 border-t border-gray-100">
+            <Button type="submit" disabled={uploading || !file} className="rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-md font-semibold">
               {uploading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
               {uploading ? 'Uploading & Sorting...' : 'Upload & Auto-Organize'}
             </Button>
-            <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+            <Button type="button" variant="secondary" onClick={onClose} className="rounded-xl border border-gray-200">Cancel</Button>
           </div>
         </form>
       </DialogContent>

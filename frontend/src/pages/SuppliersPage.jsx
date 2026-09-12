@@ -44,11 +44,10 @@ function ConstantProductsViewerModal({ supplier, open, onClose }) {
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-lg rounded-2xl p-6">
+      <DialogContent className="sm:max-w-lg rounded-2xl p-6 shadow-2xl border border-gray-200">
         <DialogHeader className="border-b border-gray-100 pb-3 mb-2">
-          <DialogTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <Layers size={18} className="text-red-600" />
-            Constant Products for {supplier.name}
+          <DialogTitle className="font-heading text-lg font-bold text-gray-900">
+            Constant Products — {supplier.name}
           </DialogTitle>
         </DialogHeader>
 

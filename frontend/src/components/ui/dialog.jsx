@@ -56,7 +56,7 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto -translate-x-1/2 -translate-y-1/2 gap-4 rounded-lg border border-gray-200 bg-popover p-6 text-sm text-popover-foreground shadow-md duration-100 outline-none sm:max-w-lg data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto overflow-x-hidden min-w-0 -translate-x-1/2 -translate-y-1/2 gap-4 rounded-2xl border border-gray-200 bg-popover p-4 sm:p-6 text-sm text-popover-foreground shadow-2xl duration-100 outline-none sm:max-w-lg data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className
         )}
         {...props}>
@@ -65,7 +65,7 @@ function DialogContent({
           <DialogPrimitive.Close
             data-slot="dialog-close"
             render={
-              <Button variant="ghost" className="absolute top-2 right-2" size="icon-sm" />
+              <Button variant="ghost" className="absolute top-2 right-2 rounded-lg" size="icon-sm" />
             }>
             <XIcon />
             <span className="sr-only">Close</span>
@@ -98,13 +98,13 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "-mx-6 -mb-6 mt-2 flex flex-col-reverse gap-3 rounded-b-lg border-t border-gray-200 p-6 pt-4 sm:flex-row sm:justify-end",
+        "-mx-4 -mb-4 sm:-mx-6 sm:-mb-6 mt-2 flex flex-col-reverse gap-3 rounded-b-2xl border-t border-gray-200 p-4 sm:p-6 pt-4 sm:flex-row sm:justify-end",
         className
       )}
       {...props}>
       {children}
       {showCloseButton && (
-        <DialogPrimitive.Close render={<Button variant="outline" />}>
+        <DialogPrimitive.Close render={<Button variant="outline" className="rounded-xl" />}>
           Close
         </DialogPrimitive.Close>
       )}
@@ -119,7 +119,7 @@ function DialogTitle({
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn("font-heading text-lg leading-none font-bold text-black-900", className)}
+      className={cn("font-heading text-lg leading-none font-bold text-gray-900", className)}
       {...props} />
   );
 }

@@ -111,21 +111,20 @@ export default function SupplierFormPage() {
     standard: 'sm:max-w-2xl max-h-[90vh]',
     wide: 'sm:max-w-4xl max-h-[92vh]',
     'extra-wide': 'sm:max-w-6xl max-h-[94vh]',
-    fullscreen: 'w-[98vw] max-w-[98vw] h-[95vh] max-h-[95vh]',
+    fullscreen: 'sm:max-w-[98vw] sm:w-[98vw] w-[98vw] max-w-[98vw] h-[95vh] max-h-[95vh]',
   };
 
   return (
     <Dialog open onOpenChange={(v) => !v && close()}>
-      <DialogContent className={`${SIZE_CLASSES[modalSize] || SIZE_CLASSES.standard} overflow-y-auto rounded-2xl p-6 transition-all duration-200`}>
-        <DialogHeader className="flex flex-row items-center justify-between border-b border-gray-100 pb-4 mb-2 pr-8">
-          <DialogTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <PackageCheck size={20} className="text-red-600" />
-            {isEdit ? 'Edit Supplier & Constant Products' : 'Add New Supplier'}
+      <DialogContent className={`${SIZE_CLASSES[modalSize] || SIZE_CLASSES.standard} overflow-y-auto rounded-2xl p-6 shadow-2xl border border-gray-200 transition-all duration-200`}>
+        <DialogHeader className="flex flex-row items-center justify-between border-b border-gray-100 pb-3 mb-2 pr-8">
+          <DialogTitle className="font-heading text-xl font-bold text-gray-900">
+            {isEdit ? 'Edit Supplier' : 'Add New Supplier'}
           </DialogTitle>
 
           {/* Modal Size Switcher */}
-          <div className="flex items-center gap-1 bg-gray-100/80 p-1 rounded-xl">
-            <span className="text-[11px] text-gray-500 font-bold px-1.5 hidden sm:inline">Size:</span>
+          <div className="hidden sm:flex items-center gap-1 bg-gray-100/80 p-1 rounded-xl">
+            <span className="text-[11px] text-gray-500 font-bold px-1.5">Size:</span>
             {[
               { key: 'standard', label: 'Standard' },
               { key: 'wide', label: 'Wide' },
@@ -285,17 +284,17 @@ export default function SupplierFormPage() {
             </div>
 
             {/* ACTION BUTTONS */}
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
-              <Button type="button" variant="secondary" onClick={close} className="rounded-xl text-xs font-bold">
-                Cancel
-              </Button>
+            <div className="flex items-center gap-3 pt-3 border-t border-gray-100">
               <Button
                 type="submit"
                 disabled={saving}
-                className="rounded-xl bg-red-600 hover:bg-red-700 font-bold text-white text-xs shadow-md"
+                className="rounded-xl bg-red-600 hover:bg-red-700 font-semibold text-white shadow-md"
               >
                 {saving && <Loader2 size={16} className="animate-spin mr-1" />}
                 {saving ? 'Saving...' : 'Save Supplier & Memory'}
+              </Button>
+              <Button type="button" variant="secondary" onClick={close} className="rounded-xl border border-gray-200 font-medium">
+                Cancel
               </Button>
             </div>
           </form>

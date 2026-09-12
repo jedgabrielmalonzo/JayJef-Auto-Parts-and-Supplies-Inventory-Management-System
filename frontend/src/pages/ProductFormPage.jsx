@@ -168,7 +168,7 @@ export default function ProductFormPage() {
     standard: 'sm:max-w-xl max-h-[90vh]',
     wide: 'sm:max-w-4xl max-h-[92vh]',
     'extra-wide': 'sm:max-w-6xl max-h-[94vh]',
-    fullscreen: 'w-[98vw] max-w-[98vw] h-[95vh] max-h-[95vh]',
+    fullscreen: 'sm:max-w-[98vw] sm:w-[98vw] w-[98vw] max-w-[98vw] h-[95vh] max-h-[95vh]',
   };
 
   return (
@@ -180,8 +180,8 @@ export default function ProductFormPage() {
           </DialogTitle>
 
           {/* Modal Size Switcher */}
-          <div className="flex items-center gap-1 bg-gray-100/80 p-1 rounded-xl">
-            <span className="text-[11px] text-gray-500 font-bold px-1.5 hidden sm:inline">Size:</span>
+          <div className="hidden sm:flex items-center gap-1 bg-gray-100/80 p-1 rounded-xl">
+            <span className="text-[11px] text-gray-500 font-bold px-1.5">Size:</span>
             {[
               { key: 'standard', label: 'Standard' },
               { key: 'wide', label: 'Wide' },
@@ -235,7 +235,7 @@ export default function ProductFormPage() {
             </Section>
 
             <Section title="Basic Details">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Part Number" required error={fieldErrors.sku}>
                   <Input
                     className="font-mono text-sm uppercase rounded-xl border-gray-300 focus:border-red-600"
@@ -269,7 +269,7 @@ export default function ProductFormPage() {
                 />
               </Field>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Brand / Manufacturer">
                   <Input className="rounded-xl border-gray-300" placeholder="e.g. Denso, Sanden, Valeo" value={form.brand} onChange={(e) => set('brand', e.target.value)} />
                 </Field>
@@ -289,7 +289,7 @@ export default function ProductFormPage() {
                 </Field>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Compatible Vehicles">
                   <Input className="rounded-xl border-gray-300" value={form.compatible_vehicles} onChange={(e) => set('compatible_vehicles', e.target.value)} placeholder="e.g. Toyota Vios 2013–2018" />
                 </Field>
@@ -309,7 +309,7 @@ export default function ProductFormPage() {
             </Section>
 
             <Section title="Philippine Peso (₱) Pricing &amp; Inventory">
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <Field label="Cost Price (₱)">
                   <div className="relative flex items-center">
                     <span className="pointer-events-none absolute left-3 font-heading font-bold text-sm text-gray-500">₱</span>

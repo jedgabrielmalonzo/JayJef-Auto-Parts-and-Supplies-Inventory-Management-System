@@ -93,112 +93,139 @@ function formatDateLabel(dateObj) {
   return dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-const SIZE_CLASSES = {
-  standard: 'sm:max-w-xl max-h-[90vh]',
-  wide: 'sm:max-w-4xl max-h-[92vh]',
-  'extra-wide': 'sm:max-w-6xl max-h-[94vh]',
-  fullscreen: 'w-[98vw] max-w-[98vw] h-[95vh] max-h-[95vh]',
-};
+function ModalSection({ title, children }) {
+  return (
+    <section className="border-t border-gray-100 pt-4 first:border-t-0 first:pt-0">
+      <h3 className="font-heading font-bold text-xs uppercase tracking-wider text-gray-400 mb-3">{title}</h3>
+      <div className="space-y-4">{children}</div>
+    </section>
+  );
+}
+
+function ModalField({ label, error, required, children }) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs font-semibold text-gray-700">
+        {label}
+        {required && <span className="text-red-600 ml-0.5">*</span>}
+      </Label>
+      {children}
+      {error && <p className="text-xs font-medium text-red-600">{error}</p>}
+    </div>
+  );
+}
 
 function AdjustStockModal({ open, onClose, onSaved }) {
-  const [mode, setMode] = useState('single'); // 'single' | 'bundle'
-  const [modalSize, setModalSize] = useState(() => localStorage.getItem('jayjef_modal_size') || 'standard');
+  // Mode: 'single' | 'bundle'
+  const [mode, setMode] = useState('single');
+
+  // Single adjustment state
+  const [product, setProduct] = useState(null);
+  const [direction, setDirection] = useState('in');
+  const [quantity, setQuantity] = useState('');
+  const [reason, setReason] = useState('manual_adjustment');
+  const [note, setNote] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  // Bundle adjustment state
+  const [bundleItems, setBundleItems] = useState([]);
+  const [bundleReason, setBundleReason] = useState('manual_adjustment');
+  const [bundleNote, setBundleNote] = useState('');
+  const [orders, setOrders] = useState([]);
+  const [selectedOrderId, setSelectedOrderId] = useState('');
+  const [loadingOrder, setLoadingOrder] = useState(false);
+  const [addItemProduct, setAddItemProduct] = useState(null);
+
+  // Modal Size State (Synchronized with localStorage)
+  const [modalSize, setModalSize] = useState(() => {
+    return localStorage.getItem('jayjef_modal_size') || 'standard';
+  });
+
+  const SIZE_CLASSES = {
+    standard: 'sm:max-w-xl max-h-[90vh]',
+    wide: 'sm:max-w-4xl max-h-[92vh]',
+    'extra-wide': 'sm:max-w-6xl max-h-[94vh]',
+    fullscreen: 'sm:max-w-[98vw] sm:w-[98vw] w-[98vw] max-w-[98vw] h-[95vh] max-h-[95vh]',
+  };
 
   function changeModalSize(newSize) {
     setModalSize(newSize);
     localStorage.setItem('jayjef_modal_size', newSize);
   }
 
-  // Single mode state
-  const [product, setProduct] = useState(null);
-  const [direction, setDirection] = useState('in');
-  const [quantity, setQuantity] = useState('');
-  const [reason, setReason] = useState('manual_adjustment');
-  const [note, setNote] = useState('');
-
-  // Bundle mode state
-  const [orders, setOrders] = useState([]);
-  const [selectedOrderId, setSelectedOrderId] = useState('');
-  const [loadingOrder, setLoadingOrder] = useState(false);
-  const [bundleItems, setBundleItems] = useState([]);
-  const [bundleReason, setBundleReason] = useState('manual_adjustment');
-  const [bundleNote, setBundleNote] = useState('');
-  const [addItemProduct, setAddItemProduct] = useState(null);
-
-  const [saving, setSaving] = useState(false);
-
+  // Load orders for bundle selection when modal opens
   useEffect(() => {
-    if (!open) {
-      setMode('single');
-      setProduct(null); setDirection('in');
-      setQuantity(''); setReason('manual_adjustment'); setNote('');
-      setSelectedOrderId(''); setBundleItems([]);
-      setBundleReason('manual_adjustment'); setBundleNote('');
-      setAddItemProduct(null);
-    } else {
-      listOrders({ pageSize: 100 }).then((res) => {
-        setOrders(res?.items || []);
-      }).catch(() => {});
+    if (open) {
+      listOrders({ page_size: 100 })
+        .then((res) => {
+          setOrders(res?.items || []);
+        })
+        .catch(() => {});
     }
   }, [open]);
 
+  // Handle loading line items from an existing order
   async function handleSelectOrder(orderId) {
     setSelectedOrderId(orderId);
     if (!orderId) return;
+
     setLoadingOrder(true);
     try {
       const order = await getOrder(orderId);
-      if (order && Array.isArray(order.items)) {
-        const mapped = order.items.map((item) => ({
-          product_id: item.product_id,
-          product_name: item.product_name,
-          product_sku: item.product_sku,
-          quantity: item.quantity || 1,
-          direction: order.type === 'purchase' ? 'in' : 'out',
-          stock_quantity: item.stock_quantity,
-        }));
-        setBundleItems(mapped);
-        setBundleNote(`Adjusted via Order #${order.order_number}`);
-        setBundleReason(order.type === 'purchase' ? 'purchase_order_received' : 'order_fulfillment');
-        toast.success(`Loaded ${mapped.length} items from ${order.order_number}`);
-      }
+      const isPurchase = order.type === 'purchase';
+      const items = (order.items || []).map((i) => ({
+        product_id: i.product_id,
+        product_name: i.product_name || i.name || 'Unknown Product',
+        product_sku: i.product_sku || i.sku || 'NO-SKU',
+        quantity: i.quantity,
+        direction: isPurchase ? 'in' : 'out',
+      }));
+
+      setBundleItems(items);
+      setBundleReason(isPurchase ? 'purchase_order_received' : 'order_fulfillment');
+      setBundleNote(`Imported from Order ${order.order_number}`);
+      toast.success(`Loaded ${items.length} items from ${order.order_number}`);
     } catch (err) {
-      toast.error('Failed to load order details: ' + err.message);
+      toast.error(`Failed to load order items: ${err.message}`);
     } finally {
       setLoadingOrder(false);
     }
   }
 
-  function handleAddProductToBundle(p) {
-    if (!p) return;
-    if (bundleItems.some((item) => item.product_id === p.id)) {
-      toast.error('Product is already in the bundle list');
-      return;
-    }
-    setBundleItems((prev) => [
-      ...prev,
-      {
-        product_id: p.id,
-        product_name: p.name,
-        product_sku: p.sku,
-        quantity: 1,
-        direction: 'in',
-        stock_quantity: p.stock_quantity || 0,
-      },
-    ]);
+  function handleAddProductToBundle(prod) {
+    if (!prod) return;
+    setBundleItems((prev) => {
+      const existingIdx = prev.findIndex((i) => i.product_id === prod.id);
+      if (existingIdx >= 0) {
+        toast.info(`Updated quantity for "${prod.name}"`);
+        const updated = [...prev];
+        updated[existingIdx].quantity += 1;
+        return updated;
+      }
+      return [
+        ...prev,
+        {
+          product_id: prod.id,
+          product_name: prod.name,
+          product_sku: prod.sku,
+          quantity: 1,
+          direction: 'in',
+        },
+      ];
+    });
     setAddItemProduct(null);
   }
 
-  function updateBundleItem(index, field, value) {
+  function updateBundleItem(idx, field, value) {
     setBundleItems((prev) => {
-      const next = [...prev];
-      next[index] = { ...next[index], [field]: value };
-      return next;
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], [field]: field === 'quantity' ? Number(value) : value };
+      return updated;
     });
   }
 
-  function removeBundleItem(index) {
-    setBundleItems((prev) => prev.filter((_, i) => i !== index));
+  function removeBundleItem(idx) {
+    setBundleItems((prev) => prev.filter((_, i) => i !== idx));
   }
 
   async function handleSubmitSingle(e) {
@@ -206,15 +233,15 @@ function AdjustStockModal({ open, onClose, onSaved }) {
     if (!product || !quantity) return;
     setSaving(true);
     try {
-      const signedQuantity = direction === 'in' ? Number(quantity) : -Number(quantity);
-      await createMovement({ product_id: product.id, quantity_change: signedQuantity, reason, note: note || undefined });
-
-      const newQty = Math.max(0, (product.stock_quantity || 0) + signedQuantity);
-      if (signedQuantity < 0) {
-        soundService.checkAndPlayAlert(newQty, product.reorder_threshold || 5);
-      }
-
-      toast.success('Stock movement recorded');
+      const qty = parseInt(quantity, 10);
+      const change = direction === 'out' ? -Math.abs(qty) : Math.abs(qty);
+      await createMovement({
+        product_id: product.id,
+        quantity_change: change,
+        reason,
+        note: note.trim() || undefined,
+      });
+      toast.success(`Adjusted ${product.name} by ${change > 0 ? `+${change}` : change}`);
       onSaved();
     } catch (err) {
       toast.error(err.message);
@@ -226,26 +253,22 @@ function AdjustStockModal({ open, onClose, onSaved }) {
   async function handleSubmitBundle(e) {
     e.preventDefault();
     if (bundleItems.length === 0) {
-      toast.error('Please add at least one product to the bundle');
+      toast.error('Please add at least one item to the bundle.');
       return;
     }
+
     setSaving(true);
     try {
-      const movements = bundleItems.map((item) => ({
+      const adjustments = bundleItems.map((item) => ({
         product_id: item.product_id,
-        quantity_change: item.direction === 'in' ? Number(item.quantity) : -Number(item.quantity),
-        reason: bundleReason,
-        note: bundleNote || `Bundle Stock Adjustment (${bundleItems.length} items)`,
+        quantity_change: item.direction === 'out' ? -Math.abs(item.quantity) : Math.abs(item.quantity),
       }));
 
-      await createBatchMovements(movements);
-
-      bundleItems.forEach((item) => {
-        const change = item.direction === 'in' ? Number(item.quantity) : -Number(item.quantity);
-        if (change < 0) {
-          const newQty = Math.max(0, (item.stock_quantity || 0) + change);
-          soundService.checkAndPlayAlert(newQty, 5);
-        }
+      await createBatchMovements({
+        adjustments,
+        reason: bundleReason,
+        note: bundleNote.trim() || undefined,
+        reference_order_id: selectedOrderId || undefined,
       });
 
       toast.success(`Successfully adjusted stock for ${bundleItems.length} items!`);
@@ -259,15 +282,15 @@ function AdjustStockModal({ open, onClose, onSaved }) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent showCloseButton className={`${SIZE_CLASSES[modalSize] || SIZE_CLASSES.standard} overflow-y-auto rounded-2xl p-6 shadow-2xl border border-gray-200 transition-all duration-200`}>
+      <DialogContent className={`${SIZE_CLASSES[modalSize] || SIZE_CLASSES.standard} overflow-y-auto rounded-2xl p-6 shadow-2xl border border-gray-200 transition-all duration-200`}>
         <DialogHeader className="flex flex-row items-center justify-between pb-3 border-b border-gray-100 pr-8">
           <DialogTitle className="font-heading text-xl font-bold text-gray-900">
             Adjust Stock
           </DialogTitle>
 
           {/* Modal Size Switcher matching ProductFormPage */}
-          <div className="flex items-center gap-1 bg-gray-100/80 p-1 rounded-xl">
-            <span className="text-[11px] text-gray-500 font-bold px-1.5 hidden sm:inline">Size:</span>
+          <div className="hidden sm:flex items-center gap-1 bg-gray-100/80 p-1 rounded-xl">
+            <span className="text-[11px] text-gray-500 font-bold px-1.5">Size:</span>
             {[
               { key: 'standard', label: 'Standard' },
               { key: 'wide', label: 'Wide' },
@@ -288,219 +311,230 @@ function AdjustStockModal({ open, onClose, onSaved }) {
           </div>
         </DialogHeader>
 
-        {/* Mode Switcher */}
-        <div className="flex items-center gap-2 pt-2 pb-1 border-b border-gray-100">
-          <button
-            type="button"
-            onClick={() => setMode('single')}
-            className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all ${
-              mode === 'single'
-                ? 'bg-red-600 text-white shadow-xs'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            Single Product
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode('bundle')}
-            className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all ${
-              mode === 'bundle'
-                ? 'bg-red-600 text-white shadow-xs'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            Adjust by Bundle / Whole Order
-          </button>
+        {/* Mode Switcher Segmented Control */}
+        <div className="pt-1 pb-1">
+          <div className="inline-flex p-1 bg-gray-100/80 rounded-xl border border-gray-200/50">
+            <button
+              type="button"
+              onClick={() => setMode('single')}
+              className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                mode === 'single'
+                  ? 'bg-white text-gray-900 shadow-xs font-extrabold'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Single Product
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('bundle')}
+              className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                mode === 'bundle'
+                  ? 'bg-white text-gray-900 shadow-xs font-extrabold'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Adjust by Bundle / Whole Order
+            </button>
+          </div>
         </div>
 
         {mode === 'single' ? (
-          <form onSubmit={handleSubmitSingle} className="space-y-4">
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">Product *</Label>
-              <ProductPicker selected={product} onSelect={setProduct} onClear={() => setProduct(null)} />
-            </div>
+          <form onSubmit={handleSubmitSingle} className="space-y-5 pt-2">
+            <ModalSection title="Target Product">
+              <ModalField label="Auto Part / Product" required>
+                <ProductPicker selected={product} onSelect={setProduct} onClear={() => setProduct(null)} />
+              </ModalField>
+            </ModalSection>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Direction</Label>
-                <Select value={direction} onValueChange={setDirection}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="in">Stock In (+)</SelectItem>
-                    <SelectItem value="out">Stock Out (−)</SelectItem>
-                  </SelectContent>
-                </Select>
+            <ModalSection title="Stock Movement Details">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <ModalField label="Movement Direction" required>
+                  <Select value={direction} onValueChange={setDirection}>
+                    <SelectTrigger className="rounded-xl border-gray-300">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="in">Stock In (+)</SelectItem>
+                      <SelectItem value="out">Stock Out (−)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </ModalField>
+                <ModalField label="Quantity" required>
+                  <Input
+                    type="number"
+                    min="1"
+                    placeholder="1"
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                    className="rounded-xl border-gray-300 font-mono text-sm tabular-nums focus:border-red-600"
+                    required
+                  />
+                </ModalField>
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Quantity *</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  placeholder="1"
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                  required
-                />
+            </ModalSection>
+
+            <ModalSection title="Reason & Documentation">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <ModalField label="Adjustment Reason" required>
+                  <Select value={reason} onValueChange={setReason}>
+                    <SelectTrigger className="rounded-xl border-gray-300">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="manual_adjustment">Manual Adjustment</SelectItem>
+                      <SelectItem value="correction">Correction</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </ModalField>
+                <ModalField label="Note / Reference (optional)">
+                  <Input
+                    placeholder="Reason for adjustment, PO #, etc."
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    className="rounded-xl border-gray-300 text-sm"
+                  />
+                </ModalField>
               </div>
-            </div>
+            </ModalSection>
 
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">Reason</Label>
-              <Select value={reason} onValueChange={setReason}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="manual_adjustment">Manual Adjustment</SelectItem>
-                  <SelectItem value="correction">Correction</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">Note (optional)</Label>
-              <Textarea
-                placeholder="Reason for adjustment, PO #, etc."
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                rows={2}
-              />
-            </div>
-
-            <div className="flex gap-2 pt-2">
-              <Button type="submit" disabled={saving || !product || !quantity} className="bg-red-600 hover:bg-red-700 text-white font-semibold">
-                {saving ? 'Saving...' : 'Record Movement'}
+            <div className="flex gap-3 pt-3 border-t border-gray-100">
+              <Button type="submit" disabled={saving || !product || !quantity} className="rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-md font-semibold">
+                {saving && <Loader2 size={16} className="animate-spin" />}
+                {saving ? 'Recording Movement...' : 'Record Movement'}
               </Button>
-              <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+              <Button type="button" variant="secondary" onClick={onClose} className="rounded-xl border border-gray-200">
+                Cancel
+              </Button>
             </div>
           </form>
         ) : (
-          <form onSubmit={handleSubmitBundle} className="space-y-4">
-            {/* Load from Existing Order */}
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">Load Items from Existing Order</Label>
-              <Select value={selectedOrderId} onValueChange={handleSelectOrder}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select Order (PO / Invoice)..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {orders.map((o) => (
-                    <SelectItem key={o.id} value={o.id.toString()}>
-                      {o.order_number} ({o.type === 'purchase' ? 'PO' : 'Sale Invoice'}) — {o.party_name || o.supplier_name || 'No Party'}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {loadingOrder && <p className="text-xs text-gray-500">Loading order items...</p>}
-            </div>
+          <form onSubmit={handleSubmitBundle} className="space-y-5 pt-2">
+            <ModalSection title="Source Order or Custom Items">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <ModalField label="Load Items from Existing Order">
+                  <Select value={selectedOrderId} onValueChange={handleSelectOrder}>
+                    <SelectTrigger className="w-full rounded-xl border-gray-300 text-xs">
+                      <SelectValue placeholder="Select Order (PO / Invoice)..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {orders.map((o) => (
+                        <SelectItem key={o.id} value={o.id.toString()}>
+                          {o.order_number} ({o.type === 'purchase' ? 'PO' : 'Sale Invoice'}) — {o.party_name || o.supplier_name || 'No Party'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {loadingOrder && <p className="text-xs text-gray-500">Loading order items...</p>}
+                </ModalField>
 
-            {/* Add Custom Product */}
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">Or Add Products Manually</Label>
-              <ProductPicker selected={addItemProduct} onSelect={handleAddProductToBundle} onClear={() => setAddItemProduct(null)} placeholder="Search product to add to bundle..." />
-            </div>
+                <ModalField label="Or Add Products Manually">
+                  <ProductPicker selected={addItemProduct} onSelect={handleAddProductToBundle} onClear={() => setAddItemProduct(null)} placeholder="Search product to add to bundle..." />
+                </ModalField>
+              </div>
+            </ModalSection>
 
-            {/* Items Table */}
-            <div className="space-y-1.5">
+            <ModalSection title={`Bundle Line Items (${bundleItems.length})`}>
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-bold text-gray-700">
-                  Bundle Items ({bundleItems.length})
-                </Label>
+                <span className="text-xs text-gray-500">Review quantities and direction before recording batch adjustments.</span>
                 {bundleItems.length > 0 && (
                   <button type="button" onClick={() => setBundleItems([])} className="text-xs text-red-600 hover:underline font-semibold">
-                    Clear All
+                    Clear All Items
                   </button>
                 )}
               </div>
 
               {bundleItems.length === 0 ? (
-                <div className="border border-dashed border-gray-300 rounded-md py-6 text-center text-xs text-gray-500">
-                  No items in bundle. Select an order above or add products manually.
+                <div className="border border-dashed border-gray-300 rounded-xl py-8 text-center text-xs text-gray-500 bg-gray-50/50">
+                  No items in bundle. Select an order above or search and add products manually.
                 </div>
               ) : (
-                <div className="border border-gray-200 rounded-md overflow-hidden max-h-48 overflow-y-auto">
-                  <Table className="text-xs">
-                    <TableHeader className="bg-gray-50">
-                      <TableRow>
-                        <TableHead className="font-semibold text-gray-700">Product</TableHead>
-                        <TableHead className="font-semibold text-gray-700 w-28">Direction</TableHead>
-                        <TableHead className="font-semibold text-gray-700 w-20">Qty</TableHead>
-                        <TableHead className="w-12 text-right">Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {bundleItems.map((item, idx) => (
-                        <TableRow key={`${item.product_id}_${idx}`}>
-                          <TableCell className="py-1.5">
-                            <p className="font-bold text-gray-900">{item.product_name}</p>
-                            <p className="font-mono text-[11px] text-gray-500">{item.product_sku}</p>
-                          </TableCell>
-                          <TableCell className="py-1.5">
-                            <Select value={item.direction} onValueChange={(val) => updateBundleItem(idx, 'direction', val)}>
-                              <SelectTrigger className="h-7 text-xs">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="in">In (+)</SelectItem>
-                                <SelectItem value="out">Out (−)</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell className="py-1.5">
-                            <Input
-                              type="number"
-                              min="1"
-                              value={item.quantity}
-                              onChange={(e) => updateBundleItem(idx, 'quantity', e.target.value)}
-                              className="h-7 text-xs"
-                            />
-                          </TableCell>
-                          <TableCell className="py-1.5 text-right">
-                            <button type="button" onClick={() => removeBundleItem(idx)} className="text-xs text-red-600 hover:underline font-semibold">
-                              Remove
-                            </button>
-                          </TableCell>
+                <div className="rounded-xl border border-gray-200 overflow-hidden bg-white shadow-xs">
+                  <div className="max-h-64 overflow-y-auto overflow-x-auto">
+                    <Table className="text-xs">
+                      <TableHeader className="bg-gray-50/80 sticky top-0 z-10">
+                        <TableRow>
+                          <TableHead className="font-bold text-gray-700">Product & SKU</TableHead>
+                          <TableHead className="font-bold text-gray-700 w-32">Direction</TableHead>
+                          <TableHead className="font-bold text-gray-700 w-24">Qty</TableHead>
+                          <TableHead className="w-16 text-right font-bold text-gray-700">Action</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {bundleItems.map((item, idx) => (
+                          <TableRow key={`${item.product_id}_${idx}`} className="hover:bg-gray-50/60">
+                            <TableCell className="py-2">
+                              <p className="font-bold text-gray-900">{item.product_name}</p>
+                              <p className="font-mono text-[11px] text-gray-500">{item.product_sku}</p>
+                            </TableCell>
+                            <TableCell className="py-2">
+                              <Select value={item.direction} onValueChange={(val) => updateBundleItem(idx, 'direction', val)}>
+                                <SelectTrigger className="h-8 text-xs rounded-lg border-gray-300">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="in">In (+)</SelectItem>
+                                  <SelectItem value="out">Out (−)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell className="py-2">
+                              <Input
+                                type="number"
+                                min="1"
+                                value={item.quantity}
+                                onChange={(e) => updateBundleItem(idx, 'quantity', e.target.value)}
+                                className="h-8 text-xs font-mono tabular-nums rounded-lg border-gray-300"
+                              />
+                            </TableCell>
+                            <TableCell className="py-2 text-right">
+                              <button type="button" onClick={() => removeBundleItem(idx)} className="text-xs text-red-600 hover:underline font-semibold">
+                                Remove
+                              </button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               )}
-            </div>
+            </ModalSection>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Reason</Label>
-                <Select value={bundleReason} onValueChange={setBundleReason}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="manual_adjustment">Manual Adjustment</SelectItem>
-                    <SelectItem value="purchase_order_received">Purchase Order Restock</SelectItem>
-                    <SelectItem value="order_fulfillment">Sales Order Fulfillment</SelectItem>
-                    <SelectItem value="correction">Correction</SelectItem>
-                  </SelectContent>
-                </Select>
+            <ModalSection title="Batch Reason & Documentation">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <ModalField label="Batch Adjustment Reason" required>
+                  <Select value={bundleReason} onValueChange={setBundleReason}>
+                    <SelectTrigger className="rounded-xl border-gray-300">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="manual_adjustment">Manual Adjustment</SelectItem>
+                      <SelectItem value="purchase_order_received">Purchase Order Restock</SelectItem>
+                      <SelectItem value="order_fulfillment">Sales Order Fulfillment</SelectItem>
+                      <SelectItem value="correction">Correction</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </ModalField>
+                <ModalField label="Batch Note (optional)">
+                  <Input
+                    placeholder="Order #, Restock batch, etc."
+                    value={bundleNote}
+                    onChange={(e) => setBundleNote(e.target.value)}
+                    className="rounded-xl border-gray-300 text-sm"
+                  />
+                </ModalField>
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Batch Note (optional)</Label>
-                <Input
-                  placeholder="Order #, Restock batch, etc."
-                  value={bundleNote}
-                  onChange={(e) => setBundleNote(e.target.value)}
-                />
-              </div>
-            </div>
+            </ModalSection>
 
-            <div className="flex gap-2 pt-2">
-              <Button type="submit" disabled={saving || bundleItems.length === 0} className="bg-red-600 hover:bg-red-700 text-white font-semibold">
-                {saving ? 'Saving...' : `Adjust Stock (${bundleItems.length} items)`}
+            <div className="flex gap-3 pt-3 border-t border-gray-100">
+              <Button type="submit" disabled={saving || bundleItems.length === 0} className="rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-md font-semibold">
+                {saving && <Loader2 size={16} className="animate-spin" />}
+                {saving ? 'Adjusting Stock...' : `Adjust Stock (${bundleItems.length} items)`}
               </Button>
-              <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+              <Button type="button" variant="secondary" onClick={onClose} className="rounded-xl border border-gray-200">
+                Cancel
+              </Button>
             </div>
           </form>
         )}

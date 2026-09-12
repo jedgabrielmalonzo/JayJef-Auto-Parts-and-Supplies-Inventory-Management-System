@@ -73,19 +73,19 @@ function CabinetFormDialog({ open, cabinet, onClose, onSaved }) {
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? 'Edit Cabinet' : 'Add Cabinet'}</DialogTitle>
+      <DialogContent className="sm:max-w-md rounded-2xl p-6 shadow-2xl border border-gray-200">
+        <DialogHeader className="border-b border-gray-100 pb-3 mb-2">
+          <DialogTitle className="font-heading text-lg font-bold text-gray-900">{isEdit ? 'Edit Cabinet' : 'Add Cabinet'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label>Label<span className="text-red-600">*</span></Label>
-            <Input placeholder="e.g. Aisle A4" value={label} onChange={(e) => setLabel(e.target.value)} required />
+            <Label className="text-xs font-semibold text-gray-700">Label<span className="text-red-600">*</span></Label>
+            <Input className="rounded-xl border-gray-300" placeholder="e.g. Aisle A4" value={label} onChange={(e) => setLabel(e.target.value)} required />
           </div>
           <div className="space-y-1.5">
-            <Label>Aisle Code<span className="text-red-600">*</span></Label>
+            <Label className="text-xs font-semibold text-gray-700">Aisle Code<span className="text-red-600">*</span></Label>
             <Input
-              className="font-mono"
+              className="font-mono rounded-xl border-gray-300"
               placeholder="e.g. A4"
               value={aisle}
               onChange={(e) => setAisle(e.target.value)}
@@ -96,18 +96,18 @@ function CabinetFormDialog({ open, cabinet, onClose, onSaved }) {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>Width</Label>
-              <Input type="number" min="20" className="tabular-nums" value={width} onChange={(e) => setWidth(e.target.value)} />
+              <Label className="text-xs font-semibold text-gray-700">Width</Label>
+              <Input type="number" min="20" className="tabular-nums rounded-xl border-gray-300" value={width} onChange={(e) => setWidth(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label>Height</Label>
-              <Input type="number" min="20" className="tabular-nums" value={height} onChange={(e) => setHeight(e.target.value)} />
+              <Label className="text-xs font-semibold text-gray-700">Height</Label>
+              <Input type="number" min="20" className="tabular-nums rounded-xl border-gray-300" value={height} onChange={(e) => setHeight(e.target.value)} />
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label>Color</Label>
+            <Label className="text-xs font-semibold text-gray-700">Color</Label>
             <Select value={color} onValueChange={setColor}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full rounded-xl border-gray-300">
                 <SelectValue>{(v) => COLOR_OPTIONS.find((c) => c.value === v)?.label}</SelectValue>
               </SelectTrigger>
               <SelectContent>
@@ -122,9 +122,11 @@ function CabinetFormDialog({ open, cabinet, onClose, onSaved }) {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex gap-3 pt-1">
-            <Button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save Cabinet'}</Button>
-            <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+          <div className="flex gap-3 pt-3 border-t border-gray-100">
+            <Button type="submit" disabled={saving} className="rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-md font-semibold">
+              {saving ? 'Saving...' : 'Save Cabinet'}
+            </Button>
+            <Button type="button" variant="secondary" onClick={onClose} className="rounded-xl border border-gray-200">Cancel</Button>
           </div>
         </form>
       </DialogContent>

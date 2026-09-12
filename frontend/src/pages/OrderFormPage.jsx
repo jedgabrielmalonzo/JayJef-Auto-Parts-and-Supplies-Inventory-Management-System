@@ -179,18 +179,18 @@ export default function OrderFormPage() {
     standard: 'sm:max-w-4xl max-h-[90vh]',
     wide: 'sm:max-w-6xl max-h-[92vh]',
     'extra-wide': 'sm:max-w-[90vw] max-h-[94vh]',
-    fullscreen: 'w-[98vw] max-w-[98vw] h-[95vh] max-h-[95vh]',
+    fullscreen: 'sm:max-w-[98vw] sm:w-[98vw] w-[98vw] max-w-[98vw] h-[95vh] max-h-[95vh]',
   };
 
   return (
     <Dialog open onOpenChange={(v) => !v && close()}>
-      <DialogContent className={`${SIZE_CLASSES[modalSize] || SIZE_CLASSES.standard} overflow-y-auto transition-all duration-200`}>
+      <DialogContent className={`${SIZE_CLASSES[modalSize] || SIZE_CLASSES.standard} overflow-y-auto rounded-2xl p-6 shadow-2xl border border-gray-200 transition-all duration-200`}>
         <DialogHeader className="flex flex-row items-center justify-between border-b border-gray-100 pb-3 pr-8">
-          <DialogTitle className="text-xl font-bold text-gray-900">{isEdit ? 'Edit Order' : 'New Order'}</DialogTitle>
+          <DialogTitle className="font-heading text-xl font-bold text-gray-900">{isEdit ? 'Edit Order' : 'New Order'}</DialogTitle>
           
           {/* Modal Size Selector */}
-          <div className="flex items-center gap-1 bg-gray-100/80 p-1 rounded-xl">
-            <span className="text-[11px] text-gray-500 font-bold px-1.5 hidden sm:inline">Size:</span>
+          <div className="hidden sm:flex items-center gap-1 bg-gray-100/80 p-1 rounded-xl">
+            <span className="text-[11px] text-gray-500 font-bold px-1.5">Size:</span>
             {[
               { key: 'standard', label: 'Standard' },
               { key: 'wide', label: 'Wide' },
@@ -212,9 +212,9 @@ export default function OrderFormPage() {
         </DialogHeader>
 
         {loading ? (
-          <div className="flex items-center justify-center gap-2 py-10 text-black-500">
-            <Loader2 size={16} className="animate-spin" />
-            Loading...
+          <div className="flex items-center justify-center gap-2 py-10 text-gray-500">
+            <Loader2 size={16} className="animate-spin text-red-600" />
+            Loading order details...
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -226,8 +226,8 @@ export default function OrderFormPage() {
                       type="button"
                       key={value}
                       onClick={() => setType(value)}
-                      className={`flex-1 rounded border px-3 py-2 text-sm font-medium transition-colors ${
-                        type === value ? 'border-red-600 bg-red-50 text-red-700' : 'border-gray-300 text-black-700 hover:bg-gray-50'
+                      className={`flex-1 rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
+                        type === value ? 'border-red-600 bg-red-50 text-red-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
                       }`}
                     >
                       {label}
@@ -237,7 +237,7 @@ export default function OrderFormPage() {
               </Field>
             )}
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {type === 'purchase' ? (
                 <Field label="Supplier">
                   <div className="space-y-1.5">
@@ -300,13 +300,13 @@ export default function OrderFormPage() {
                 </TableHeader>
                 <TableBody>
                   {items.length === 0 && (
-                    <TableRow><TableCell colSpan={5} className="py-6 text-center text-black-500">No line items yet — search above to add one.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={5} className="py-6 text-center text-gray-500">No line items yet — search above to add one.</TableCell></TableRow>
                   )}
                   {items.map((i) => (
                     <TableRow key={i.product_id} className="hover:bg-gray-50/50">
                       <TableCell>
-                        <p className="text-black-900 font-bold">{i.name}</p>
-                        <p className="font-mono text-xs text-black-500">{i.sku}</p>
+                        <p className="text-gray-900 font-bold">{i.name}</p>
+                        <p className="font-mono text-xs text-gray-500">{i.sku}</p>
                       </TableCell>
                       <TableCell>
                         <Input
@@ -330,7 +330,7 @@ export default function OrderFormPage() {
                           />
                         </div>
                       </TableCell>
-                      <TableCell className="text-right tabular-nums text-black-900 font-bold text-sm">
+                      <TableCell className="text-right tabular-nums text-gray-900 font-bold text-sm">
                         {peso(i.quantity * i.unit_price)}
                       </TableCell>
                       <TableCell className="text-right">
@@ -356,13 +356,15 @@ export default function OrderFormPage() {
               <Textarea placeholder="Delivery instructions, payment terms, etc." value={notes} onChange={(e) => setNotes(e.target.value)} />
             </Field>
 
-            <div className="flex gap-3 pt-1">
-              <Button type="submit" disabled={saving} className="bg-red-600 hover:bg-red-700 text-white font-semibold">
+            <div className="flex gap-3 pt-3 border-t border-gray-100">
+              <Button type="submit" disabled={saving} className="rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-md font-semibold">
                 {saving && <Loader2 size={16} className="animate-spin" />}
                 {saving ? 'Saving...' : 'Save Draft'}
               </Button>
-              <Button type="button" variant="secondary" onClick={close}>Cancel</Button>
-              <span className="ml-auto self-center inline-flex items-center gap-1 text-xs text-black-500">
+              <Button type="button" variant="secondary" onClick={close} className="rounded-xl border border-gray-200">
+                Cancel
+              </Button>
+              <span className="ml-auto self-center inline-flex items-center gap-1 text-xs text-gray-500">
                 <Plus size={12} /> Draft — confirm and fulfill from the order detail page
               </span>
             </div>
