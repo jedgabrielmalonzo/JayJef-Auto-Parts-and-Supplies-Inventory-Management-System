@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Bot, Send, Sparkles, Loader2, ArrowRight, RefreshCw, ThumbsUp, ThumbsDown, Copy, Share2, Check, User, Zap
+  Bot, Send, Sparkles, Loader2, ArrowRight, RefreshCw, ThumbsUp, ThumbsDown, Copy, Share2, Check, User
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { sendChatMessage } from '../api/chat.js';
@@ -157,13 +157,13 @@ export default function AssistantPage() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="flex flex-col h-[calc(100vh-7.5rem)] sm:h-[calc(100vh-8.5rem)] rounded-3xl bg-white text-gray-900 overflow-hidden p-4 sm:p-5 border border-gray-200/90 shadow-xs relative"
+      className="flex-1 flex flex-col min-h-0 w-full relative"
     >
       {/* Soft Ambient Red Radial Gradient Accent */}
       <div className="absolute top-0 left-1/3 w-96 h-96 bg-red-500/5 rounded-full blur-3xl pointer-events-none -z-0" />
 
       {/* Header */}
-      <div className="relative z-10 flex items-center justify-between pb-4 border-b border-gray-100">
+      <div className="relative z-10 flex items-center justify-between pb-3 shrink-0 border-b border-gray-200/80">
         <div className="flex items-center gap-3">
           <motion.div
             whileHover={{ rotate: 15, scale: 1.05 }}
@@ -172,18 +172,9 @@ export default function AssistantPage() {
             <Sparkles size={20} />
           </motion.div>
           <div>
-            <h1 className="font-heading text-lg font-bold text-gray-900 flex items-center gap-2">
+            <h1 className="font-heading text-lg font-bold text-gray-900">
               JayJef AI Assistant
-              <motion.span
-                initial={{ scale: 0.9 }}
-                animate={{ scale: [1, 1.05, 1] }}
-                transition={{ repeat: Infinity, duration: 2.5 }}
-                className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-0.5 text-[10px] font-bold text-red-600 border border-red-200"
-              >
-                <Zap size={10} className="fill-red-600" /> Live DB
-              </motion.span>
             </h1>
-            <p className="text-xs text-gray-500">Real-time inventory lookup, pricing, &amp; automated stock query</p>
           </div>
         </div>
         <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
@@ -200,7 +191,7 @@ export default function AssistantPage() {
                 },
               ])
             }
-            className="border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900 gap-1.5 text-xs rounded-xl"
+            className="border-gray-200 bg-white text-gray-600 hover:bg-gray-100 hover:text-gray-900 gap-1.5 text-xs rounded-xl shadow-2xs"
           >
             <RefreshCw size={13} /> Reset Chat
           </Button>
@@ -208,7 +199,7 @@ export default function AssistantPage() {
       </div>
 
       {/* Quick Prompts Bar */}
-      <div className="relative z-10 flex items-center gap-2 overflow-x-auto py-3 text-xs border-b border-gray-100 no-scrollbar">
+      <div className="relative z-10 flex items-center gap-2 overflow-x-auto py-2.5 shrink-0 text-xs border-b border-gray-200/60 no-scrollbar">
         <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 shrink-0">
           Suggested:
         </span>
@@ -219,15 +210,15 @@ export default function AssistantPage() {
             whileTap={{ scale: 0.96 }}
             onClick={() => handleSend(s)}
             disabled={loading}
-            className="shrink-0 rounded-full border border-gray-200 bg-gray-50 px-3.5 py-1.5 text-xs text-gray-700 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-700 shadow-2xs"
+            className="shrink-0 rounded-full border border-gray-200 bg-white px-3.5 py-1.5 text-xs text-gray-700 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-700 shadow-2xs"
           >
             {s}
           </motion.button>
         ))}
       </div>
 
-      {/* Light Chat Feed */}
-      <div className="relative z-10 flex-1 overflow-y-auto py-6 space-y-6 px-1 min-h-0 bg-[#f8fafc]/50 rounded-2xl my-2 p-3 border border-gray-100/80">
+      {/* Seamless Chat Feed */}
+      <div className="relative z-10 flex-1 min-h-0 overflow-y-auto py-4 space-y-4 px-1 my-1">
         <AnimatePresence initial={false}>
           {messages.map((m) => (
             <motion.div
@@ -398,7 +389,7 @@ export default function AssistantPage() {
           e.preventDefault();
           handleSend();
         }}
-        className="relative z-10 flex items-center gap-3 pt-3 border-t border-gray-100"
+        className="relative z-10 flex items-center gap-3 pt-2 shrink-0 border-t border-gray-200/80"
       >
         <input
           type="text"

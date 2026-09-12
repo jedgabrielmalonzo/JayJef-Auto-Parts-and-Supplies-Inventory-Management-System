@@ -268,7 +268,7 @@ function AnimatedRoutes() {
         initial="hidden"
         animate="visible"
         exit="exit"
-        className={`w-full ${isAssistant ? 'h-full flex flex-col' : ''}`}
+        className={`w-full ${isAssistant ? 'flex-1 flex flex-col min-h-0 h-full' : ''}`}
       >
         <Routes location={location}>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -293,6 +293,8 @@ function AnimatedRoutes() {
 function MainAppLayout() {
   const { isAdmin } = useAuth();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const location = useLocation();
+  const isAssistant = location.pathname.startsWith('/assistant');
 
   // FIRST ENCOUNTER GATEKEEPER:
   // If user is not logged in as Admin, display full-screen Admin Login page immediately!
@@ -301,7 +303,7 @@ function MainAppLayout() {
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50/70 text-gray-900">
+    <div className={`flex bg-slate-50/70 text-gray-900 ${isAssistant ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
       {/* Mobile Backdrop Overlay */}
       <AnimatePresence>
         {mobileSidebarOpen && (
@@ -336,9 +338,9 @@ function MainAppLayout() {
       </aside>
 
       {/* Main Content Area with Header */}
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col min-h-0">
         <HeaderBar onToggleMobileSidebar={() => setMobileSidebarOpen(!mobileSidebarOpen)} />
-        <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
+        <main className={`min-w-0 flex-1 p-4 sm:p-6 lg:p-8 flex flex-col ${isAssistant ? 'min-h-0 overflow-hidden' : ''}`}>
           <ErrorBoundary>
             <AnimatedRoutes />
           </ErrorBoundary>

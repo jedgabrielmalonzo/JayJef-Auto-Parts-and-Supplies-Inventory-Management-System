@@ -336,93 +336,95 @@ function ProductsListView({ modal }) {
       {/* Table List View */}
       {!loading && products.length > 0 && view === 'list' && (
         <motion.div custom={3} variants={sectionVariants} initial="hidden" animate="visible" className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xs">
-          <Table>
-            <TableHeader className="bg-gray-50/80">
-              <TableRow>
-                <TableHead className="w-12"></TableHead>
-                <TableHead className="font-semibold text-gray-700">SKU</TableHead>
-                <TableHead className="font-semibold text-gray-700">Product Name</TableHead>
-                <TableHead className="font-semibold text-gray-700">Category</TableHead>
-                <TableHead className="font-semibold text-gray-700">Stock</TableHead>
-                <TableHead className="font-semibold text-gray-700">Price</TableHead>
-                <TableHead className="font-semibold text-gray-700">Status</TableHead>
-                <TableHead className="text-right font-semibold text-gray-700">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {products.map((p) => {
-                const avail = availability(p);
-                return (
-                  <TableRow
-                    key={p.id}
-                    className="cursor-pointer hover:bg-red-50/30 transition-colors"
-                    onClick={() => navigate(`/products/${p.id}`)}
-                  >
-                    <TableCell><ProductThumb product={p} /></TableCell>
-                    <TableCell className="font-mono text-xs font-bold text-red-600">{p.sku}</TableCell>
-                    <TableCell className="font-medium text-gray-900">{p.name}</TableCell>
-                    <TableCell><Badge variant="outline">{formatCategory(p.category)}</Badge></TableCell>
-                    <TableCell className="tabular-nums font-semibold text-gray-900" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          disabled={p.stock_quantity <= 0 || deductingId === p.id}
-                          onClick={() => handleQuickDeduct(p)}
-                          title="1-Click Quick Sell (-1 Unit)"
-                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-700 hover:border-red-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-40 transition-colors"
-                        >
-                          <Minus size={13} strokeWidth={2.5} />
-                        </button>
-                        <span className="w-8 text-center font-bold text-gray-900 tabular-nums">{p.stock_quantity}</span>
-                        <button
-                          disabled={deductingId === p.id}
-                          onClick={() => handleQuickRestock(p)}
-                          title="1-Click Quick Restock (+1 Unit)"
-                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-700 hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-40 transition-colors"
-                        >
-                          <Plus size={13} strokeWidth={2.5} />
-                        </button>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-heading font-bold text-gray-900 tabular-nums">
-                      ₱{Number(p.selling_price).toFixed(2)}
-                    </TableCell>
-                    <TableCell><Badge variant={avail.variant}>{avail.label}</Badge></TableCell>
-                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          render={<Link to={`/products/${p.id}`} />}
-                          nativeButton={false}
-                          variant="ghost"
-                          size="icon-sm"
-                          title="View"
-                        >
-                          <Eye size={16} />
-                        </Button>
-                        <Button
-                          render={<Link to={`/products/${p.id}/edit`} />}
-                          nativeButton={false}
-                          variant="ghost"
-                          size="icon-sm"
-                          title="Edit"
-                        >
-                          <Pencil size={16} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          title="Delete"
-                          className="hover:bg-red-100 hover:text-red-600"
-                          onClick={() => setPendingDelete(p)}
-                        >
-                          <Trash2 size={16} />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-gray-50/80">
+                <TableRow>
+                  <TableHead className="w-12"></TableHead>
+                  <TableHead className="font-semibold text-gray-700">SKU</TableHead>
+                  <TableHead className="font-semibold text-gray-700">Product Name</TableHead>
+                  <TableHead className="font-semibold text-gray-700">Category</TableHead>
+                  <TableHead className="font-semibold text-gray-700">Stock</TableHead>
+                  <TableHead className="font-semibold text-gray-700">Price</TableHead>
+                  <TableHead className="font-semibold text-gray-700">Status</TableHead>
+                  <TableHead className="text-right font-semibold text-gray-700">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {products.map((p) => {
+                  const avail = availability(p);
+                  return (
+                    <TableRow
+                      key={p.id}
+                      className="cursor-pointer hover:bg-red-50/30 transition-colors"
+                      onClick={() => navigate(`/products/${p.id}`)}
+                    >
+                      <TableCell><ProductThumb product={p} /></TableCell>
+                      <TableCell className="font-mono text-xs font-bold text-red-600">{p.sku}</TableCell>
+                      <TableCell className="font-medium text-gray-900">{p.name}</TableCell>
+                      <TableCell><Badge variant="outline">{formatCategory(p.category)}</Badge></TableCell>
+                      <TableCell className="tabular-nums font-semibold text-gray-900" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            disabled={p.stock_quantity <= 0 || deductingId === p.id}
+                            onClick={() => handleQuickDeduct(p)}
+                            title="1-Click Quick Sell (-1 Unit)"
+                            className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-700 hover:border-red-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-40 transition-colors"
+                          >
+                            <Minus size={13} strokeWidth={2.5} />
+                          </button>
+                          <span className="w-8 text-center font-bold text-gray-900 tabular-nums">{p.stock_quantity}</span>
+                          <button
+                            disabled={deductingId === p.id}
+                            onClick={() => handleQuickRestock(p)}
+                            title="1-Click Quick Restock (+1 Unit)"
+                            className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-700 hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-40 transition-colors"
+                          >
+                            <Plus size={13} strokeWidth={2.5} />
+                          </button>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-heading font-bold text-gray-900 tabular-nums">
+                        ₱{Number(p.selling_price).toFixed(2)}
+                      </TableCell>
+                      <TableCell><Badge variant={avail.variant}>{avail.label}</Badge></TableCell>
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            render={<Link to={`/products/${p.id}`} />}
+                            nativeButton={false}
+                            variant="ghost"
+                            size="icon-sm"
+                            title="View"
+                          >
+                            <Eye size={16} />
+                          </Button>
+                          <Button
+                            render={<Link to={`/products/${p.id}/edit`} />}
+                            nativeButton={false}
+                            variant="ghost"
+                            size="icon-sm"
+                            title="Edit"
+                          >
+                            <Pencil size={16} />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            title="Delete"
+                            className="hover:bg-red-100 hover:text-red-600"
+                            onClick={() => setPendingDelete(p)}
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         </motion.div>
       )}
 
