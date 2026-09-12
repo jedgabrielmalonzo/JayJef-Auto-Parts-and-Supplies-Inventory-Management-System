@@ -95,9 +95,9 @@ break this pairing.
 
 | Token | Family | Used for |
 |---|---|---|
-| `--font-display` | **Archivo Black** (weight 900, single cut) | Page titles, dashboard KPI numbers, PDF letterhead — the "chunky logo lettering" register |
-| `--font-heading` | **Archivo** (weight 700) | Section/card headers, subheadings — same superfamily as display, quieter |
-| `--font-body` | **Inter** (400/500/700) | Body text, form labels, table cells, buttons |
+| `--font-display` | **Plus Jakarta Sans / Archivo Black** (900/800) | Page titles, dashboard KPI numbers, PDF letterhead — modern chunky display typography |
+| `--font-heading` | **Outfit / Archivo** (weight 700/600) | Section/card headers, subheadings, modal titles |
+| `--font-body` | **Inter / Plus Jakarta Sans** (400/500/600) | Body text, form labels, table cells, buttons |
 | `--font-mono` | **JetBrains Mono** (500) | SKUs, order/invoice numbers, barcodes — fixed-width so codes align in columns and `0`/`O`, `1`/`l` stay unambiguous |
 
 ### Type Scale
@@ -163,7 +163,9 @@ animation should never make them wait.
 
 The frontend utilizes **Shadcn UI** primitives (built on Radix UI / Base UI) styled with Tailwind CSS, micro-animated with **Framer Motion**, and notified via **Sonner** toasts:
 
-- **Shadcn Components**: `<Button>`, `<Card>`, `<Badge>`, `<Dialog>`, `<AlertDialog>`, `<Select>`, `<Input>`, `<Tabs>`, `<Table>`, `<Checkbox>`.
+- **Shadcn Components**: `<Button>`, `<Card>`, `<Badge>`, `<Dialog>`, `<AlertDialog>`, `<Select>`, `<Input>`, `<Popover>`, `<Calendar>`, `<Tabs>`, `<Table>`, `<Checkbox>`.
+- **Date Pickers**: `DatePickerWithRange` leverages `react-day-picker` and `date-fns` inside a Radix Popover primitive for selecting custom audit log and report date ranges.
+- **Global AI Assistant Modal**: Floating `<AiChatbot />` overlay mounted globally in `App.jsx`, styled with glassmorphism backdrop blurs and Framer Motion spring physics.
 - **Animations**: `framer-motion` handles page transitions, card hover elevation (`scale-102`), and smooth modal pop-overs.
 - **Notifications**: `sonner` provides toast notifications for action feedback (e.g. quick stock deduction, order saved, OCR confirmed).
 

@@ -49,12 +49,16 @@ resources here there's no soft-delete or history protection.
 
 | Method | Path | Request | Response |
 |---|---|---|---|
-| POST | `/ocr/receipts` | `multipart/form-data`: `image` file, `supplier_id?` | `OcrReceipt` (201, `status: 'pending_review'`) with `items: OcrReceiptItem[]` populated from OCR parsing |
-| GET | `/ocr/receipts` | Query params: `status`, `page`, `page_size` | `{ items: OcrReceipt[], total, page, page_size }` |
+| POST | `/ocr/receipts` | `multipart/form-data`: `image` file, `supplier_id?`, `receipt_date?` | `OcrReceipt` (201, `status: 'pending_review'`) with `items: OcrReceiptItem[]`, `receipt_date`, and Supabase Cloud Storage `image_path` |
+| GET | `/ocr/receipts` | Query params: `status`, `folder_date` (YYYY-MM-DD), `page`, `page_size` | `{ items: OcrReceipt[], total, page, page_size }` |
+| GET | `/ocr/receipts/folders` | — | `{ folders: { folder_date, total_receipts, pending_count, confirmed_count, total_items }[] }` — receipts grouped by date folder |
 | GET | `/ocr/receipts/:id` | — | `OcrReceipt` with `items: OcrReceiptItem[]` |
-| PUT | `/ocr/receipts/:id/items` | `{ items: [{ id, matched_product_id?, parsed_name?, parsed_quantity?, parsed_price?, is_confirmed }] }` | Updated `OcrReceiptItem[]` — used while staff edits the review screen, before final confirm |
-| POST | `/ocr/receipts/:id/confirm` | — | `OcrReceipt` (`status: 'confirmed'`) — commits one `stock_movements` row (`reason: 'ocr_restock'`) per confirmed item, in a transaction |
+| PUT | `/ocr/receipts/:id/items` | `{ items: [{ id?, matched_product_id?, parsed_name?, parsed_quantity?, parsed_price?, is_confirmed }] }` | Updated `OcrReceiptItem[]` — updates existing items or inserts new line items manually |
+| POST | `/ocr/receipts/:id/confirm` | `{ user_id? }` | `OcrReceipt` (`status: 'confirmed'`) — commits one `stock_movements` row (`reason: 'ocr_restock'`) per confirmed item, in a transaction |
 | POST | `/ocr/receipts/:id/reject` | — | `OcrReceipt` (`status: 'rejected'`) — no stock movements created |
+| DELETE | `/ocr/receipts/:id` | — | `{ message, id }` (200) — deletes receipt scan and line items |
+| GET | `/ocr/scanner/status` | — | Hot folder status for connected hardware scanners |
+| GET | `/ocr/scanner/events` | Query param: `since` | Recent scan events from hardware/hot-folder ingestion |
 
 ## Orders (Purchase & Sale)
 

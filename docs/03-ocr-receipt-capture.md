@@ -25,20 +25,23 @@ and confirms/edits before anything is committed to inventory.
    PaddleOCR returns detected text blocks/lines (with positions/confidence).
         │
         ▼
-4. Parse into structured line items
-   Backend applies parsing rules (e.g. line pattern matching, product name
-   fuzzy-matching against the existing catalog) to turn raw text into
-   candidate rows: { raw_text, parsed_name, parsed_quantity, parsed_price,
-   matched_product_id (best guess, nullable) }.
+4. Parse into structured line items & extract receipt date
+   Backend applies parsing rules (line pattern matching, product catalog
+   fuzzy-matching via `matchProduct`) to produce candidate rows: { raw_text,
+   parsed_name, parsed_quantity, parsed_price, matched_product_id }.
+   Simultaneously, `extractReceiptDate` detects receipt transaction date patterns
+   (e.g., YYYY-MM-DD, MM/DD/YYYY, DD/MM/YYYY) from raw text, setting
+   `ocr_receipts.receipt_date`.
         │
         ▼
 5. Review / confirmation screen  ◄── REQUIRED, never skipped
-   Staff sees each candidate line item and can:
-     - Confirm it as-is
-     - Correct the matched product (search/select from catalog)
-     - Correct quantity or price
-     - Delete a line that isn't a real item (OCR noise)
-     - Add a line manually if OCR missed an item
+   Staff sees a side-by-side view with a zoomable receipt image modal and can:
+     - Review & edit extracted receipt date and assigned supplier
+     - Confirm line items as-is
+     - Correct matched catalog products (search/select from live catalog)
+     - Adjust quantity or unit price
+     - Delete noisy OCR lines or add missed line items manually
+     - Reject or delete unnecessary receipt scans
         │
         ▼
 6. Commit
@@ -59,20 +62,14 @@ slip before shelving it.
 
 ## Where Images and OCR Results Are Stored
 
-- **Receipt images**: stored on local disk (e.g. `ocr-service/storage/` or
-  a shared backend-managed uploads directory on the LAN), referenced by file
-  path from the `ocr_receipts.image_path` column — not stored as binary
-  blobs in Postgres. This keeps the database lean and images easy to
-  browse/back up directly as files.
+- **Receipt images**: uploaded directly to **Supabase Cloud Storage** (`receipts` bucket) via `uploadToSupabaseStorage`, returning a public CDN URL stored in `ocr_receipts.image_path`. If cloud storage is unavailable or unconfigured, the system automatically falls back to portable **Base64 Data URIs** or local disk storage (`/uploads/receipts/`), guaranteeing receipt photo visibility across all devices (desktops, tablets, laptops) without broken image links.
+- **Receipt transaction dates**: stored in `ocr_receipts.receipt_date` (`date NOT NULL DEFAULT CURRENT_DATE`). Receipts are automatically grouped by date folders in the UI list for structured daily/monthly audit browsing (`GET /ocr/receipts/folders`).
 - **Raw OCR output**: the raw text/JSON PaddleOCR returns is stored
   (`ocr_receipts.raw_ocr_json`) alongside the image, so a receipt can be
   re-parsed later if parsing rules improve, without re-running OCR.
 - **Parsed line items**: stored in `ocr_receipt_items`, one row per
   candidate line, including whatever the staff member ultimately confirmed
   — so there's a record of both what OCR guessed and what a human approved.
-- Since this system is local-network only, no cloud storage or CDN is
-  needed; a scheduled local backup of the storage directory + database is
-  the shop's responsibility (outside this doc's scope).
 
 ## Hardware & Thermal Printer Integration
 

@@ -31,11 +31,12 @@ the counter, tablet/phone in the stockroom) to:
 
 | Layer | Choice | Why |
 |---|---|---|
-| Frontend | React + Tailwind CSS + Shadcn UI + Framer Motion | Modern, responsive SPA with accessible Shadcn UI primitives, smooth Framer Motion micro-animations, and Lucide iconography. |
+| Frontend | React + Tailwind CSS + Shadcn UI + Framer Motion | Modern, responsive SPA with accessible Shadcn UI primitives, custom date pickers (`react-day-picker`/`date-fns`), smooth Framer Motion micro-animations, and Lucide iconography. |
 | Backend | Node.js + Express | Simple REST API layer, business logic rules (stock math, PDF generation, AI chatbot search logic). |
 | Database | PostgreSQL | Relational storage (products, movements, orders, suppliers, ocr_receipts) with strict foreign keys and atomic transactions. |
-| AI Assistant | Node.js + PostgreSQL Query Engine | Strictly grounded natural language AI assistant (`/api/chat`) with anti-hallucination guardrails and stopword processing. |
-| OCR | Python + PaddleOCR, run as a **separate local microservice** | Isolates Python models/dependencies; accepts receipt uploads, unwarps images, and streams text to Express parser. |
+| AI Assistant | Node.js + PostgreSQL Query Engine | Strictly grounded natural language AI assistant (`/api/chat`) with anti-hallucination guardrails, accessible globally via `<AiChatbot />` modal. |
+| OCR | Python + PaddleOCR, run as a **separate local microservice** | Isolates Python models/dependencies; accepts receipt uploads, extracts text & dates, and streams results to Express parser. |
+| Cloud Storage | Supabase Storage (with Data URI & local fallback) | Stores uploaded receipt images in Supabase Storage (`receipts` bucket) with automatic Base64 Data URI fallback for cross-device visibility. |
 | Hardware / Printing | ESC/POS Thermal Printer + Browser PDF | Enables thermal receipt printing for scanned stock receipts and printable invoice PDFs. |
 
 ## High-Level Architecture
@@ -52,15 +53,15 @@ the counter, tablet/phone in the stockroom) to:
 ┌────────────────────────────────────────────────────────┐
 │                 Express API Server                     │
 │    (Node.js, Stock Math, AI Assistant Engine)          │
-└─────────────┬────────────────────────────┬─────────────┘
-              │                            │
-              │ SQL Queries                │ HTTP (Image upload)
-              ▼                            ▼
-┌───────────────────────────┐┌───────────────────────────┐
-│       PostgreSQL DB       ││    Python OCR Service     │
-│ products, movements,      ││   (PaddleOCR, FastAPI)    │
-│ orders, ocr_receipts,     │└───────────────────────────┘
-│ shop_layout_cabinets      │
+└─────────────┬─────────────┬──────────────┬─────────────┘
+              │             │              │
+              │ SQL Queries │ HTTP Upload  │ Cloud Upload / Data URI
+              ▼             ▼              ▼
+┌───────────────────────────┐┌───────────────────────────┐┌───────────────────────────┐
+│       PostgreSQL DB       ││    Python OCR Service     ││  Supabase Cloud Storage   │
+│ products, movements,      ││   (PaddleOCR, FastAPI)    ││ (receipts bucket, cloud & │
+│ orders, ocr_receipts,     │└───────────────────────────┘│ Data URI image fallback)  │
+│ shop_layout_cabinets      │                             └───────────────────────────┘
 └───────────────────────────┘
 ```
 

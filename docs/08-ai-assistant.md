@@ -88,9 +88,9 @@ if (rows.length === 0 && searchTerms.length > 1) {
 
 ## User Interface Integration
 
-- **Assistant Page (`/assistant`)**: Dedicated interface featuring quick prompt suggestion chips, conversation history, and interactive product result cards.
-- **Floating Chatbot Widget (`AiChatbot.jsx`)**: Available in the bottom right corner of all pages for quick stock checks without navigating away from active forms or orders.
-- **Interactive Result Cards**: Product cards displayed within chat messages include 1-click links to view part details or jump to the shop location map.
+- **App-Wide Floating Assistant Modal (`AiChatbot.jsx`)**: Mounted globally at the `App.jsx` application layout root, accessible from the floating bottom-right button or header action across all pages without losing context or interrupting active workflows.
+- **Dedicated Assistant Page (`/assistant`)**: Full-screen conversational view featuring quick prompt suggestion chips ("Show low stock parts", "Check compressors under ₱5000", "Find Sanden evaporators"), query history, and comprehensive result grids.
+- **Interactive Result Cards**: Product cards rendered inside assistant responses feature live stock status badges, unit pricing, supplier details, location codes, and 1-click navigation buttons to view part details or locate the item on the shop map.
 
 ## API Reference
 

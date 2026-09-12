@@ -167,10 +167,11 @@ Represents both restock orders (→ supplier) and sales invoices (→ customer).
 | Column | Type | Constraints |
 |---|---|---|
 | `id` | BIGSERIAL | PK |
-| `image_path` | text | NOT NULL — local filesystem path/reference |
+| `image_path` | text | NOT NULL — Supabase Cloud Storage public URL, portable Data URI, or local filesystem path |
 | `raw_ocr_json` | jsonb | nullable — raw PaddleOCR output |
 | `status` | text | NOT NULL, default 'pending_review', CHECK IN ('pending_review','confirmed','rejected') |
 | `supplier_id` | BIGINT | FK → `suppliers.id`, nullable, ON DELETE SET NULL |
+| `receipt_date` | date | NOT NULL, default CURRENT_DATE — added in `0005_add_receipt_date.sql`, indexed via `idx_ocr_receipts_receipt_date` |
 | `confirmed_by` | BIGINT | FK → `users.id`, nullable, ON DELETE SET NULL |
 | `created_at` | timestamptz | NOT NULL, default now() |
 | `confirmed_at` | timestamptz | nullable |

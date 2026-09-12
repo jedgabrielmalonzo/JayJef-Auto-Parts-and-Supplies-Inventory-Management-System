@@ -78,8 +78,9 @@ Where this shows up:
 
 ## Movement Audit Views & Stacking
 
-The Stock & Movement audit interface (`/inventory`) provides two complementary views:
+The Stock & Movement audit interface (`/inventory`) provides two complementary views and date filtering capabilities:
+- **Date Range Filtering**: Allows staff to select custom date ranges or preset periods (Today, Yesterday, Last 7 Days, Last 30 Days) via the interactive `DatePickerWithRange` component, dynamically re-fetching movement logs.
 - **Stacked Daily Movements**: Groups multiple operations on the same product occurring on the same date into a single summary row displaying daily net change, operation counts, and reasons.
-- **Raw Movement Logs**: Displays individual line-by-line stock audit entries.
-- Both views feature built-in client pagination (10 items per page with Previous/Next controls) for clean rendering and navigation.
+- **Raw Movement Logs**: Displays individual line-by-line stock audit entries with search, product, and reason filters.
+- Both views feature built-in pagination (10 items per page with Previous/Next controls) for clean rendering and navigation.
 
