@@ -2,8 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  AlertTriangle, ClipboardList, Loader2, PlusCircle, Search, Layers, ListFilter, Calendar, Clock, ChevronLeft, ChevronRight,
-  Package, Boxes, Trash2, ArrowRightLeft, FileText
+  AlertTriangle, ClipboardList, Loader2, PlusCircle, Search, Layers, ListFilter, Calendar, Clock, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { lowStock, listMovements, createMovement, createBatchMovements } from '../api/inventory.js';
@@ -94,8 +93,21 @@ function formatDateLabel(dateObj) {
   return dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+const SIZE_CLASSES = {
+  standard: 'sm:max-w-xl max-h-[90vh]',
+  wide: 'sm:max-w-4xl max-h-[92vh]',
+  'extra-wide': 'sm:max-w-6xl max-h-[94vh]',
+  fullscreen: 'w-[98vw] max-w-[98vw] h-[95vh] max-h-[95vh]',
+};
+
 function AdjustStockModal({ open, onClose, onSaved }) {
   const [mode, setMode] = useState('single'); // 'single' | 'bundle'
+  const [modalSize, setModalSize] = useState(() => localStorage.getItem('jayjef_modal_size') || 'standard');
+
+  function changeModalSize(newSize) {
+    setModalSize(newSize);
+    localStorage.setItem('jayjef_modal_size', newSize);
+  }
 
   // Single mode state
   const [product, setProduct] = useState(null);
@@ -228,7 +240,6 @@ function AdjustStockModal({ open, onClose, onSaved }) {
 
       await createBatchMovements(movements);
 
-      // Check alerts for outgoing items
       bundleItems.forEach((item) => {
         const change = item.direction === 'in' ? Number(item.quantity) : -Number(item.quantity);
         if (change < 0) {
@@ -237,7 +248,7 @@ function AdjustStockModal({ open, onClose, onSaved }) {
         }
       });
 
-      toast.success(`Successfully adjusted stock for ${bundleItems.length} items in bundle!`);
+      toast.success(`Successfully adjusted stock for ${bundleItems.length} items!`);
       onSaved();
     } catch (err) {
       toast.error(err.message);
@@ -248,50 +259,74 @@ function AdjustStockModal({ open, onClose, onSaved }) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent showCloseButton className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <ArrowRightLeft size={18} className="text-red-600" />
-            Adjust Inventory Stock
+      <DialogContent showCloseButton className={`${SIZE_CLASSES[modalSize] || SIZE_CLASSES.standard} overflow-y-auto rounded-2xl p-6 shadow-2xl border border-gray-200 transition-all duration-200`}>
+        <DialogHeader className="flex flex-row items-center justify-between pb-3 border-b border-gray-100 pr-8">
+          <DialogTitle className="font-heading text-xl font-bold text-gray-900">
+            Adjust Stock
           </DialogTitle>
-          {/* Mode Switcher */}
-          <div className="flex items-center gap-2 pt-2">
-            <button
-              type="button"
-              onClick={() => setMode('single')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
-                mode === 'single' ? 'bg-red-600 text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              <Package size={14} />
-              Single Product
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode('bundle')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
-                mode === 'bundle' ? 'bg-red-600 text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              <Boxes size={14} />
-              Adjust by Bundle / Whole Order
-            </button>
+
+          {/* Modal Size Switcher matching ProductFormPage */}
+          <div className="flex items-center gap-1 bg-gray-100/80 p-1 rounded-xl">
+            <span className="text-[11px] text-gray-500 font-bold px-1.5 hidden sm:inline">Size:</span>
+            {[
+              { key: 'standard', label: 'Standard' },
+              { key: 'wide', label: 'Wide' },
+              { key: 'extra-wide', label: 'Extra Wide' },
+              { key: 'fullscreen', label: 'Full Screen' },
+            ].map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => changeModalSize(s.key)}
+                className={`px-2.5 py-0.5 rounded-lg text-[11px] font-bold transition-all ${
+                  modalSize === s.key ? 'bg-white text-gray-900 shadow-xs font-extrabold' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
           </div>
         </DialogHeader>
 
+        {/* Mode Switcher */}
+        <div className="flex items-center gap-2 pt-2 pb-1 border-b border-gray-100">
+          <button
+            type="button"
+            onClick={() => setMode('single')}
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all ${
+              mode === 'single'
+                ? 'bg-red-600 text-white shadow-xs'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Single Product
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode('bundle')}
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all ${
+              mode === 'bundle'
+                ? 'bg-red-600 text-white shadow-xs'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Adjust by Bundle / Whole Order
+          </button>
+        </div>
+
         {mode === 'single' ? (
-          <form onSubmit={handleSubmitSingle} className="space-y-4 pt-1">
-            <div className="space-y-1.5">
-              <Label>Product<span className="text-red-600">*</span></Label>
+          <form onSubmit={handleSubmitSingle} className="space-y-4">
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Product *</Label>
               <ProductPicker selected={product} onSelect={setProduct} onClear={() => setProduct(null)} />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>Direction</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Direction</Label>
                 <Select value={direction} onValueChange={setDirection}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue>{(v) => DIRECTION_LABELS[v]}</SelectValue>
+                  <SelectTrigger>
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="in">Stock In (+)</SelectItem>
@@ -299,8 +334,8 @@ function AdjustStockModal({ open, onClose, onSaved }) {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
-                <Label>Quantity<span className="text-red-600">*</span></Label>
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Quantity *</Label>
                 <Input
                   type="number"
                   min="1"
@@ -312,11 +347,11 @@ function AdjustStockModal({ open, onClose, onSaved }) {
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label>Reason</Label>
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Reason</Label>
               <Select value={reason} onValueChange={setReason}>
-                <SelectTrigger className="w-full">
-                  <SelectValue>{(v) => REASON_OPTIONS[v]}</SelectValue>
+                <SelectTrigger>
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="manual_adjustment">Manual Adjustment</SelectItem>
@@ -325,8 +360,8 @@ function AdjustStockModal({ open, onClose, onSaved }) {
               </Select>
             </div>
 
-            <div className="space-y-1.5">
-              <Label>Note (optional)</Label>
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Note (optional)</Label>
               <Textarea
                 placeholder="Reason for adjustment, PO #, etc."
                 value={note}
@@ -335,7 +370,7 @@ function AdjustStockModal({ open, onClose, onSaved }) {
               />
             </div>
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-2 pt-2">
               <Button type="submit" disabled={saving || !product || !quantity} className="bg-red-600 hover:bg-red-700 text-white font-semibold">
                 {saving ? 'Saving...' : 'Record Movement'}
               </Button>
@@ -343,74 +378,69 @@ function AdjustStockModal({ open, onClose, onSaved }) {
             </div>
           </form>
         ) : (
-          <form onSubmit={handleSubmitBundle} className="space-y-4 pt-1">
+          <form onSubmit={handleSubmitBundle} className="space-y-4">
             {/* Load from Existing Order */}
-            <div className="space-y-1.5 p-3 bg-gray-50 rounded-xl border border-gray-200">
-              <Label className="font-bold text-xs text-gray-700 flex items-center gap-1.5">
-                <FileText size={14} className="text-red-600" />
-                Option A: Load Items from Existing Order
-              </Label>
-              <div className="flex gap-2 items-center">
-                <Select value={selectedOrderId} onValueChange={handleSelectOrder}>
-                  <SelectTrigger className="w-full bg-white">
-                    <SelectValue placeholder="Select an order (PO / Invoice)..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {orders.map((o) => (
-                      <SelectItem key={o.id} value={o.id.toString()}>
-                        {o.order_number} ({o.type === 'purchase' ? 'PO' : 'Sale Invoice'}) — {o.party_name || o.supplier_name || 'No Party'} ({o.status})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {loadingOrder && <Loader2 size={16} className="animate-spin text-red-600 shrink-0" />}
-              </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Load Items from Existing Order</Label>
+              <Select value={selectedOrderId} onValueChange={handleSelectOrder}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Order (PO / Invoice)..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {orders.map((o) => (
+                    <SelectItem key={o.id} value={o.id.toString()}>
+                      {o.order_number} ({o.type === 'purchase' ? 'PO' : 'Sale Invoice'}) — {o.party_name || o.supplier_name || 'No Party'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {loadingOrder && <p className="text-xs text-gray-500">Loading order items...</p>}
             </div>
 
-            {/* Add Custom Products to Bundle */}
+            {/* Add Custom Product */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Or Add Products Manually</Label>
+              <ProductPicker selected={addItemProduct} onSelect={handleAddProductToBundle} onClear={() => setAddItemProduct(null)} placeholder="Search product to add to bundle..." />
+            </div>
+
+            {/* Items Table */}
             <div className="space-y-1.5">
-              <Label className="font-bold text-xs text-gray-700">Option B: Add Products to Bundle Manually</Label>
-              <ProductPicker selected={addItemProduct} onSelect={handleAddProductToBundle} onClear={() => setAddItemProduct(null)} placeholder="Search and pick product to add..." />
-            </div>
-
-            {/* Bundle Items Table */}
-            <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="font-bold text-xs uppercase tracking-wide text-gray-500">
+                <Label className="text-xs font-bold text-gray-700">
                   Bundle Items ({bundleItems.length})
                 </Label>
                 {bundleItems.length > 0 && (
-                  <button type="button" onClick={() => setBundleItems([])} className="text-xs text-red-600 hover:underline">
-                    Clear All Items
+                  <button type="button" onClick={() => setBundleItems([])} className="text-xs text-red-600 hover:underline font-semibold">
+                    Clear All
                   </button>
                 )}
               </div>
 
               {bundleItems.length === 0 ? (
-                <div className="border border-dashed border-gray-300 rounded-xl py-8 text-center text-xs text-gray-500">
-                  No items in bundle yet. Select an order above or pick products to add.
+                <div className="border border-dashed border-gray-300 rounded-md py-6 text-center text-xs text-gray-500">
+                  No items in bundle. Select an order above or add products manually.
                 </div>
               ) : (
-                <div className="border border-gray-200 rounded-xl overflow-hidden max-h-56 overflow-y-auto">
+                <div className="border border-gray-200 rounded-md overflow-hidden max-h-48 overflow-y-auto">
                   <Table className="text-xs">
                     <TableHeader className="bg-gray-50">
                       <TableRow>
-                        <TableHead className="font-bold text-gray-700">Product</TableHead>
-                        <TableHead className="font-bold text-gray-700">Direction</TableHead>
-                        <TableHead className="font-bold text-gray-700 w-24">Qty</TableHead>
-                        <TableHead className="w-8"></TableHead>
+                        <TableHead className="font-semibold text-gray-700">Product</TableHead>
+                        <TableHead className="font-semibold text-gray-700 w-28">Direction</TableHead>
+                        <TableHead className="font-semibold text-gray-700 w-20">Qty</TableHead>
+                        <TableHead className="w-12 text-right">Action</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {bundleItems.map((item, idx) => (
                         <TableRow key={`${item.product_id}_${idx}`}>
-                          <TableCell className="py-2">
+                          <TableCell className="py-1.5">
                             <p className="font-bold text-gray-900">{item.product_name}</p>
                             <p className="font-mono text-[11px] text-gray-500">{item.product_sku}</p>
                           </TableCell>
-                          <TableCell className="py-2">
+                          <TableCell className="py-1.5">
                             <Select value={item.direction} onValueChange={(val) => updateBundleItem(idx, 'direction', val)}>
-                              <SelectTrigger className="h-7 text-xs w-28">
+                              <SelectTrigger className="h-7 text-xs">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -419,7 +449,7 @@ function AdjustStockModal({ open, onClose, onSaved }) {
                               </SelectContent>
                             </Select>
                           </TableCell>
-                          <TableCell className="py-2">
+                          <TableCell className="py-1.5">
                             <Input
                               type="number"
                               min="1"
@@ -428,9 +458,9 @@ function AdjustStockModal({ open, onClose, onSaved }) {
                               className="h-7 text-xs"
                             />
                           </TableCell>
-                          <TableCell className="py-2 text-right">
-                            <button type="button" onClick={() => removeBundleItem(idx)} className="text-gray-400 hover:text-red-600">
-                              <Trash2 size={14} />
+                          <TableCell className="py-1.5 text-right">
+                            <button type="button" onClick={() => removeBundleItem(idx)} className="text-xs text-red-600 hover:underline font-semibold">
+                              Remove
                             </button>
                           </TableCell>
                         </TableRow>
@@ -441,11 +471,11 @@ function AdjustStockModal({ open, onClose, onSaved }) {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>Batch Reason</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Reason</Label>
                 <Select value={bundleReason} onValueChange={setBundleReason}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -456,8 +486,8 @@ function AdjustStockModal({ open, onClose, onSaved }) {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
-                <Label>Batch Note (optional)</Label>
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Batch Note (optional)</Label>
                 <Input
                   placeholder="Order #, Restock batch, etc."
                   value={bundleNote}
@@ -466,9 +496,9 @@ function AdjustStockModal({ open, onClose, onSaved }) {
               </div>
             </div>
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-2 pt-2">
               <Button type="submit" disabled={saving || bundleItems.length === 0} className="bg-red-600 hover:bg-red-700 text-white font-semibold">
-                {saving ? 'Saving Bundle...' : `Adjust Stock for Bundle (${bundleItems.length} items)`}
+                {saving ? 'Saving...' : `Adjust Stock (${bundleItems.length} items)`}
               </Button>
               <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
             </div>
