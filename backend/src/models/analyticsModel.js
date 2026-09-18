@@ -28,19 +28,19 @@ export async function overview() {
     pool.query(`SELECT COUNT(*)::int AS count FROM products WHERE is_active = true AND stock_quantity = 0`),
   ]);
 
-  const revenue = Number(salesRes.rows[0].total);
-  const cost = Number(purchaseRes.rows[0].total);
+  const revenue = Number(salesRes.rows[0]?.total || 0);
+  const cost = Number(purchaseRes.rows[0]?.total || 0);
 
   return {
-    sales: { count: salesRes.rows[0].count, revenue, profit: revenue - cost, cost },
+    sales: { count: salesRes.rows[0]?.count || 0, revenue, profit: revenue - cost, cost },
     inventory: {
-      quantityInHand: inventoryRes.rows[0].total,
-      toBeReceived: toBeReceivedRes.rows[0].total,
-      lowStockCount: lowStockRes.rows[0].count,
-      outOfStockCount: outOfStockRes.rows[0].count,
+      quantityInHand: inventoryRes.rows[0]?.total || 0,
+      toBeReceived: toBeReceivedRes.rows[0]?.total || 0,
+      lowStockCount: lowStockRes.rows[0]?.count || 0,
+      outOfStockCount: outOfStockRes.rows[0]?.count || 0,
     },
-    purchases: { count: purchaseRes.rows[0].count, cost, cancelled: cancelRes.rows[0].count },
-    products: { supplierCount: supplierRes.rows[0].count, categoryCount: categoryRes.rows[0].count },
+    purchases: { count: purchaseRes.rows[0]?.count || 0, cost, cancelled: cancelRes.rows[0]?.count || 0 },
+    products: { supplierCount: supplierRes.rows[0]?.count || 0, categoryCount: categoryRes.rows[0]?.count || 0 },
   };
 }
 

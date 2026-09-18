@@ -5,11 +5,14 @@ import 'dotenv/config';
 pg.types.setTypeParser(1082, (val) => val);
 
 const connectionString = process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/jayjef_ims';
-const isCloud = connectionString?.includes('supabase.com') || connectionString?.includes('pooler.supabase') || process.env.NODE_ENV === 'production';
+const isCloud = connectionString?.includes('supabase') || connectionString?.includes('pooler.supabase') || process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
 
 const realPool = new pg.Pool({
   connectionString,
   ssl: isCloud ? { rejectUnauthorized: false } : false,
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
 });
 
 let isPostgresAvailable = true;
