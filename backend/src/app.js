@@ -24,21 +24,27 @@ app.use(express.json());
 app.use('/uploads/receipts', express.static(uploadsDir));
 app.use('/uploads/products', express.static(productUploadsDir));
 
-app.get('/api/health', (req, res) => {
+const apiRouter = express.Router();
+
+apiRouter.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-app.use('/api/products', productsRouter);
-app.use('/api/suppliers', suppliersRouter);
-app.use('/api/users', usersRouter);
-app.use('/api/inventory', inventoryRouter);
-app.use('/api/orders', ordersRouter);
-app.use('/api/ocr', ocrRouter);
-app.use('/api/shop-layout', shopLayoutRouter);
-app.use('/api/dashboard', dashboardRouter);
-app.use('/api/reports', reportsRouter);
-app.use('/api/shop-settings', shopSettingsRouter);
-app.use('/api/chat', chatRouter);
+apiRouter.use('/products', productsRouter);
+apiRouter.use('/suppliers', suppliersRouter);
+apiRouter.use('/users', usersRouter);
+apiRouter.use('/inventory', inventoryRouter);
+apiRouter.use('/orders', ordersRouter);
+apiRouter.use('/ocr', ocrRouter);
+apiRouter.use('/shop-layout', shopLayoutRouter);
+apiRouter.use('/dashboard', dashboardRouter);
+apiRouter.use('/reports', reportsRouter);
+apiRouter.use('/shop-settings', shopSettingsRouter);
+apiRouter.use('/chat', chatRouter);
+
+// Support both /api/path and /path
+app.use('/api', apiRouter);
+app.use('/', apiRouter);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });
