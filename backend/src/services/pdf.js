@@ -1,4 +1,3 @@
-import puppeteer from 'puppeteer';
 import { fontFaceCss } from './pdfFonts.js';
 
 // Static per docs/04-purchase-order-invoice.md — shop info isn't entered
@@ -125,6 +124,14 @@ function renderOrderHtml(order) {
 }
 
 export async function renderOrderPdf(order) {
+  let puppeteer;
+  try {
+    const mod = await import('puppeteer');
+    puppeteer = mod.default || mod;
+  } catch (err) {
+    throw new Error('PDF rendering requires local desktop environment: ' + err.message);
+  }
+
   const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
   try {
     const page = await browser.newPage();
