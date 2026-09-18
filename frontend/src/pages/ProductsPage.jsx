@@ -3,7 +3,7 @@ import { Link, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion';
 import { Search, Plus, Pencil, Trash2, PackageSearch, Loader2, LayoutGrid, List, Eye, Tag, MapPin, Box, Minus } from 'lucide-react';
 import { toast } from 'sonner';
-import { listProducts, deleteProduct } from '../api/products.js';
+import { listProducts, deleteProduct, bulkDeleteProducts } from '../api/products.js';
 import { createMovement } from '../api/inventory.js';
 import { getOverview } from '../api/dashboard.js';
 import { CATEGORIES, formatCategory, availability } from '../constants.js';
@@ -46,6 +46,9 @@ function ProductsListView({ modal }) {
   const [loading, setLoading] = useState(true);
   const [pendingDelete, setPendingDelete] = useState(null);
   const [deductingId, setDeductingId] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -77,15 +80,49 @@ function ProductsListView({ modal }) {
     getOverview().then(setSummary).catch(() => {});
   }, []);
 
+  // Multi-selection handlers
+  function handleToggleSelectAll() {
+    if (selectedIds.length === products.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(products.map((p) => p.id));
+    }
+  }
+
+  function handleToggleSelectProduct(id, e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  }
+
   async function handleDelete() {
     try {
       await deleteProduct(pendingDelete.id);
       toast.success(`"${pendingDelete.name}" deleted`);
+      setSelectedIds((prev) => prev.filter((id) => id !== pendingDelete.id));
       setPendingDelete(null);
       load();
     } catch (err) {
       toast.error(err.message);
       setPendingDelete(null);
+    }
+  }
+
+  async function handleConfirmBulkDelete() {
+    if (selectedIds.length === 0) return;
+    setBulkDeleting(true);
+    try {
+      const res = await bulkDeleteProducts(selectedIds);
+      toast.success(res.message || `Deleted ${selectedIds.length} products`);
+      setSelectedIds([]);
+      setBulkDeleteModalOpen(false);
+      load();
+      getOverview().then(setSummary).catch(() => {});
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete selected products');
+    } finally {
+      setBulkDeleting(false);
     }
   }
 
@@ -246,14 +283,19 @@ function ProductsListView({ modal }) {
         <motion.div custom={3} variants={sectionVariants} initial="hidden" animate="visible" className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {products.map((p) => {
             const avail = availability(p);
+            const isSelected = selectedIds.includes(p.id);
             return (
               <motion.div
                 key={p.id}
                 whileHover={{ y: -4 }}
-                className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-gray-200/80 bg-[#f4f4f6]/60 p-3.5 shadow-xs hover:border-gray-300 hover:shadow-md transition-all cursor-pointer"
+                className={`group relative flex flex-col justify-between overflow-hidden rounded-3xl border p-3.5 shadow-xs transition-all cursor-pointer ${
+                  isSelected
+                    ? 'border-red-500/80 bg-red-50/20 ring-2 ring-red-500/30'
+                    : 'border-gray-200/80 bg-[#f4f4f6]/60 hover:border-gray-300 hover:shadow-md'
+                }`}
                 onClick={() => navigate(`/products/${p.id}`)}
               >
-                {/* Top Image Container with Top-Left Dark Overlay SKU Badge */}
+                {/* Top Image Container with Top-Left Dark Overlay SKU Badge & Top-Right Selection Checkbox */}
                 <div className="relative h-48 w-full overflow-hidden rounded-2xl bg-gray-200">
                   <ProductThumb
                     product={p}
@@ -263,6 +305,20 @@ function ProductsListView({ modal }) {
                   <span className="absolute top-3 left-3 rounded-lg bg-[#09090b]/90 px-3 py-1 font-mono text-[11px] font-bold text-white shadow-md backdrop-blur-xs border border-white/10">
                     {p.sku}
                   </span>
+
+                  {/* Multi-Select Checkbox Overlay */}
+                  <div
+                    className="absolute top-3 right-3 z-10 flex items-center justify-center rounded-lg bg-white/95 p-1.5 shadow-md backdrop-blur-xs border border-gray-200 transition-transform hover:scale-110 cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleSelectProduct(p.id);
+                    }}
+                  >
+                    <Checkbox
+                      checked={isSelected}
+                      className="pointer-events-none"
+                    />
+                  </div>
                 </div>
 
                 {/* Content Area Matching Reference Layout */}
@@ -340,6 +396,13 @@ function ProductsListView({ modal }) {
             <Table>
               <TableHeader className="bg-gray-50/80">
                 <TableRow>
+                  <TableHead className="w-10 px-4">
+                    <Checkbox
+                      checked={products.length > 0 && selectedIds.length === products.length}
+                      onCheckedChange={handleToggleSelectAll}
+                      title="Select all products"
+                    />
+                  </TableHead>
                   <TableHead className="w-12"></TableHead>
                   <TableHead className="font-semibold text-gray-700">SKU</TableHead>
                   <TableHead className="font-semibold text-gray-700">Product Name</TableHead>
@@ -353,12 +416,27 @@ function ProductsListView({ modal }) {
               <TableBody>
                 {products.map((p) => {
                   const avail = availability(p);
+                  const isSelected = selectedIds.includes(p.id);
                   return (
                     <TableRow
                       key={p.id}
-                      className="cursor-pointer hover:bg-red-50/30 transition-colors"
+                      className={`cursor-pointer transition-colors ${
+                        isSelected ? 'bg-red-50/40 hover:bg-red-50/60' : 'hover:bg-red-50/30'
+                      }`}
                       onClick={() => navigate(`/products/${p.id}`)}
                     >
+                      <TableCell
+                        className="w-10 px-4 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleSelectProduct(p.id);
+                        }}
+                      >
+                        <Checkbox
+                          checked={isSelected}
+                          className="pointer-events-none"
+                        />
+                      </TableCell>
                       <TableCell><ProductThumb product={p} /></TableCell>
                       <TableCell className="font-mono text-xs font-bold text-red-600">{p.sku}</TableCell>
                       <TableCell className="font-medium text-gray-900">{p.name}</TableCell>
@@ -428,6 +506,47 @@ function ProductsListView({ modal }) {
         </motion.div>
       )}
 
+      {/* Floating Bottom Bulk Actions Toolbar */}
+      {selectedIds.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 30, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 30, scale: 0.95 }}
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 rounded-2xl bg-gray-900/95 px-5 py-3 text-white shadow-2xl backdrop-blur-md border border-gray-800"
+        >
+          <div className="flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white shadow-xs">
+              {selectedIds.length}
+            </span>
+            <span className="text-xs font-semibold tracking-wide">
+              {selectedIds.length === 1 ? 'Product' : 'Products'} selected
+            </span>
+          </div>
+
+          <div className="h-4 w-px bg-gray-700" />
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedIds([])}
+              className="rounded-xl text-gray-300 hover:bg-gray-800 hover:text-white text-xs"
+            >
+              Deselect All
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setBulkDeleteModalOpen(true)}
+              className="rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-md text-xs font-bold gap-1.5"
+            >
+              <Trash2 size={14} />
+              Delete Selected ({selectedIds.length})
+            </Button>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Single Delete Alert Dialog */}
       <AlertDialog open={!!pendingDelete} onOpenChange={(open) => !open && setPendingDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -439,6 +558,37 @@ function ProductsListView({ modal }) {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Alert Dialog */}
+      <AlertDialog open={bulkDeleteModalOpen} onOpenChange={setBulkDeleteModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-red-600 flex items-center gap-2">
+              <Trash2 size={20} />
+              Delete {selectedIds.length} {selectedIds.length === 1 ? 'product' : 'products'}?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                Are you sure you want to delete these <strong>{selectedIds.length}</strong> selected products?
+              </p>
+              <p className="text-xs text-gray-500">
+                They will be deactivated and removed from the active catalog and shop inventory.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmBulkDelete}
+              disabled={bulkDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {bulkDeleting ? <Loader2 size={16} className="animate-spin" /> : null}
+              {bulkDeleting ? 'Deleting...' : `Confirm Delete (${selectedIds.length})`}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

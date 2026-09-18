@@ -6,6 +6,7 @@ const router = Router();
 
 router.get('/', productsController.listProducts);
 router.get('/locations', productsController.getProductLocations);
+router.post('/bulk-delete', productsController.bulkDeleteProducts);
 router.get('/:id', productsController.getProduct);
 router.get('/:id/purchases', productsController.getProductPurchases);
 router.post('/', uploadProductImage.single('image'), productsController.createProduct);

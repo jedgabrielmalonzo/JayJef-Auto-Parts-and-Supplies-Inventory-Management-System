@@ -149,3 +149,16 @@ export async function reactivateProduct(req, res, next) {
     next(err);
   }
 }
+
+export async function bulkDeleteProducts(req, res, next) {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'ids array is required and cannot be empty' });
+    }
+    const count = await productModel.bulkSoftDelete(ids);
+    res.json({ message: `Successfully deleted ${count} products`, count });
+  } catch (err) {
+    next(err);
+  }
+}

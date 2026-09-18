@@ -44,6 +44,13 @@ export function deleteProduct(id, { hard = false } = {}) {
   return request(`/products/${id}${hard ? '?hard=true' : ''}`, { method: 'DELETE' });
 }
 
+export function bulkDeleteProducts(ids = []) {
+  return request('/products/bulk-delete', {
+    method: 'POST',
+    body: JSON.stringify({ ids }),
+  });
+}
+
 export function reactivateProduct(id) {
   return request(`/products/${id}/reactivate`, { method: 'POST' });
 }

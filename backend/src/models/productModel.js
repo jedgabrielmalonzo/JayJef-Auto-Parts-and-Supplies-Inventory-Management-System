@@ -123,3 +123,12 @@ export async function hardDelete(id) {
   const result = await pool.query('DELETE FROM products WHERE id = $1 RETURNING id', [id]);
   return result.rows.length > 0;
 }
+
+export async function bulkSoftDelete(ids = []) {
+  if (!ids.length) return 0;
+  const result = await pool.query(
+    'UPDATE products SET is_active = false, updated_at = now() WHERE id = ANY($1::int[]) RETURNING id',
+    [ids.map(Number)]
+  );
+  return result.rowCount || result.rows?.length || 0;
+}
