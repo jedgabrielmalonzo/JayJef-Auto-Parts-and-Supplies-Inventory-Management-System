@@ -3,9 +3,15 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import multer from 'multer';
 
-export const productUploadsDir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'uploads', 'products');
+export const productUploadsDir = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME
+  ? path.join('/tmp', 'uploads', 'products')
+  : path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'uploads', 'products');
 
-if (!existsSync(productUploadsDir)) mkdirSync(productUploadsDir, { recursive: true });
+try {
+  if (!existsSync(productUploadsDir)) mkdirSync(productUploadsDir, { recursive: true });
+} catch (err) {
+  console.warn('[ProductUploads] Temp dir initialization:', err.message);
+}
 
 const storage = multer.diskStorage({
   destination: productUploadsDir,
