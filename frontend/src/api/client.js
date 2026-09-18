@@ -1,5 +1,5 @@
-export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
-export const API_ORIGIN = API_BASE.replace(/\/api\/?$/, '');
+export const API_BASE = import.meta.env.VITE_API_URL || '/api';
+export const API_ORIGIN = API_BASE.startsWith('http') ? API_BASE.replace(/\/api\/?$/, '') : '';
 
 export async function request(path, options) {
   const res = await fetch(`${API_BASE}${path}`, {
