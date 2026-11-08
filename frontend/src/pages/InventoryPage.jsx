@@ -2,21 +2,18 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  AlertTriangle, ClipboardList, Loader2, PlusCircle, Search, Layers, ListFilter, Calendar, Clock,
-  TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Package, ShoppingCart, SlidersHorizontal, RotateCcw, X
+  ClipboardList, Loader2, PlusCircle, Search, Layers, ListFilter, Calendar, Clock,
+  TrendingUp, ArrowUpRight, ArrowDownRight, RotateCcw, X, AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { lowStock, listMovements, createMovement, createBatchMovements } from '../api/inventory.js';
+import { listMovements, createMovement, createBatchMovements } from '../api/inventory.js';
 import { listOrders, getOrder } from '../api/orders.js';
 import { getOverview } from '../api/dashboard.js';
-import { CATEGORIES, MOVEMENT_REASON_LABELS, formatCategory } from '../constants.js';
-import { soundService } from '../lib/sound.js';
-import { Badge } from '../components/ui/badge.jsx';
+import { MOVEMENT_REASON_LABELS } from '../constants.js';
 import MicroStatCard from '../components/MicroStatCard.jsx';
 import { Button } from '../components/ui/button.jsx';
 import { Input } from '../components/ui/input.jsx';
 import { Label } from '../components/ui/label.jsx';
-import { Textarea } from '../components/ui/textarea.jsx';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.jsx';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table.jsx';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.jsx';
@@ -29,11 +26,7 @@ import {
   PaginationLink,
   PaginationPrevious,
   PaginationNext,
-  PaginationEllipsis,
 } from '../components/ui/pagination.jsx';
-
-const DIRECTION_LABELS = { in: 'Stock In (+)', out: 'Stock Out (−)' };
-const REASON_OPTIONS = { manual_adjustment: 'Manual Adjustment', correction: 'Correction' };
 
 const sectionVariants = {
   hidden: { opacity: 0, y: 15 },
@@ -137,7 +130,7 @@ function AdjustStockModal({ open, onClose, onSaved }) {
   const [loadingOrder, setLoadingOrder] = useState(false);
   const [addItemProduct, setAddItemProduct] = useState(null);
 
-  // Modal Size State (Synchronized with localStorage)
+  // Modal Size State
   const [modalSize, setModalSize] = useState(() => {
     return localStorage.getItem('jayjef_modal_size') || 'standard';
   });
@@ -289,7 +282,6 @@ function AdjustStockModal({ open, onClose, onSaved }) {
             Adjust Stock
           </DialogTitle>
 
-          {/* Modal Size Switcher matching ProductFormPage */}
           <div className="hidden sm:flex items-center gap-1 bg-gray-100/80 p-1 rounded-xl">
             <span className="text-[11px] text-gray-500 font-bold px-1.5">Size:</span>
             {[
@@ -545,39 +537,27 @@ function AdjustStockModal({ open, onClose, onSaved }) {
 }
 
 export default function InventoryPage() {
-  const [lowStockItems, setLowStockItems] = useState([]);
   const [movements, setMovements] = useState([]);
   const [summary, setSummary] = useState(null);
   const [viewMode, setViewMode] = useState('stacked'); // 'stacked' | 'raw'
   const [loading, setLoading] = useState(true);
   const [adjustOpen, setAdjustOpen] = useState(false);
-  const [dateRange, setDateRange] = useState(undefined); // { from: Date, to: Date } or undefined
-
-  // Smart Search & Filter States
-  const [lowStockSearch, setLowStockSearch] = useState('');
-  const [lowStockCategory, setLowStockCategory] = useState('');
+  const [dateRange, setDateRange] = useState(undefined);
 
   const [movementSearch, setMovementSearch] = useState('');
-  const [movementTypeFilter, setMovementTypeFilter] = useState('all'); // 'all' | 'in' | 'out' | 'restock' | 'fulfillment' | 'adjustment'
+  const [movementTypeFilter, setMovementTypeFilter] = useState('all');
 
   // Pagination States
-  const [lowStockPage, setLowStockPage] = useState(1);
-  const lowStockPageSize = 5;
-
   const [movementsPage, setMovementsPage] = useState(1);
-  const movementsPageSize = 10;
+  const movementsPageSize = 12;
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [low, movementResult] = await Promise.all([
-        lowStock(),
-        listMovements({ page_size: 500 }),
-      ]);
-      setLowStockItems(Array.isArray(low) ? low : []);
+      const movementResult = await listMovements({ page_size: 500 });
       setMovements(Array.isArray(movementResult?.items) ? movementResult.items : []);
     } catch (err) {
-      toast.error(err.message);
+      toast.error(err.message || 'Failed to load movements');
     } finally {
       setLoading(false);
     }
@@ -585,26 +565,6 @@ export default function InventoryPage() {
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { getOverview().then(setSummary).catch(() => {}); }, []);
-
-  // Filter Low Stock Items by Smart Search & Category
-  const filteredLowStockItems = useMemo(() => {
-    let list = lowStockItems;
-    if (lowStockCategory && lowStockCategory !== '_all') {
-      list = list.filter((p) => p.category === lowStockCategory);
-    }
-    if (lowStockSearch.trim()) {
-      const q = lowStockSearch.toLowerCase().trim();
-      list = list.filter(
-        (p) =>
-          p.name?.toLowerCase().includes(q) ||
-          p.sku?.toLowerCase().includes(q) ||
-          p.brand?.toLowerCase().includes(q) ||
-          p.category?.toLowerCase().includes(q) ||
-          p.compatible_vehicles?.toLowerCase().includes(q)
-      );
-    }
-    return list;
-  }, [lowStockItems, lowStockSearch, lowStockCategory]);
 
   // Filter movements by Date Range, Smart Search & Movement Type
   const filteredMovements = useMemo(() => {
@@ -677,13 +637,6 @@ export default function InventoryPage() {
     };
   }, [filteredMovements, stackedMovements]);
 
-  // Derived Paginated Data
-  const totalLowStockPages = Math.ceil(filteredLowStockItems.length / lowStockPageSize) || 1;
-  const paginatedLowStockItems = useMemo(() => {
-    const start = (lowStockPage - 1) * lowStockPageSize;
-    return filteredLowStockItems.slice(start, start + lowStockPageSize);
-  }, [filteredLowStockItems, lowStockPage, lowStockPageSize]);
-
   const currentMovementsList = viewMode === 'stacked' ? stackedMovements : filteredMovements;
 
   const totalMovementsPages = Math.ceil(currentMovementsList.length / movementsPageSize) || 1;
@@ -698,10 +651,6 @@ export default function InventoryPage() {
     getOverview().then(setSummary).catch(() => {});
   }
 
-  const outOfStockCount = useMemo(() => {
-    return lowStockItems.filter((p) => Number(p.stock_quantity || 0) === 0).length;
-  }, [lowStockItems]);
-
   const stockQty = summary?.inventory?.quantityInHand || 0;
   const toBeReceived = summary?.inventory?.toBeReceived || 0;
 
@@ -709,15 +658,30 @@ export default function InventoryPage() {
     <div className="space-y-6 text-gray-900">
       <AdjustStockModal open={adjustOpen} onClose={() => setAdjustOpen(false)} onSaved={handleAdjusted} />
 
-      <motion.div custom={0} variants={sectionVariants} initial="hidden" animate="visible" className="flex items-center justify-between">
+      <motion.div custom={0} variants={sectionVariants} initial="hidden" animate="visible" className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900">Stock and Movement</h1>
-          <p className="text-sm text-gray-500 mt-1">Real-time inventory levels, daily stock movements, and system audit log</p>
+          <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gray-100 text-gray-800">
+              <ClipboardList size={22} />
+            </span>
+            Daily Stock Movements
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Real-time daily inventory stock ins, stock outs, batch fulfillments, and audit logs
+          </p>
         </div>
-        <Button onClick={() => setAdjustOpen(true)} className="bg-red-600 hover:bg-red-700 shadow-md rounded-xl text-xs font-bold">
-          <PlusCircle size={16} strokeWidth={2.5} />
-          Adjust Stock
-        </Button>
+        <div className="flex items-center gap-2">
+          <Link to="/low-stock">
+            <Button variant="outline" className="border-amber-200 bg-amber-50/50 hover:bg-amber-100/70 text-amber-800 rounded-xl text-xs font-bold gap-1.5">
+              <AlertTriangle size={14} className="text-amber-600" />
+              Low Stock Alerts
+            </Button>
+          </Link>
+          <Button onClick={() => setAdjustOpen(true)} className="bg-red-600 hover:bg-red-700 shadow-md rounded-xl text-xs font-bold gap-1.5">
+            <PlusCircle size={16} strokeWidth={2.5} />
+            Adjust Stock
+          </Button>
+        </div>
       </motion.div>
 
       {/* LAYER 1: 4 KPI Micro-Stat Cards */}
@@ -734,14 +698,14 @@ export default function InventoryPage() {
             value={Number(toBeReceived).toLocaleString()}
           />
           <MicroStatCard
-            title="Low Stock Alerts"
-            subtitle="Reorder Required"
-            value={lowStockItems.length.toString()}
+            title="Logged Movements"
+            subtitle="Total Movement Records"
+            value={movements.length.toLocaleString()}
           />
           <MicroStatCard
-            title="Out of Stock"
-            subtitle="Critical Outages"
-            value={outOfStockCount.toString()}
+            title="Net Flow"
+            subtitle="Current Filter Flow"
+            value={movementStats.net >= 0 ? `+${movementStats.net.toLocaleString()}` : movementStats.net.toLocaleString()}
           />
         </div>
       </motion.section>
@@ -752,47 +716,119 @@ export default function InventoryPage() {
           Loading inventory movements...
         </div>
       ) : (
-        <motion.div custom={2} variants={sectionVariants} initial="hidden" animate="visible" className="space-y-6 w-full">
-          {/* Low Stock Alerts (Full Width Row) */}
-          <section className="w-full">
-            <div className="space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <h2 className="font-heading font-bold text-sm uppercase tracking-wide text-gray-700 flex items-center gap-2">
-                    <AlertTriangle size={15} className="text-amber-500" />
-                    Low Stock Alerts
-                  </h2>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                    {filteredLowStockItems.length} {filteredLowStockItems.length === 1 ? 'item' : 'items'}
-                  </span>
-                </div>
-                {filteredLowStockItems.length > 0 && (
-                  <span className="text-[11px] text-gray-400 font-medium">
-                    Page {lowStockPage} of {totalLowStockPages} ({filteredLowStockItems.length} total)
-                  </span>
-                )}
+        <motion.div custom={2} variants={sectionVariants} initial="hidden" animate="visible" className="space-y-4 w-full">
+          {/* Movements Table Section */}
+          <section className="w-full space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <h2 className="font-heading font-bold text-sm uppercase tracking-wide text-gray-700 flex items-center gap-2">
+                  <ClipboardList size={15} />
+                  {viewMode === 'stacked' ? 'Stacked Daily Movements' : 'All Raw Movement Logs'}
+                </h2>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-gray-100 text-gray-700">
+                  {currentMovementsList.length} {viewMode === 'stacked' ? 'stacked rows' : 'raw logs'}
+                </span>
               </div>
 
-              {/* Smart Search & Category Filter for Low Stock */}
+              {/* View Switcher & Date Range Picker Controls */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <DatePickerWithRange
+                  date={dateRange}
+                  setDate={(d) => {
+                    setDateRange(d);
+                    setMovementsPage(1);
+                  }}
+                />
+
+                <div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-white p-1 shadow-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setViewMode('stacked');
+                      setMovementsPage(1);
+                    }}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg transition-colors ${
+                      viewMode === 'stacked' ? 'bg-black text-white' : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <Layers size={13} />
+                    Stacked ({stackedMovements.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setViewMode('raw');
+                      setMovementsPage(1);
+                    }}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg transition-colors ${
+                      viewMode === 'raw' ? 'bg-black text-white' : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <ListFilter size={13} />
+                    Raw Logs ({filteredMovements.length})
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Movement Summary Counters for Current Filtered Set */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="flex items-center justify-between p-2.5 rounded-xl border border-emerald-100 bg-emerald-50/50">
+                <span className="text-xs font-medium text-emerald-800 flex items-center gap-1">
+                  <ArrowUpRight size={13} className="text-emerald-600" />
+                  Total In
+                </span>
+                <span className="font-mono text-xs font-bold text-emerald-700">+{movementStats.totalIn.toLocaleString()}</span>
+              </div>
+
+              <div className="flex items-center justify-between p-2.5 rounded-xl border border-red-100 bg-red-50/50">
+                <span className="text-xs font-medium text-red-800 flex items-center gap-1">
+                  <ArrowDownRight size={13} className="text-red-600" />
+                  Total Out
+                </span>
+                <span className="font-mono text-xs font-bold text-red-700">−{movementStats.totalOut.toLocaleString()}</span>
+              </div>
+
+              <div className="flex items-center justify-between p-2.5 rounded-xl border border-gray-200 bg-gray-50/50">
+                <span className="text-xs font-medium text-gray-700 flex items-center gap-1">
+                  <TrendingUp size={13} className="text-gray-500" />
+                  Net Flow
+                </span>
+                <span className={`font-mono text-xs font-bold ${movementStats.net >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                  {movementStats.net >= 0 ? `+${movementStats.net.toLocaleString()}` : movementStats.net.toLocaleString()}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between p-2.5 rounded-xl border border-gray-200 bg-gray-50/50">
+                <span className="text-xs font-medium text-gray-700 flex items-center gap-1">
+                  <Clock size={13} className="text-gray-500" />
+                  Filtered Logs
+                </span>
+                <span className="font-mono text-xs font-bold text-gray-900">{movementStats.count.toLocaleString()}</span>
+              </div>
+            </div>
+
+            {/* Smart Search & Filter Type Chips */}
+            <div className="space-y-2">
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <div className="relative flex-1">
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <Input
                     type="text"
-                    placeholder="Search low stock by product name, SKU, brand, or vehicle..."
-                    value={lowStockSearch}
+                    placeholder="Smart search movements by product name, SKU, reason, note, or date..."
+                    value={movementSearch}
                     onChange={(e) => {
-                      setLowStockSearch(e.target.value);
-                      setLowStockPage(1);
+                      setMovementSearch(e.target.value);
+                      setMovementsPage(1);
                     }}
                     className="pl-9 pr-8 text-xs h-9 rounded-xl border-gray-200 bg-white"
                   />
-                  {lowStockSearch && (
+                  {movementSearch && (
                     <button
                       type="button"
                       onClick={() => {
-                        setLowStockSearch('');
-                        setLowStockPage(1);
+                        setMovementSearch('');
+                        setMovementsPage(1);
                       }}
                       className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                     >
@@ -801,355 +837,127 @@ export default function InventoryPage() {
                   )}
                 </div>
 
-                <div className="w-full sm:w-52">
-                  <Select
-                    value={lowStockCategory || '_all'}
-                    onValueChange={(val) => {
-                      setLowStockCategory(val === '_all' ? '' : val);
-                      setLowStockPage(1);
-                    }}
-                  >
-                    <SelectTrigger className="h-9 text-xs rounded-xl border-gray-200 bg-white">
-                      <SelectValue placeholder="All Categories" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="_all">All Categories</SelectItem>
-                      {CATEGORIES.map((c) => (
-                        <SelectItem key={c} value={c}>
-                          {formatCategory(c)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {(lowStockSearch || lowStockCategory) && (
+                {(movementSearch || movementTypeFilter !== 'all' || dateRange) && (
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => {
-                      setLowStockSearch('');
-                      setLowStockCategory('');
-                      setLowStockPage(1);
+                      setMovementSearch('');
+                      setMovementTypeFilter('all');
+                      setDateRange(undefined);
+                      setMovementsPage(1);
                     }}
-                    className="h-9 px-2.5 text-xs text-gray-500 hover:text-gray-900 rounded-xl"
+                    className="h-9 px-2.5 text-xs text-gray-500 hover:text-gray-900 rounded-xl shrink-0"
                   >
                     <RotateCcw size={13} className="mr-1" />
-                    Reset
+                    Reset All
                   </Button>
                 )}
               </div>
 
-              <div className="rounded-2xl border border-gray-200 bg-white shadow-xs divide-y divide-gray-100 overflow-hidden w-full">
-                {lowStockItems.length === 0 ? (
-                  <p className="px-4 py-8 text-center text-sm text-gray-500">All products are currently above their reorder threshold.</p>
-                ) : filteredLowStockItems.length === 0 ? (
-                  <div className="px-4 py-8 text-center text-sm text-gray-500 flex flex-col items-center gap-1.5">
-                    <Search size={20} className="text-gray-300" />
-                    <p className="font-semibold text-gray-700">No low stock items matched your search</p>
-                    <p className="text-xs text-gray-400">Try changing or clearing your search term or category filter.</p>
-                  </div>
-                ) : (
-                  paginatedLowStockItems.map((p) => (
-                    <Link key={p.id} to={`/products/${p.id}/edit`} className="flex items-center justify-between px-4 py-3.5 text-sm hover:bg-gray-50/80 transition-colors">
-                      <div className="space-y-0.5">
-                        <p className="text-gray-900 font-bold hover:text-red-600 transition-colors">{p.name}</p>
-                        <p className="font-mono text-xs text-gray-500 flex items-center gap-1.5 flex-wrap">
-                          <span>{p.sku}</span>
-                          {p.brand && <span>· <span className="text-gray-700 font-medium">{p.brand}</span></span>}
-                          <span>· <Badge variant="secondary" className="text-[10px] py-0">{formatCategory(p.category)}</Badge></span>
-                        </p>
-                      </div>
-                      <div className="text-right tabular-nums space-y-1">
-                        <p className="text-gray-900 font-bold">{p.stock_quantity} / {p.reorder_threshold}</p>
-                        <Badge variant={p.stock_quantity <= 0 ? 'destructive' : 'warning'} className="text-[10px]">
-                          {p.stock_quantity <= 0 ? 'Out of Stock' : 'Low Stock'}
-                        </Badge>
-                      </div>
-                    </Link>
-                  ))
-                )}
+              {/* Filter chips for movement type */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMovementTypeFilter('all');
+                    setMovementsPage(1);
+                  }}
+                  className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${
+                    movementTypeFilter === 'all'
+                      ? 'bg-gray-900 text-white shadow-xs'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  All Types
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMovementTypeFilter('in');
+                    setMovementsPage(1);
+                  }}
+                  className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${
+                    movementTypeFilter === 'in'
+                      ? 'bg-emerald-700 text-white shadow-xs'
+                      : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
+                  }`}
+                >
+                  🟢 Stock In (+)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMovementTypeFilter('out');
+                    setMovementsPage(1);
+                  }}
+                  className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${
+                    movementTypeFilter === 'out'
+                      ? 'bg-red-700 text-white shadow-xs'
+                      : 'bg-red-50 text-red-700 hover:bg-red-100 border border-red-200'
+                  }`}
+                >
+                  🔴 Stock Out (−)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMovementTypeFilter('restock');
+                    setMovementsPage(1);
+                  }}
+                  className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${
+                    movementTypeFilter === 'restock'
+                      ? 'bg-blue-700 text-white shadow-xs'
+                      : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
+                  }`}
+                >
+                  📦 Restocks
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMovementTypeFilter('fulfillment');
+                    setMovementsPage(1);
+                  }}
+                  className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${
+                    movementTypeFilter === 'fulfillment'
+                      ? 'bg-purple-700 text-white shadow-xs'
+                      : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200'
+                  }`}
+                >
+                  🛒 Fulfillments
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMovementTypeFilter('adjustment');
+                    setMovementsPage(1);
+                  }}
+                  className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${
+                    movementTypeFilter === 'adjustment'
+                      ? 'bg-amber-700 text-white shadow-xs'
+                      : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'
+                  }`}
+                >
+                  ⚙️ Adjustments
+                </button>
               </div>
             </div>
 
-            {/* Low Stock Shadcn UI Pagination Controls */}
-            {filteredLowStockItems.length > lowStockPageSize && (
-              <div className="pt-3 border-t border-gray-100 mt-3 flex justify-center">
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        disabled={lowStockPage <= 1}
-                        onClick={() => setLowStockPage((p) => Math.max(1, p - 1))}
-                      />
-                    </PaginationItem>
-
-                    {Array.from({ length: totalLowStockPages }, (_, i) => i + 1).map((pageNum) => (
-                      <PaginationItem key={pageNum}>
-                        <PaginationLink
-                          isActive={pageNum === lowStockPage}
-                          onClick={() => setLowStockPage(pageNum)}
-                        >
-                          {pageNum}
-                        </PaginationLink>
-                      </PaginationItem>
-                    ))}
-
-                    <PaginationItem>
-                      <PaginationNext
-                        disabled={lowStockPage >= totalLowStockPages}
-                        onClick={() => setLowStockPage((p) => Math.min(totalLowStockPages, p + 1))}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </div>
-            )}
-          </section>
-
-          {/* Movements Table / Audit Log Section (Full Width Row at Bottom) */}
-          <section className="w-full space-y-3">
-            <div>
-              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                <div className="flex items-center gap-2">
-                  <h2 className="font-heading font-bold text-sm uppercase tracking-wide text-gray-700 flex items-center gap-2">
-                    <ClipboardList size={15} />
-                    {viewMode === 'stacked' ? 'Stacked Daily Movements' : 'All Raw Movement Logs'}
-                  </h2>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-gray-100 text-gray-700">
-                    {currentMovementsList.length} {viewMode === 'stacked' ? 'stacked rows' : 'raw logs'}
-                  </span>
-                </div>
-
-                {/* View Switcher & Date Range Picker Controls */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <DatePickerWithRange
-                    date={dateRange}
-                    setDate={(d) => {
-                      setDateRange(d);
-                      setMovementsPage(1);
-                    }}
-                  />
-
-                  <div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-white p-1 shadow-xs">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setViewMode('stacked');
-                        setMovementsPage(1);
-                      }}
-                      className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg transition-colors ${
-                        viewMode === 'stacked' ? 'bg-black text-white' : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                    >
-                      <Layers size={13} />
-                      Stacked ({stackedMovements.length})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setViewMode('raw');
-                        setMovementsPage(1);
-                      }}
-                      className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg transition-colors ${
-                        viewMode === 'raw' ? 'bg-black text-white' : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                    >
-                      <ListFilter size={13} />
-                      Raw Logs ({filteredMovements.length})
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Movement Summary Counters for Current Filtered Set */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-                <div className="flex items-center justify-between p-2.5 rounded-xl border border-emerald-100 bg-emerald-50/50">
-                  <span className="text-xs font-medium text-emerald-800 flex items-center gap-1">
-                    <ArrowUpRight size={13} className="text-emerald-600" />
-                    Total In
-                  </span>
-                  <span className="font-mono text-xs font-bold text-emerald-700">+{movementStats.totalIn.toLocaleString()}</span>
-                </div>
-
-                <div className="flex items-center justify-between p-2.5 rounded-xl border border-red-100 bg-red-50/50">
-                  <span className="text-xs font-medium text-red-800 flex items-center gap-1">
-                    <ArrowDownRight size={13} className="text-red-600" />
-                    Total Out
-                  </span>
-                  <span className="font-mono text-xs font-bold text-red-700">−{movementStats.totalOut.toLocaleString()}</span>
-                </div>
-
-                <div className="flex items-center justify-between p-2.5 rounded-xl border border-gray-200 bg-gray-50/50">
-                  <span className="text-xs font-medium text-gray-700 flex items-center gap-1">
-                    <TrendingUp size={13} className="text-gray-500" />
-                    Net Flow
-                  </span>
-                  <span className={`font-mono text-xs font-bold ${movementStats.net >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
-                    {movementStats.net >= 0 ? `+${movementStats.net.toLocaleString()}` : movementStats.net.toLocaleString()}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between p-2.5 rounded-xl border border-gray-200 bg-gray-50/50">
-                  <span className="text-xs font-medium text-gray-700 flex items-center gap-1">
-                    <Clock size={13} className="text-gray-500" />
-                    Filtered Logs
-                  </span>
-                  <span className="font-mono text-xs font-bold text-gray-900">{movementStats.count.toLocaleString()}</span>
-                </div>
-              </div>
-
-              {/* Smart Search & Filter Type Chips */}
-              <div className="space-y-2 mb-3">
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                  <div className="relative flex-1">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <Input
-                      type="text"
-                      placeholder="Smart search movements by product name, SKU, reason, note, or date..."
-                      value={movementSearch}
-                      onChange={(e) => {
-                        setMovementSearch(e.target.value);
-                        setMovementsPage(1);
-                      }}
-                      className="pl-9 pr-8 text-xs h-9 rounded-xl border-gray-200 bg-white"
-                    />
-                    {movementSearch && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMovementSearch('');
-                          setMovementsPage(1);
-                        }}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      >
-                        <X size={13} />
-                      </button>
-                    )}
-                  </div>
-
-                  {(movementSearch || movementTypeFilter !== 'all' || dateRange) && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setMovementSearch('');
-                        setMovementTypeFilter('all');
-                        setDateRange(undefined);
-                        setMovementsPage(1);
-                      }}
-                      className="h-9 px-2.5 text-xs text-gray-500 hover:text-gray-900 rounded-xl shrink-0"
-                    >
-                      <RotateCcw size={13} className="mr-1" />
-                      Reset All
-                    </Button>
-                  )}
-                </div>
-
-                {/* Filter chips for movement type */}
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMovementTypeFilter('all');
-                      setMovementsPage(1);
-                    }}
-                    className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${
-                      movementTypeFilter === 'all'
-                        ? 'bg-gray-900 text-white shadow-xs'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    All Types
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMovementTypeFilter('in');
-                      setMovementsPage(1);
-                    }}
-                    className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${
-                      movementTypeFilter === 'in'
-                        ? 'bg-emerald-700 text-white shadow-xs'
-                        : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
-                    }`}
-                  >
-                    🟢 Stock In (+)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMovementTypeFilter('out');
-                      setMovementsPage(1);
-                    }}
-                    className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${
-                      movementTypeFilter === 'out'
-                        ? 'bg-red-700 text-white shadow-xs'
-                        : 'bg-red-50 text-red-700 hover:bg-red-100 border border-red-200'
-                    }`}
-                  >
-                    🔴 Stock Out (−)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMovementTypeFilter('restock');
-                      setMovementsPage(1);
-                    }}
-                    className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${
-                      movementTypeFilter === 'restock'
-                        ? 'bg-blue-700 text-white shadow-xs'
-                        : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
-                    }`}
-                  >
-                    📦 Restocks
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMovementTypeFilter('fulfillment');
-                      setMovementsPage(1);
-                    }}
-                    className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${
-                      movementTypeFilter === 'fulfillment'
-                        ? 'bg-purple-700 text-white shadow-xs'
-                        : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200'
-                    }`}
-                  >
-                    🛒 Fulfillments
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMovementTypeFilter('adjustment');
-                      setMovementsPage(1);
-                    }}
-                    className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${
-                      movementTypeFilter === 'adjustment'
-                        ? 'bg-amber-700 text-white shadow-xs'
-                        : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'
-                    }`}
-                  >
-                    ⚙️ Adjustments
-                  </button>
-                </div>
-              </div>
-
-              {/* MAIN TABLE */}
-              <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xs w-full">
-                <div className="overflow-x-auto w-full">
-                  <Table className="w-full">
+            {/* MAIN TABLE */}
+            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xs w-full">
+              <div className="overflow-x-auto w-full">
+                <Table className="w-full">
                   {/* 1. STACKED DAILY VIEW */}
                   {viewMode === 'stacked' && (
                     <>
                       <TableHeader className="bg-gray-50/80">
                         <TableRow>
-                          <TableHead className="font-bold text-gray-700">Product & SKU</TableHead>
+                          <TableHead className="font-bold text-gray-700">Product &amp; SKU</TableHead>
                           <TableHead className="font-bold text-gray-700">Daily Net Change</TableHead>
                           <TableHead className="font-bold text-gray-700">Activity</TableHead>
-                          <TableHead className="font-bold text-gray-700">Date & Time</TableHead>
+                          <TableHead className="font-bold text-gray-700">Date &amp; Time</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1220,10 +1028,10 @@ export default function InventoryPage() {
                     <>
                       <TableHeader className="bg-gray-50/80">
                         <TableRow>
-                          <TableHead className="font-bold text-gray-700">Product & SKU</TableHead>
+                          <TableHead className="font-bold text-gray-700">Product &amp; SKU</TableHead>
                           <TableHead className="font-bold text-gray-700">Change</TableHead>
                           <TableHead className="font-bold text-gray-700">Reason</TableHead>
-                          <TableHead className="font-bold text-gray-700">Date & Time</TableHead>
+                          <TableHead className="font-bold text-gray-700">Date &amp; Time</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1263,9 +1071,8 @@ export default function InventoryPage() {
                 </Table>
               </div>
             </div>
-            </div>
 
-            {/* Movements / Audit Log Shadcn UI Pagination Controls */}
+            {/* Movements Pagination Controls */}
             {currentMovementsList.length > movementsPageSize && (
               <div className="pt-3 border-t border-gray-100 mt-3 flex justify-center">
                 <Pagination>

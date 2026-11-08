@@ -395,7 +395,7 @@ export default function DashboardPage() {
                     <p className="text-xs text-gray-500">Parts below minimum threshold requiring supplier reorder</p>
                   </div>
                 </div>
-                <Link to="/inventory" className="text-xs font-bold text-red-600 hover:underline">
+                <Link to="/low-stock" className="text-xs font-bold text-red-600 hover:underline">
                   View All ({lowQuantity.length})
                 </Link>
               </div>

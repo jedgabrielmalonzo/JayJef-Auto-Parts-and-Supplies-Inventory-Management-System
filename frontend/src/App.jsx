@@ -3,15 +3,16 @@ import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation } from 're
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Wrench, LayoutDashboard, Package, ClipboardList, FileText, ScanLine, Map, BarChart3, Bot,
-  Menu, X, Settings, Truck, ShieldCheck
+  Menu, X, Settings, Truck, ShieldCheck, AlertTriangle, Layers
 } from 'lucide-react';
+import { JayJefLogo } from './components/JayJefLogo.jsx';
 import { Toaster } from './components/ui/sonner.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import ProductsPage from './pages/ProductsPage.jsx';
+import LowStockPage from './pages/LowStockPage.jsx';
 import InventoryPage from './pages/InventoryPage.jsx';
 import AuditLogPage from './pages/AuditLogPage.jsx';
-import ReportsPage from './pages/ReportsPage.jsx';
 import OrdersPage from './pages/OrdersPage.jsx';
 import SuppliersPage from './pages/SuppliersPage.jsx';
 import OcrPage from './pages/OcrPage.jsx';
@@ -64,11 +65,11 @@ class ErrorBoundary extends Component {
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/products', label: 'Products and Catalog', icon: Package },
-  { to: '/inventory', label: 'Stock and Movement', icon: ClipboardList },
+  { to: '/low-stock', label: 'Low Stock Alerts', icon: AlertTriangle },
+  { to: '/inventory', label: 'Stacked Daily Movement', icon: Layers },
   { to: '/audit-log', label: 'System Audit Log', icon: ShieldCheck },
   { to: '/orders', label: 'Orders and Receipts', icon: FileText },
   { to: '/suppliers', label: 'Suppliers Catalog', icon: Truck },
-  { to: '/reports', label: 'Report and Analytics', icon: BarChart3 },
   { to: '/ocr', label: 'OCR Smart Capture', icon: ScanLine },
   { to: '/map', label: 'Shop Map 3D', icon: Map },
   { to: '/assistant', label: 'AI Assistant', icon: Bot, isSpecial: true },
@@ -209,21 +210,9 @@ function SidebarContent({ onCloseMobile }) {
     <div className="flex h-full flex-col justify-between p-4">
       <div>
         {/* Shop Brand Logo & Mobile Close */}
-        <div className="flex items-center justify-between px-2 py-3 mb-4 border-b border-gray-100 pb-5">
-          <NavLink to="/dashboard" onClick={onCloseMobile} className="flex items-center gap-3">
-            <motion.span
-              whileHover={{ rotate: 12, scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-600 text-white shadow-md shadow-red-600/30"
-            >
-              <Wrench size={22} strokeWidth={2.5} />
-            </motion.span>
-            <span className="leading-none">
-              <span className="block font-display text-lg tracking-tight text-gray-900">JAYJEF</span>
-              <span className="block text-[10px] font-bold uppercase tracking-wider text-red-600 mt-1">
-                Auto Parts &amp; Supplies
-              </span>
-            </span>
+        <div className="flex items-center justify-between px-1 py-2 mb-4 border-b border-gray-100 pb-4">
+          <NavLink to="/dashboard" onClick={onCloseMobile} className="flex items-center">
+            <JayJefLogo variant="sidebar" />
           </NavLink>
           <motion.button
             whileTap={{ scale: 0.9 }}
@@ -274,11 +263,12 @@ function AnimatedRoutes() {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/products/*" element={<ProductsPage />} />
+          <Route path="/low-stock" element={<LowStockPage />} />
           <Route path="/inventory" element={<InventoryPage />} />
+          <Route path="/movements" element={<Navigate to="/inventory" replace />} />
           <Route path="/audit-log" element={<AuditLogPage />} />
           <Route path="/orders/*" element={<OrdersPage />} />
           <Route path="/suppliers/*" element={<SuppliersPage />} />
-          <Route path="/reports" element={<ReportsPage />} />
           <Route path="/ocr/*" element={<OcrPage />} />
           <Route path="/map" element={<MapPage />} />
           <Route path="/assistant" element={<AssistantPage />} />
