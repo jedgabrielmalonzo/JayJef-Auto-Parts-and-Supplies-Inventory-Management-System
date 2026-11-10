@@ -71,21 +71,7 @@ function AutomotiveHeroArt() {
       </g>
 
       {/* ── Crisp Horizontal Automotive Speedline across center ── */}
-      <path
-        d="M 0 470
-           L 180 470
-           C 220 470, 245 448, 275 400
-           C 310 340, 355 320, 420 320
-           C 485 320, 530 345, 565 405
-           C 595 448, 615 470, 660 470
-           L 800 470"
-        stroke="white"
-        strokeWidth="3.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-        opacity="0.95"
-      />
+
     </svg>
   );
 }
@@ -131,75 +117,75 @@ export default function LoginPage() {
 
         {/* Form area — vertically centered */}
         <div className="flex-1 flex flex-col justify-center max-w-md w-full mx-auto lg:mx-0">
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight mb-2">
-              Welcome back
-            </h1>
-            <p className="text-sm text-gray-500 mb-8">
-              Sign in to access JayJef Auto Parts &amp; Supplies Inventory.
-            </p>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight mb-2">
+            Welcome back
+          </h1>
+          <p className="text-sm text-gray-500 mb-8">
+            Sign in to access JayJef Auto Parts &amp; Supplies Inventory.
+          </p>
 
-            {/* Error message */}
-            {error && (
-              <div className="mb-5 p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-semibold text-[#FF0A33]">
-                {error}
-              </div>
-            )}
+          {/* Error message */}
+          {error && (
+            <div className="mb-5 p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-semibold text-[#FF0A33]">
+              {error}
+            </div>
+          )}
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Username / Email */}
-              <div className="space-y-2">
-                <Label className="text-[11px] font-bold uppercase tracking-widest text-gray-500">
-                  Username or Email
-                </Label>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Username / Email */}
+            <div className="space-y-2">
+              <Label className="text-[11px] font-bold uppercase tracking-widest text-gray-500">
+                Username or Email
+              </Label>
+              <Input
+                type="text"
+                className="h-12 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:border-[#FF0A33] focus:ring-2 focus:ring-[#FF0A33]/20 transition-all"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="admin"
+                required
+              />
+            </div>
+
+            {/* Password */}
+            <div className="space-y-2">
+              <Label className="text-[11px] font-bold uppercase tracking-widest text-gray-500">
+                Password
+              </Label>
+              <div className="relative">
                 <Input
-                  type="text"
-                  className="h-12 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:border-[#FF0A33] focus:ring-2 focus:ring-[#FF0A33]/20 transition-all"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="admin"
+                  type={showPassword ? 'text' : 'password'}
+                  className="h-12 w-full rounded-xl border border-gray-300 bg-white px-4 pr-11 text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:border-[#FF0A33] focus:ring-2 focus:ring-[#FF0A33]/20 transition-all font-mono"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1"
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
+            </div>
 
-              {/* Password */}
-              <div className="space-y-2">
-                <Label className="text-[11px] font-bold uppercase tracking-widest text-gray-500">
-                  Password
-                </Label>
-                <div className="relative">
-                  <Input
-                    type={showPassword ? 'text' : 'password'}
-                    className="h-12 w-full rounded-xl border border-gray-300 bg-white px-4 pr-11 text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:border-[#FF0A33] focus:ring-2 focus:ring-[#FF0A33]/20 transition-all font-mono"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1"
-                    title={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-              </div>
-
-                {/* Sign in button — Plain flat red #FF0A33 button, no gradient, no glow shadow */}
+            {/* Sign in button — Plain flat red #FF0A33 button, no gradient, no glow shadow */}
             <button
-                type="submit"
-                disabled={submitting}
-                className="w-full h-12 rounded-xl bg-[#FF0A33] hover:bg-[#E60026] active:bg-[#CC0022] disabled:opacity-50 font-bold text-white text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-none outline-none"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 size={18} className="animate-spin" />
-                    Authenticating...
-                  </>
-                ) : (
-                  'Sign in'
-                )}
+              type="submit"
+              disabled={submitting}
+              className="w-full h-12 rounded-xl bg-[#FF0A33] hover:bg-[#E60026] active:bg-[#CC0022] disabled:opacity-50 font-bold text-white text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-none outline-none"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  Authenticating...
+                </>
+              ) : (
+                'Sign in'
+              )}
             </button>
           </form>
         </div>
