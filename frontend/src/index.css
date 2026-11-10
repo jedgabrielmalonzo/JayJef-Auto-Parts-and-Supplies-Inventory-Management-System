@@ -11,6 +11,33 @@
   from { opacity: 0; transform: scale(0.96) translateY(4px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
+@keyframes marqueeLeft {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes marqueeRight {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+
+.animate-marquee-left {
+  display: flex;
+  width: max-content;
+  animation: marqueeLeft 34s linear infinite;
+  will-change: transform;
+}
+.animate-marquee-right {
+  display: flex;
+  width: max-content;
+  animation: marqueeRight 38s linear infinite;
+  will-change: transform;
+}
+.animate-marquee-left-fast {
+  display: flex;
+  width: max-content;
+  animation: marqueeLeft 30s linear infinite;
+  will-change: transform;
+}
 
 /* docs/09-design-system.md is the source of truth for every token below. */
 @theme {
