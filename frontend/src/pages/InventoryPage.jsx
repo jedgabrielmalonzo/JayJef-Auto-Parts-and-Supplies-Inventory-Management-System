@@ -250,9 +250,8 @@ function AdjustStockModal({ open, onClose, onSaved }) {
                 key={s.key}
                 type="button"
                 onClick={() => changeModalSize(s.key)}
-                className={`px-2.5 py-0.5 rounded-lg text-[11px] font-bold transition-all ${
-                  modalSize === s.key ? 'bg-white text-gray-900 shadow-xs font-extrabold' : 'text-gray-600 hover:text-gray-900'
-                }`}
+                className={`px-2.5 py-0.5 rounded-lg text-[11px] font-bold transition-all ${modalSize === s.key ? 'bg-white text-gray-900 shadow-xs font-extrabold' : 'text-gray-600 hover:text-gray-900'
+                  }`}
               >
                 {s.label}
               </button>
@@ -266,22 +265,20 @@ function AdjustStockModal({ open, onClose, onSaved }) {
             <button
               type="button"
               onClick={() => setMode('single')}
-              className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                mode === 'single'
-                  ? 'bg-white text-gray-900 shadow-xs font-extrabold'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+              className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all ${mode === 'single'
+                ? 'bg-white text-gray-900 shadow-xs font-extrabold'
+                : 'text-gray-600 hover:text-gray-900'
+                }`}
             >
               Single Product
             </button>
             <button
               type="button"
               onClick={() => setMode('bundle')}
-              className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                mode === 'bundle'
-                  ? 'bg-white text-gray-900 shadow-xs font-extrabold'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+              className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all ${mode === 'bundle'
+                ? 'bg-white text-gray-900 shadow-xs font-extrabold'
+                : 'text-gray-600 hover:text-gray-900'
+                }`}
             >
               Adjust by Bundle / Whole Order
             </button>
@@ -361,7 +358,7 @@ function AdjustStockModal({ open, onClose, onSaved }) {
           <form onSubmit={handleSubmitBundle} className="space-y-5 pt-2">
             <ModalSection title="Add Parts to Batch Adjustment">
               <ModalField label="Search & Add Aircon Part">
-                <ProductPicker selected={addItemProduct} onSelect={handleAddProductToBundle} onClear={() => setAddItemProduct(null)} placeholder="Search product name or SKU to add to batch..." />
+                <ProductPicker selected={addItemProduct} onSelect={handleAddProductToBundle} onClear={() => setAddItemProduct(null)} placeholder="Search product name or part number to add to batch..." />
               </ModalField>
             </ModalSection>
 
@@ -385,7 +382,7 @@ function AdjustStockModal({ open, onClose, onSaved }) {
                     <Table className="text-xs">
                       <TableHeader className="bg-gray-50/80 sticky top-0 z-10">
                         <TableRow>
-                          <TableHead className="font-bold text-gray-700">Product & SKU</TableHead>
+                          <TableHead className="font-bold text-gray-700">Product & Part Number</TableHead>
                           <TableHead className="font-bold text-gray-700 w-32">Direction</TableHead>
                           <TableHead className="font-bold text-gray-700 w-24">Qty</TableHead>
                           <TableHead className="w-16 text-right font-bold text-gray-700">Action</TableHead>
@@ -501,7 +498,7 @@ export default function InventoryPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
-  useEffect(() => { getOverview().then(setSummary).catch(() => {}); }, []);
+  useEffect(() => { getOverview().then(setSummary).catch(() => { }); }, []);
 
   // Filter movements by Date Range, Smart Search & Movement Type
   const filteredMovements = useMemo(() => {
@@ -583,7 +580,7 @@ export default function InventoryPage() {
   function handleAdjusted() {
     setAdjustOpen(false);
     load();
-    getOverview().then(setSummary).catch(() => {});
+    getOverview().then(setSummary).catch(() => { });
   }
 
   const stockQty = summary?.inventory?.quantityInHand || 0;
@@ -596,10 +593,7 @@ export default function InventoryPage() {
       <motion.div custom={0} variants={sectionVariants} initial="hidden" animate="visible" className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gray-100 text-gray-800">
-              <ClipboardList size={22} />
-            </span>
-            Admin — Stock Movements
+            Stock Movements
           </h1>
           <p className="text-sm text-gray-500 mt-1">
             Real-time daily inventory stock ins, stock outs, batch fulfillments, and audit logs
@@ -682,9 +676,8 @@ export default function InventoryPage() {
                       setViewMode('stacked');
                       setMovementsPage(1);
                     }}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg transition-colors ${
-                      viewMode === 'stacked' ? 'bg-black text-white' : 'text-gray-600 hover:text-gray-900'
-                    }`}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg transition-colors ${viewMode === 'stacked' ? 'bg-black text-white' : 'text-gray-600 hover:text-gray-900'
+                      }`}
                   >
                     <Layers size={13} />
                     Stacked ({stackedMovements.length})
@@ -695,9 +688,8 @@ export default function InventoryPage() {
                       setViewMode('raw');
                       setMovementsPage(1);
                     }}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg transition-colors ${
-                      viewMode === 'raw' ? 'bg-black text-white' : 'text-gray-600 hover:text-gray-900'
-                    }`}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg transition-colors ${viewMode === 'raw' ? 'bg-black text-white' : 'text-gray-600 hover:text-gray-900'
+                      }`}
                   >
                     <ListFilter size={13} />
                     Raw Logs ({filteredMovements.length})
@@ -750,7 +742,7 @@ export default function InventoryPage() {
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <Input
                     type="text"
-                    placeholder="Smart search movements by product name, SKU, reason, note, or date..."
+                    placeholder="Smart search movements by product name, part number, reason, note, or date..."
                     value={movementSearch}
                     onChange={(e) => {
                       setMovementSearch(e.target.value);
@@ -799,11 +791,10 @@ export default function InventoryPage() {
                     setMovementTypeFilter('all');
                     setMovementsPage(1);
                   }}
-                  className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${
-                    movementTypeFilter === 'all'
-                      ? 'bg-gray-900 text-white shadow-xs'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
+                  className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${movementTypeFilter === 'all'
+                    ? 'bg-gray-900 text-white shadow-xs'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
                 >
                   All Types
                 </button>
@@ -813,11 +804,10 @@ export default function InventoryPage() {
                     setMovementTypeFilter('in');
                     setMovementsPage(1);
                   }}
-                  className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${
-                    movementTypeFilter === 'in'
-                      ? 'bg-emerald-700 text-white shadow-xs'
-                      : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
-                  }`}
+                  className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${movementTypeFilter === 'in'
+                    ? 'bg-emerald-700 text-white shadow-xs'
+                    : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
+                    }`}
                 >
                   🟢 Stock In (+)
                 </button>
@@ -827,11 +817,10 @@ export default function InventoryPage() {
                     setMovementTypeFilter('out');
                     setMovementsPage(1);
                   }}
-                  className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${
-                    movementTypeFilter === 'out'
-                      ? 'bg-red-700 text-white shadow-xs'
-                      : 'bg-red-50 text-red-700 hover:bg-red-100 border border-red-200'
-                  }`}
+                  className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${movementTypeFilter === 'out'
+                    ? 'bg-red-700 text-white shadow-xs'
+                    : 'bg-red-50 text-red-700 hover:bg-red-100 border border-red-200'
+                    }`}
                 >
                   🔴 Stock Out (−)
                 </button>
@@ -841,11 +830,10 @@ export default function InventoryPage() {
                     setMovementTypeFilter('adjustment');
                     setMovementsPage(1);
                   }}
-                  className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${
-                    movementTypeFilter === 'adjustment'
-                      ? 'bg-amber-700 text-white shadow-xs'
-                      : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'
-                  }`}
+                  className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${movementTypeFilter === 'adjustment'
+                    ? 'bg-amber-700 text-white shadow-xs'
+                    : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'
+                    }`}
                 >
                   ⚙️ Adjustments
                 </button>
@@ -855,11 +843,10 @@ export default function InventoryPage() {
                     setMovementTypeFilter('initial');
                     setMovementsPage(1);
                   }}
-                  className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${
-                    movementTypeFilter === 'initial'
-                      ? 'bg-blue-700 text-white shadow-xs'
-                      : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
-                  }`}
+                  className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${movementTypeFilter === 'initial'
+                    ? 'bg-blue-700 text-white shadow-xs'
+                    : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
+                    }`}
                 >
                   🏷️ Initial Stock
                 </button>
@@ -875,7 +862,7 @@ export default function InventoryPage() {
                     <>
                       <TableHeader className="bg-gray-50/80">
                         <TableRow>
-                          <TableHead className="font-bold text-gray-700">Product &amp; SKU</TableHead>
+                          <TableHead className="font-bold text-gray-700">Product &amp; Part Number</TableHead>
                           <TableHead className="font-bold text-gray-700">Daily Net Change</TableHead>
                           <TableHead className="font-bold text-gray-700">Activity</TableHead>
                           <TableHead className="font-bold text-gray-700">Date &amp; Time</TableHead>
@@ -906,11 +893,10 @@ export default function InventoryPage() {
                               </TableCell>
                               <TableCell className="tabular-nums">
                                 <span
-                                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold ${
-                                    g.totalChange >= 0
-                                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                      : 'bg-red-50 text-red-700 border border-red-200'
-                                  }`}
+                                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold ${g.totalChange >= 0
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                    : 'bg-red-50 text-red-700 border border-red-200'
+                                    }`}
                                 >
                                   {g.totalChange >= 0 ? `+${g.totalChange}` : g.totalChange} Total
                                 </span>
@@ -949,7 +935,7 @@ export default function InventoryPage() {
                     <>
                       <TableHeader className="bg-gray-50/80">
                         <TableRow>
-                          <TableHead className="font-bold text-gray-700">Product &amp; SKU</TableHead>
+                          <TableHead className="font-bold text-gray-700">Product &amp; Part Number</TableHead>
                           <TableHead className="font-bold text-gray-700">Change</TableHead>
                           <TableHead className="font-bold text-gray-700">Reason</TableHead>
                           <TableHead className="font-bold text-gray-700">Date &amp; Time</TableHead>

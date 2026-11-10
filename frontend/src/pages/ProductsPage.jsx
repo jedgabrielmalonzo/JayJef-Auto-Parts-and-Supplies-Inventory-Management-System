@@ -77,7 +77,7 @@ function ProductsListView({ modal }) {
   }, [location.pathname]);
 
   useEffect(() => {
-    getOverview().then(setSummary).catch(() => {});
+    getOverview().then(setSummary).catch(() => { });
   }, []);
 
   // Multi-selection handlers
@@ -118,7 +118,7 @@ function ProductsListView({ modal }) {
       setSelectedIds([]);
       setBulkDeleteModalOpen(false);
       load();
-      getOverview().then(setSummary).catch(() => {});
+      getOverview().then(setSummary).catch(() => { });
     } catch (err) {
       toast.error(err.message || 'Failed to delete selected products');
     } finally {
@@ -157,7 +157,7 @@ function ProductsListView({ modal }) {
       } else {
         toast.success(`Sold 1 unit of "${p.name}" (Stock: ${newQty})`);
       }
-      getOverview().then(setSummary).catch(() => {});
+      getOverview().then(setSummary).catch(() => { });
     } catch (err) {
       toast.error(err.message);
       load();
@@ -181,7 +181,7 @@ function ProductsListView({ modal }) {
         note: '1-Click Quick Restock (+1)',
       });
       toast.success(`Restocked 1 unit to "${p.name}" (Stock: ${p.stock_quantity + 1})`);
-      getOverview().then(setSummary).catch(() => {});
+      getOverview().then(setSummary).catch(() => { });
     } catch (err) {
       toast.error(err.message);
       load();
@@ -202,7 +202,7 @@ function ProductsListView({ modal }) {
       <motion.div custom={0} variants={sectionVariants} initial="hidden" animate="visible" className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
-            Admin — Products Catalog
+            Products Catalog
           </h1>
           <p className="text-sm text-gray-500 mt-1">Manage auto parts, prices, categories, and stock thresholds</p>
         </div>
@@ -219,7 +219,7 @@ function ProductsListView({ modal }) {
             <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
             <Input
               className="w-full pl-10 rounded-xl border-gray-300 focus:border-red-600 focus:ring-red-600/20"
-              placeholder="Search by SKU, product name, brand..."
+              placeholder="Search by part number, product name, brand..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -248,18 +248,16 @@ function ProductsListView({ modal }) {
           <button
             title="Grid view"
             onClick={() => setView('grid')}
-            className={`flex h-9 w-9 items-center justify-center rounded-lg transition-all ${
-              view === 'grid' ? 'bg-white text-gray-900 shadow-xs font-bold' : 'text-gray-500 hover:text-gray-900'
-            }`}
+            className={`flex h-9 w-9 items-center justify-center rounded-lg transition-all ${view === 'grid' ? 'bg-white text-gray-900 shadow-xs font-bold' : 'text-gray-500 hover:text-gray-900'
+              }`}
           >
             <LayoutGrid size={18} />
           </button>
           <button
             title="List view"
             onClick={() => setView('list')}
-            className={`flex h-9 w-9 items-center justify-center rounded-lg transition-all ${
-              view === 'list' ? 'bg-white text-gray-900 shadow-xs font-bold' : 'text-gray-500 hover:text-gray-900'
-            }`}
+            className={`flex h-9 w-9 items-center justify-center rounded-lg transition-all ${view === 'list' ? 'bg-white text-gray-900 shadow-xs font-bold' : 'text-gray-500 hover:text-gray-900'
+              }`}
           >
             <List size={18} />
           </button>
@@ -290,11 +288,10 @@ function ProductsListView({ modal }) {
               <motion.div
                 key={p.id}
                 whileHover={{ y: -4 }}
-                className={`group relative flex flex-col justify-between overflow-hidden rounded-3xl border p-3.5 shadow-xs transition-all cursor-pointer ${
-                  isSelected
+                className={`group relative flex flex-col justify-between overflow-hidden rounded-3xl border p-3.5 shadow-xs transition-all cursor-pointer ${isSelected
                     ? 'border-red-500/80 bg-red-50/20 ring-2 ring-red-500/30'
                     : 'border-gray-200/80 bg-[#f4f4f6]/60 hover:border-gray-300 hover:shadow-md'
-                }`}
+                  }`}
                 onClick={() => navigate(`/products/${p.id}`)}
               >
                 {/* Top Image Container with Top-Left Dark Overlay SKU Badge & Top-Right Selection Checkbox */}
@@ -405,8 +402,7 @@ function ProductsListView({ modal }) {
                       title="Select all products"
                     />
                   </TableHead>
-                  <TableHead className="w-12"></TableHead>
-                  <TableHead className="font-semibold text-gray-700">SKU</TableHead>
+                  <TableHead className="font-semibold text-gray-700">Part Number</TableHead>
                   <TableHead className="font-semibold text-gray-700">Product Name</TableHead>
                   <TableHead className="font-semibold text-gray-700">Category</TableHead>
                   <TableHead className="font-semibold text-gray-700">Stock</TableHead>
@@ -422,9 +418,8 @@ function ProductsListView({ modal }) {
                   return (
                     <TableRow
                       key={p.id}
-                      className={`cursor-pointer transition-colors ${
-                        isSelected ? 'bg-red-50/40 hover:bg-red-50/60' : 'hover:bg-red-50/30'
-                      }`}
+                      className={`cursor-pointer transition-colors ${isSelected ? 'bg-red-50/40 hover:bg-red-50/60' : 'hover:bg-red-50/30'
+                        }`}
                       onClick={() => navigate(`/products/${p.id}`)}
                     >
                       <TableCell
@@ -439,7 +434,6 @@ function ProductsListView({ modal }) {
                           className="pointer-events-none"
                         />
                       </TableCell>
-                      <TableCell><ProductThumb product={p} /></TableCell>
                       <TableCell className="font-mono text-xs font-bold text-red-600">{p.sku}</TableCell>
                       <TableCell className="font-medium text-gray-900">{p.name}</TableCell>
                       <TableCell><Badge variant="outline">{formatCategory(p.category)}</Badge></TableCell>
@@ -514,37 +508,37 @@ function ProductsListView({ modal }) {
           initial={{ opacity: 0, y: 30, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 30, scale: 0.95 }}
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 rounded-2xl bg-gray-900/95 px-5 py-3 text-white shadow-2xl backdrop-blur-md border border-gray-800"
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 rounded-2xl bg-white px-5 py-3 text-gray-900 shadow-2xl border border-gray-200 ring-1 ring-black/5"
         >
-          <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white shadow-xs">
-              {selectedIds.length}
-            </span>
-            <span className="text-xs font-semibold tracking-wide">
-              {selectedIds.length === 1 ? 'Product' : 'Products'} selected
-            </span>
-          </div>
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white shadow-xs">
+                {selectedIds.length}
+              </span>
+                <span className="text-xs font-bold text-gray-900 tracking-wide">
+                  {selectedIds.length === 1 ? 'Product' : 'Products'} selected
+                </span>
+            </div>
 
-          <div className="h-4 w-px bg-gray-700" />
+            <div className="h-4 w-px bg-gray-200" />
 
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSelectedIds([])}
-              className="rounded-xl text-gray-300 hover:bg-gray-800 hover:text-white text-xs"
-            >
-              Deselect All
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => setBulkDeleteModalOpen(true)}
-              className="rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-md text-xs font-bold gap-1.5"
-            >
-              <Trash2 size={14} />
-              Delete Selected ({selectedIds.length})
-            </Button>
-          </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedIds([])}
+                className="rounded-xl text-gray-600 hover:bg-gray-100 hover:text-gray-900 text-xs font-medium"
+              >
+                Deselect All
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setBulkDeleteModalOpen(true)}
+                className="rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-sm text-xs font-bold gap-1.5"
+              >
+                <Trash2 size={14} />
+                Delete Selected ({selectedIds.length})
+              </Button>
+            </div>
         </motion.div>
       )}
 

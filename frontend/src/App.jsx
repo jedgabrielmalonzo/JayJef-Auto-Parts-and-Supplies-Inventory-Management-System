@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, Component } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LayoutDashboard, Package, AlertTriangle, Layers, ShieldCheck,
+  Package, AlertTriangle, Layers, ShieldCheck,
   Menu, X, Settings, LogOut
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -59,7 +59,6 @@ class ErrorBoundary extends Component {
 }
 
 const NAV_ITEMS = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/products', label: 'Products and Catalog', icon: Package },
   { to: '/low-stock', label: 'Low Stock Alerts', icon: AlertTriangle },
   { to: '/inventory', label: 'Stock Movements', icon: Layers },
@@ -256,7 +255,7 @@ function SidebarContent({ onCloseMobile }) {
       <div>
         {/* Shop Brand Logo & Mobile Close */}
         <div className="flex items-center justify-between px-1 py-2 mb-4 border-b border-gray-100 pb-4">
-          <NavLink to="/dashboard" onClick={onCloseMobile} className="flex items-center">
+          <NavLink to="/products" onClick={onCloseMobile} className="flex items-center">
             <JayJefLogo variant="sidebar" />
           </NavLink>
           <motion.button
@@ -293,7 +292,7 @@ function AnimatedRoutes() {
   return (
     <AnimatePresence mode="wait">
       <motion.div
-        key={location.pathname.split('/')[1] || 'dashboard'}
+        key={location.pathname.split('/')[1] || 'products'}
         variants={pageVariants}
         initial="hidden"
         animate="visible"
@@ -301,8 +300,8 @@ function AnimatedRoutes() {
         className="w-full"
       >
         <Routes location={location}>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/" element={<Navigate to="/products" replace />} />
+          <Route path="/dashboard" element={<Navigate to="/products" replace />} />
           <Route path="/products/*" element={<ProductsPage />} />
           <Route path="/low-stock" element={<LowStockPage />} />
           <Route path="/inventory" element={<InventoryPage />} />

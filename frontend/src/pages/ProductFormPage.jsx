@@ -128,7 +128,7 @@ export default function ProductFormPage() {
 
   function validate() {
     const errs = {};
-    if (!form.sku.trim()) errs.sku = 'SKU / Part Number is required';
+    if (!form.sku.trim()) errs.sku = 'Part number is required';
     if (!form.name.trim()) errs.name = 'Product name is required';
     if (!form.category) errs.category = 'Category selection is required';
 
@@ -239,7 +239,7 @@ export default function ProductFormPage() {
 
             <Section title="General Information">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="Part Number / SKU" required error={fieldErrors.sku}>
+                <Field label="Part Number" required error={fieldErrors.sku}>
                   <Input
                     className="font-mono uppercase rounded-xl border-gray-300 focus:border-red-600"
                     aria-invalid={!!fieldErrors.sku}

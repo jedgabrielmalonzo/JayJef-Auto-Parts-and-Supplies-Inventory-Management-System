@@ -123,10 +123,7 @@ export default function LowStockPage() {
       >
         <div>
           <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
-              <AlertTriangle size={22} />
-            </span>
-            Admin — Low Stock Alerts
+            Low Stock Alerts
           </h1>
           <p className="text-sm text-gray-500 mt-1">
             Real-time tracking of auto parts below minimum safety thresholds and critical stockouts
@@ -189,7 +186,7 @@ export default function LowStockPage() {
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <Input
                 type="text"
-                placeholder="Search low stock by product name, SKU, brand, or vehicle..."
+                placeholder="Search low stock by product name, part number, brand, or vehicle..."
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
@@ -242,11 +239,10 @@ export default function LowStockPage() {
                   setStatusFilter('all');
                   setPage(1);
                 }}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                  statusFilter === 'all'
-                    ? 'bg-white text-gray-900 shadow-xs'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${statusFilter === 'all'
+                  ? 'bg-white text-gray-900 shadow-xs'
+                  : 'text-gray-600 hover:text-gray-900'
+                  }`}
               >
                 All ({items.length})
               </button>
@@ -256,11 +252,10 @@ export default function LowStockPage() {
                   setStatusFilter('out_of_stock');
                   setPage(1);
                 }}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                  statusFilter === 'out_of_stock'
-                    ? 'bg-red-600 text-white shadow-xs'
-                    : 'text-red-700 hover:text-red-800'
-                }`}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${statusFilter === 'out_of_stock'
+                  ? 'bg-red-600 text-white shadow-xs'
+                  : 'text-red-700 hover:text-red-800'
+                  }`}
               >
                 Out of Stock ({stats.outOfStock})
               </button>
@@ -270,11 +265,10 @@ export default function LowStockPage() {
                   setStatusFilter('low_stock');
                   setPage(1);
                 }}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                  statusFilter === 'low_stock'
-                    ? 'bg-amber-600 text-white shadow-xs'
-                    : 'text-amber-700 hover:text-amber-800'
-                }`}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${statusFilter === 'low_stock'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'text-amber-700 hover:text-amber-800'
+                  }`}
               >
                 Low Stock ({stats.lowQuantity})
               </button>
@@ -333,7 +327,7 @@ export default function LowStockPage() {
               <Table className="w-full">
                 <TableHeader className="bg-gray-50/80">
                   <TableRow>
-                    <TableHead className="font-bold text-gray-700">Product &amp; SKU</TableHead>
+                    <TableHead className="font-bold text-gray-700">Product &amp; Part Number</TableHead>
                     <TableHead className="font-bold text-gray-700">Category &amp; Brand</TableHead>
                     <TableHead className="font-bold text-gray-700">Stock vs Reorder Threshold</TableHead>
                     <TableHead className="font-bold text-gray-700">Status</TableHead>
@@ -343,7 +337,7 @@ export default function LowStockPage() {
                 <TableBody>
                   {paginatedItems.map((p) => {
                     const isOutOfStock = Number(p.stock_quantity || 0) <= 0;
-                    const ratio = p.reorder_threshold > 0 
+                    const ratio = p.reorder_threshold > 0
                       ? Math.min(100, Math.round((Number(p.stock_quantity) / Number(p.reorder_threshold)) * 100))
                       : 0;
 
@@ -391,9 +385,8 @@ export default function LowStockPage() {
                             {/* Stock Level Progress Bar */}
                             <div className="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
                               <div
-                                className={`h-full rounded-full transition-all duration-300 ${
-                                  isOutOfStock ? 'bg-red-500' : ratio <= 40 ? 'bg-amber-500' : 'bg-yellow-400'
-                                }`}
+                                className={`h-full rounded-full transition-all duration-300 ${isOutOfStock ? 'bg-red-500' : ratio <= 40 ? 'bg-amber-500' : 'bg-yellow-400'
+                                  }`}
                                 style={{ width: `${Math.max(4, ratio)}%` }}
                               />
                             </div>

@@ -106,7 +106,7 @@ export default function AuditLogPage() {
       >
         <div>
           <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
-            Admin — System Audit Log
+            System Audit Log
           </h1>
           <p className="text-sm text-gray-500 mt-1">
             Complete timeline of inventory adjustments, staff actions, PO receipts, and system overrides
@@ -174,7 +174,7 @@ export default function AuditLogPage() {
           <Input
             type="text"
             className="pl-9 h-9 text-xs rounded-xl border-gray-200 bg-gray-50/50 focus:bg-white transition-colors"
-            placeholder="Search product, SKU, staff, or notes..."
+            placeholder="Search product, part number, staff, or notes..."
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -218,7 +218,7 @@ export default function AuditLogPage() {
             <TableRow>
               <TableHead className="font-bold text-gray-700">Date &amp; Time</TableHead>
               <TableHead className="font-bold text-gray-700">Staff Member</TableHead>
-              <TableHead className="font-bold text-gray-700">Product &amp; SKU</TableHead>
+              <TableHead className="font-bold text-gray-700">Product &amp; Part Number</TableHead>
               <TableHead className="font-bold text-gray-700">Action / Reason</TableHead>
               <TableHead className="font-bold text-gray-700">Stock Audit (Before → After)</TableHead>
               <TableHead className="font-bold text-gray-700">Reference &amp; Note</TableHead>
@@ -273,11 +273,10 @@ export default function AuditLogPage() {
                       <span className="text-gray-400 font-bold">→</span>
                       <span className="font-extrabold text-gray-900 font-mono">{m.quantity_after ?? '—'}</span>
                       <span
-                        className={`ml-1 text-[11px] font-extrabold px-1.5 py-0.2 rounded ${
-                          m.quantity_change >= 0
+                        className={`ml-1 text-[11px] font-extrabold px-1.5 py-0.2 rounded ${m.quantity_change >= 0
                             ? 'text-emerald-700 bg-emerald-50 border border-emerald-200'
                             : 'text-red-700 bg-red-50 border border-red-200'
-                        }`}
+                          }`}
                       >
                         {m.quantity_change >= 0 ? `+${m.quantity_change}` : m.quantity_change}
                       </span>

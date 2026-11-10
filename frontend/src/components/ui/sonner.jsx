@@ -20,7 +20,7 @@ const Toaster = ({
           <CircleCheckIcon className="size-4" />
         ),
         info: (
-          <InfoIcon className="size-4" />
+          <InfoIcon className="size-4 text-gray-700" />
         ),
         warning: (
           <TriangleAlertIcon className="size-4" />
@@ -47,11 +47,15 @@ const Toaster = ({
           "--warning-bg": "var(--color-amber-100)",
           "--warning-text": "var(--color-amber-700)",
           "--warning-border": "var(--color-amber-100)",
+          "--info-bg": "#FFFFFF",
+          "--info-text": "#111827",
+          "--info-border": "#E5E7EB",
         }
       }
       toastOptions={{
         classNames: {
-          toast: "cn-toast",
+          toast: "cn-toast font-sans shadow-lg",
+          info: "!bg-white !text-gray-900 !border-gray-200",
         },
       }}
       {...props} />

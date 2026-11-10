@@ -5,7 +5,7 @@ import { listProducts } from '../api/products.js';
 const inputClasses = 'h-10 w-full min-w-0 rounded-xl border border-gray-300 bg-white px-3 py-1 text-sm outline-none transition-colors focus-visible:border-red-600 focus-visible:ring-2 focus-visible:ring-red-600/15';
 
 /** Search-and-pick control shared by any form that attaches a product to a line item. */
-export default function ProductPicker({ selected, onSelect, onClear, placeholder = 'Search SKU or name...' }) {
+export default function ProductPicker({ selected, onSelect, onClear, placeholder = 'Search part number or name...' }) {
   const [query, setQuery] = useState('');
   const [options, setOptions] = useState([]);
 

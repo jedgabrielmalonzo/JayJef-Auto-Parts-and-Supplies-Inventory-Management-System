@@ -24,7 +24,7 @@ function CustomCategoryStockTooltip({ active, payload }) {
   return (
     <div className="rounded-xl bg-[#09090b] p-3 text-white shadow-xl text-xs space-y-1.5 max-w-xs border border-gray-800">
       <p className="font-bold text-sm text-gray-100">{data.name}</p>
-      <p className="text-gray-400 font-mono text-[11px]">SKU: {data.sku} &bull; Category: {formatCategory(data.category || 'other')}</p>
+      <p className="text-gray-400 font-mono text-[11px]">Part #: {data.sku} &bull; Category: {formatCategory(data.category || 'other')}</p>
       <div className="flex items-center justify-between gap-4 pt-2 border-t border-gray-800 text-xs">
         <span className="text-gray-300">Stock On Hand:</span>
         <span className="font-extrabold text-white tabular-nums">{data.stock_quantity} {data.unit || 'pc'}</span>
@@ -197,7 +197,7 @@ export default function DashboardPage() {
             {/* CARD 1: Unique Catalog Parts */}
             <div className="rounded-3xl border border-sky-100 bg-sky-50/50 p-6 shadow-xs flex flex-col justify-center transition-all hover:shadow-sm">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-sky-800">Catalog SKUs</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-sky-800">Total Parts</span>
                 <span className="rounded-full bg-sky-100 p-1.5 text-sky-700">
                   <Boxes size={16} />
                 </span>
@@ -415,7 +415,7 @@ export default function DashboardPage() {
                         <ProductThumb product={p} />
                         <div className="min-w-0">
                           <p className="truncate text-sm font-semibold text-gray-900">{p.name}</p>
-                          <p className="text-xs text-gray-500 font-mono">SKU: {p.sku} &bull; Threshold: {p.reorder_threshold}</p>
+                          <p className="text-xs text-gray-500 font-mono">Part #: {p.sku} &bull; Threshold: {p.reorder_threshold}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
