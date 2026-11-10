@@ -105,8 +105,8 @@ export default function AuditLogPage() {
         className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
       >
         <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900">
-            System Audit Log
+          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
+            Admin — System Audit Log
           </h1>
           <p className="text-sm text-gray-500 mt-1">
             Complete timeline of inventory adjustments, staff actions, PO receipts, and system overrides
@@ -193,9 +193,8 @@ export default function AuditLogPage() {
               <SelectContent>
                 <SelectItem value="all">All Event Reasons</SelectItem>
                 <SelectItem value="manual_adjustment">Manual Adjustment</SelectItem>
-                <SelectItem value="correction">Correction</SelectItem>
-                <SelectItem value="purchase_order">Purchase Order</SelectItem>
-                <SelectItem value="ocr_intake">OCR Smart Intake</SelectItem>
+                <SelectItem value="correction">Inventory Correction</SelectItem>
+                <SelectItem value="initial_stock">Initial Stock Take</SelectItem>
               </SelectContent>
             </Select>
           </div>

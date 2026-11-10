@@ -36,7 +36,9 @@ const memStore = {
   ocr_receipt_items: [],
   schema_migrations: [],
   shop_cabinets: [],
-  shop_settings: []
+  shop_settings: [
+    { id: 1, name: 'JayJef Auto Parts & Supplies', address: '123 Industrial Ave, Quezon City, Philippines', phone: '0917 123 4567', updated_at: new Date().toISOString() }
+  ]
 };
 
 let nextIds = {
@@ -181,12 +183,80 @@ function executeMemQuery(text, params = []) {
     return { rows, rowCount: rows.length };
   }
 
+  // SELECT stock_movements
+  if (lowerSql.startsWith('select') && lowerSql.includes('from stock_movements')) {
+    if (lowerSql.includes('count(*)::int as total') || lowerSql.includes('count(*)')) {
+      return { rows: [{ total: memStore.stock_movements.length, count: memStore.stock_movements.length }], rowCount: 1 };
+    }
+    const rows = memStore.stock_movements.map(m => {
+      const p = memStore.products.find(prod => String(prod.id) === String(m.product_id));
+      return {
+        ...m,
+        product_sku: p?.sku || 'SKU-N/A',
+        product_name: p?.name || 'Unknown Part',
+        user_name: 'Administrator'
+      };
+    }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    return { rows, rowCount: rows.length };
+  }
+
+  // INSERT INTO stock_movements
+  if (lowerSql.startsWith('insert into stock_movements')) {
+    const id = nextIds.stock_movements++;
+    const now = new Date().toISOString();
+    const newMovement = {
+      id,
+      product_id: params[0],
+      user_id: params[1] || 1,
+      quantity_change: Number(params[2] || 0),
+      reason: params[3] || 'manual_adjustment',
+      reference_type: params[4] || null,
+      reference_id: params[5] || null,
+      quantity_before: Number(params[6] || 0),
+      quantity_after: Number(params[7] || 0),
+      note: params[8] || '',
+      created_at: now
+    };
+    memStore.stock_movements.push(newMovement);
+    // Update product stock in memory
+    const p = memStore.products.find(prod => String(prod.id) === String(newMovement.product_id));
+    if (p) p.stock_quantity = Math.max(0, Number(p.stock_quantity || 0) + newMovement.quantity_change);
+    return { rows: [newMovement], rowCount: 1 };
+  }
+
   // SELECT products
   if (lowerSql.startsWith('select') && lowerSql.includes('from products')) {
-    if (lowerSql.includes('count(*)::int as total')) {
-      return { rows: [{ total: memStore.products.length }], rowCount: 1 };
+    if (lowerSql.includes('coalesce(sum(stock_quantity),0)::int as total')) {
+      const sum = memStore.products.reduce((acc, p) => acc + (p.is_active ? Number(p.stock_quantity || 0) : 0), 0);
+      return { rows: [{ total: sum }], rowCount: 1 };
+    }
+    if (lowerSql.includes('count(*)::int as total') || lowerSql.includes('count(*)::int as count') || lowerSql.includes('count(*)')) {
+      if (lowerSql.includes('stock_quantity <= reorder_threshold and stock_quantity > 0')) {
+        const c = memStore.products.filter(p => p.is_active && p.stock_quantity <= p.reorder_threshold && p.stock_quantity > 0).length;
+        return { rows: [{ count: c, total: c }], rowCount: 1 };
+      }
+      if (lowerSql.includes('stock_quantity = 0')) {
+        const c = memStore.products.filter(p => p.is_active && p.stock_quantity === 0).length;
+        return { rows: [{ count: c, total: c }], rowCount: 1 };
+      }
+      const activeCount = memStore.products.filter(p => p.is_active).length;
+      return { rows: [{ total: activeCount, count: activeCount }], rowCount: 1 };
+    }
+    if (lowerSql.includes('where id = $1')) {
+      const p = memStore.products.find(prod => String(prod.id) === String(params[0]));
+      return { rows: p ? [p] : [], rowCount: p ? 1 : 0 };
     }
     return { rows: [...memStore.products], rowCount: memStore.products.length };
+  }
+
+  // SELECT shop_settings
+  if (lowerSql.startsWith('select') && lowerSql.includes('from shop_settings')) {
+    return { rows: [memStore.shop_settings[0] || { name: 'JayJef Auto Parts & Supplies' }], rowCount: 1 };
+  }
+
+  // Fallback for any count query
+  if (lowerSql.includes('count(')) {
+    return { rows: [{ count: 0, total: 0 }], rowCount: 1 };
   }
 
   return { rows: [], rowCount: 0 };
@@ -207,8 +277,19 @@ export const pool = {
     try {
       return await realPool.query(text, params);
     } catch (err) {
-      if (err.code === 'ECONNREFUSED' || err.message?.includes('ECONNREFUSED')) {
-        console.warn('⚡ Local PostgreSQL unavailable. Switching seamlessly to In-Memory DB Store.');
+      const isConnError =
+        err.code === 'ECONNREFUSED' ||
+        err.code === 'ENOTFOUND' ||
+        err.code === 'EACCES' ||
+        err.code === 'EAI_AGAIN' ||
+        err.message?.includes('ECONNREFUSED') ||
+        err.message?.includes('ENOTFOUND') ||
+        err.message?.includes('EACCES') ||
+        err.message?.includes('tenant/user') ||
+        err.message?.includes('Tenant or user not found');
+
+      if (isConnError) {
+        console.warn('⚡ PostgreSQL connection unavailable (' + (err.code || err.message) + '). Switching seamlessly to In-Memory DB Store.');
         isPostgresAvailable = false;
         return executeMemQuery(text, params);
       }
@@ -222,8 +303,19 @@ export const pool = {
     try {
       return await realPool.connect();
     } catch (err) {
-      if (err.code === 'ECONNREFUSED' || err.message?.includes('ECONNREFUSED')) {
-        console.warn('⚡ Local PostgreSQL unavailable. Switching seamlessly to In-Memory DB Client.');
+      const isConnError =
+        err.code === 'ECONNREFUSED' ||
+        err.code === 'ENOTFOUND' ||
+        err.code === 'EACCES' ||
+        err.code === 'EAI_AGAIN' ||
+        err.message?.includes('ECONNREFUSED') ||
+        err.message?.includes('ENOTFOUND') ||
+        err.message?.includes('EACCES') ||
+        err.message?.includes('tenant/user') ||
+        err.message?.includes('Tenant or user not found');
+
+      if (isConnError) {
+        console.warn('⚡ PostgreSQL connection unavailable (' + (err.code || err.message) + '). Switching seamlessly to In-Memory DB Client.');
         isPostgresAvailable = false;
         return new MemClient();
       }

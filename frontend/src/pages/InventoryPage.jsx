@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { listMovements, createMovement, createBatchMovements } from '../api/inventory.js';
-import { listOrders, getOrder } from '../api/orders.js';
 import { getOverview } from '../api/dashboard.js';
 import { MOVEMENT_REASON_LABELS } from '../constants.js';
 import MicroStatCard from '../components/MicroStatCard.jsx';
@@ -125,9 +124,6 @@ function AdjustStockModal({ open, onClose, onSaved }) {
   const [bundleItems, setBundleItems] = useState([]);
   const [bundleReason, setBundleReason] = useState('manual_adjustment');
   const [bundleNote, setBundleNote] = useState('');
-  const [orders, setOrders] = useState([]);
-  const [selectedOrderId, setSelectedOrderId] = useState('');
-  const [loadingOrder, setLoadingOrder] = useState(false);
   const [addItemProduct, setAddItemProduct] = useState(null);
 
   // Modal Size State
@@ -145,45 +141,6 @@ function AdjustStockModal({ open, onClose, onSaved }) {
   function changeModalSize(newSize) {
     setModalSize(newSize);
     localStorage.setItem('jayjef_modal_size', newSize);
-  }
-
-  // Load orders for bundle selection when modal opens
-  useEffect(() => {
-    if (open) {
-      listOrders({ page_size: 100 })
-        .then((res) => {
-          setOrders(res?.items || []);
-        })
-        .catch(() => {});
-    }
-  }, [open]);
-
-  // Handle loading line items from an existing order
-  async function handleSelectOrder(orderId) {
-    setSelectedOrderId(orderId);
-    if (!orderId) return;
-
-    setLoadingOrder(true);
-    try {
-      const order = await getOrder(orderId);
-      const isPurchase = order.type === 'purchase';
-      const items = (order.items || []).map((i) => ({
-        product_id: i.product_id,
-        product_name: i.product_name || i.name || 'Unknown Product',
-        product_sku: i.product_sku || i.sku || 'NO-SKU',
-        quantity: i.quantity,
-        direction: isPurchase ? 'in' : 'out',
-      }));
-
-      setBundleItems(items);
-      setBundleReason(isPurchase ? 'purchase_order_received' : 'order_fulfillment');
-      setBundleNote(`Imported from Order ${order.order_number}`);
-      toast.success(`Loaded ${items.length} items from ${order.order_number}`);
-    } catch (err) {
-      toast.error(`Failed to load order items: ${err.message}`);
-    } finally {
-      setLoadingOrder(false);
-    }
   }
 
   function handleAddProductToBundle(prod) {
@@ -262,7 +219,6 @@ function AdjustStockModal({ open, onClose, onSaved }) {
         adjustments,
         reason: bundleReason,
         note: bundleNote.trim() || undefined,
-        reference_order_id: selectedOrderId || undefined,
       });
 
       toast.success(`Successfully adjusted stock for ${bundleItems.length} items!`);
@@ -403,31 +359,13 @@ function AdjustStockModal({ open, onClose, onSaved }) {
           </form>
         ) : (
           <form onSubmit={handleSubmitBundle} className="space-y-5 pt-2">
-            <ModalSection title="Source Order or Custom Items">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <ModalField label="Load Items from Existing Order">
-                  <Select value={selectedOrderId} onValueChange={handleSelectOrder}>
-                    <SelectTrigger className="w-full rounded-xl border-gray-300 text-xs">
-                      <SelectValue placeholder="Select Order (PO / Invoice)..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {orders.map((o) => (
-                        <SelectItem key={o.id} value={o.id.toString()}>
-                          {o.order_number} ({o.type === 'purchase' ? 'PO' : 'Sale Invoice'}) — {o.party_name || o.supplier_name || 'No Party'}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {loadingOrder && <p className="text-xs text-gray-500">Loading order items...</p>}
-                </ModalField>
-
-                <ModalField label="Or Add Products Manually">
-                  <ProductPicker selected={addItemProduct} onSelect={handleAddProductToBundle} onClear={() => setAddItemProduct(null)} placeholder="Search product to add to bundle..." />
-                </ModalField>
-              </div>
+            <ModalSection title="Add Parts to Batch Adjustment">
+              <ModalField label="Search & Add Aircon Part">
+                <ProductPicker selected={addItemProduct} onSelect={handleAddProductToBundle} onClear={() => setAddItemProduct(null)} placeholder="Search product name or SKU to add to batch..." />
+              </ModalField>
             </ModalSection>
 
-            <ModalSection title={`Bundle Line Items (${bundleItems.length})`}>
+            <ModalSection title={`Batch Line Items (${bundleItems.length})`}>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-500">Review quantities and direction before recording batch adjustments.</span>
                 {bundleItems.length > 0 && (
@@ -439,7 +377,7 @@ function AdjustStockModal({ open, onClose, onSaved }) {
 
               {bundleItems.length === 0 ? (
                 <div className="border border-dashed border-gray-300 rounded-xl py-8 text-center text-xs text-gray-500 bg-gray-50/50">
-                  No items in bundle. Select an order above or search and add products manually.
+                  No items in batch yet. Search and select products above to add them.
                 </div>
               ) : (
                 <div className="rounded-xl border border-gray-200 overflow-hidden bg-white shadow-xs">
@@ -503,9 +441,8 @@ function AdjustStockModal({ open, onClose, onSaved }) {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="manual_adjustment">Manual Adjustment</SelectItem>
-                      <SelectItem value="purchase_order_received">Purchase Order Restock</SelectItem>
-                      <SelectItem value="order_fulfillment">Sales Order Fulfillment</SelectItem>
-                      <SelectItem value="correction">Correction</SelectItem>
+                      <SelectItem value="initial_stock">Initial Stock Take</SelectItem>
+                      <SelectItem value="correction">Inventory Correction</SelectItem>
                     </SelectContent>
                   </Select>
                 </ModalField>
@@ -585,12 +522,10 @@ export default function InventoryPage() {
       list = list.filter((m) => Number(m.quantity_change) > 0);
     } else if (movementTypeFilter === 'out') {
       list = list.filter((m) => Number(m.quantity_change) < 0);
-    } else if (movementTypeFilter === 'restock') {
-      list = list.filter((m) => m.reason === 'purchase_order_received');
-    } else if (movementTypeFilter === 'fulfillment') {
-      list = list.filter((m) => m.reason === 'order_fulfillment');
     } else if (movementTypeFilter === 'adjustment') {
       list = list.filter((m) => m.reason === 'manual_adjustment' || m.reason === 'correction');
+    } else if (movementTypeFilter === 'initial') {
+      list = list.filter((m) => m.reason === 'initial_stock');
     }
 
     // 3. Smart Search query (SKU, Product Name, Reason, Note, Date)
@@ -660,11 +595,11 @@ export default function InventoryPage() {
 
       <motion.div custom={0} variants={sectionVariants} initial="hidden" animate="visible" className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-3">
+          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gray-100 text-gray-800">
               <ClipboardList size={22} />
             </span>
-            Daily Stock Movements
+            Admin — Stock Movements
           </h1>
           <p className="text-sm text-gray-500 mt-1">
             Real-time daily inventory stock ins, stock outs, batch fulfillments, and audit logs
@@ -903,34 +838,6 @@ export default function InventoryPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    setMovementTypeFilter('restock');
-                    setMovementsPage(1);
-                  }}
-                  className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${
-                    movementTypeFilter === 'restock'
-                      ? 'bg-blue-700 text-white shadow-xs'
-                      : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
-                  }`}
-                >
-                  📦 Restocks
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMovementTypeFilter('fulfillment');
-                    setMovementsPage(1);
-                  }}
-                  className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${
-                    movementTypeFilter === 'fulfillment'
-                      ? 'bg-purple-700 text-white shadow-xs'
-                      : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200'
-                  }`}
-                >
-                  🛒 Fulfillments
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
                     setMovementTypeFilter('adjustment');
                     setMovementsPage(1);
                   }}
@@ -941,6 +848,20 @@ export default function InventoryPage() {
                   }`}
                 >
                   ⚙️ Adjustments
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMovementTypeFilter('initial');
+                    setMovementsPage(1);
+                  }}
+                  className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${
+                    movementTypeFilter === 'initial'
+                      ? 'bg-blue-700 text-white shadow-xs'
+                      : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
+                  }`}
+                >
+                  🏷️ Initial Stock
                 </button>
               </div>
             </div>

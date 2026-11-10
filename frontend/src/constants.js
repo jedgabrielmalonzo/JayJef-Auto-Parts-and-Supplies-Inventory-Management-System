@@ -27,19 +27,6 @@ export const MOVEMENT_REASON_LABELS = {
   correction: 'Correction',
 };
 
-export const ORDER_STATUS_BADGE = {
-  draft: 'neutral',
-  confirmed: 'neutral',
-  fulfilled: 'success',
-  cancelled: 'destructive',
-};
-
-export const OCR_STATUS_BADGE = {
-  pending_review: 'warning',
-  confirmed: 'success',
-  rejected: 'destructive',
-};
-
 export function availability(p) {
   if (p.stock_quantity <= 0) return { label: 'Out of stock', variant: 'destructive' };
   if (p.stock_quantity <= p.reorder_threshold) return { label: 'Low stock', variant: 'warning' };

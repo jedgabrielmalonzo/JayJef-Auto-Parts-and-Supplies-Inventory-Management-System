@@ -1,5 +1,4 @@
 import * as productModel from '../models/productModel.js';
-import * as orderModel from '../models/orderModel.js';
 import { createMovementStandalone } from '../services/stockMovements.js';
 
 const REQUIRED_ON_CREATE = ['sku', 'name', 'category'];
@@ -60,7 +59,7 @@ export async function getProduct(req, res, next) {
 
 export async function getProductPurchases(req, res, next) {
   try {
-    res.json(await orderModel.itemHistoryForProduct(req.params.id));
+    res.json([]);
   } catch (err) {
     next(err);
   }

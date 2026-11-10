@@ -1,10 +1,11 @@
-import { useState, useEffect, Component } from 'react';
+import { useState, useEffect, useRef, Component } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Wrench, LayoutDashboard, Package, ClipboardList, FileText, ScanLine, Map, BarChart3, Bot,
-  Menu, X, Settings, Truck, ShieldCheck, AlertTriangle, Layers
+  LayoutDashboard, Package, AlertTriangle, Layers, ShieldCheck,
+  Menu, X, Settings, LogOut
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { JayJefLogo } from './components/JayJefLogo.jsx';
 import { Toaster } from './components/ui/sonner.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
@@ -13,11 +14,6 @@ import ProductsPage from './pages/ProductsPage.jsx';
 import LowStockPage from './pages/LowStockPage.jsx';
 import InventoryPage from './pages/InventoryPage.jsx';
 import AuditLogPage from './pages/AuditLogPage.jsx';
-import OrdersPage from './pages/OrdersPage.jsx';
-import SuppliersPage from './pages/SuppliersPage.jsx';
-import OcrPage from './pages/OcrPage.jsx';
-import MapPage from './pages/MapPage.jsx';
-import AssistantPage from './pages/AssistantPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 
@@ -66,13 +62,8 @@ const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/products', label: 'Products and Catalog', icon: Package },
   { to: '/low-stock', label: 'Low Stock Alerts', icon: AlertTriangle },
-  { to: '/inventory', label: 'Stacked Daily Movement', icon: Layers },
+  { to: '/inventory', label: 'Stock Movements', icon: Layers },
   { to: '/audit-log', label: 'System Audit Log', icon: ShieldCheck },
-  { to: '/orders', label: 'Orders and Receipts', icon: FileText },
-  { to: '/suppliers', label: 'Suppliers Catalog', icon: Truck },
-  { to: '/ocr', label: 'OCR Smart Capture', icon: ScanLine },
-  { to: '/map', label: 'Shop Map 3D', icon: Map },
-  { to: '/assistant', label: 'AI Assistant', icon: Bot, isSpecial: true },
 ];
 
 const pageVariants = {
@@ -106,51 +97,24 @@ const navItemVariants = {
 };
 
 function HeaderBar({ onToggleMobileSidebar }) {
-  const [time, setTime] = useState(new Date().toLocaleTimeString());
-  const { user, isAdmin } = useAuth();
-
-  useEffect(() => {
-    const timer = setInterval(() => setTime(new Date().toLocaleTimeString()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
   return (
-    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-gray-200 bg-white/95 px-4 sm:px-6 backdrop-blur-md">
+    <header className="sticky top-0 z-30 flex h-14 w-full items-center justify-between border-b border-gray-200 bg-white/95 px-4 backdrop-blur-md lg:hidden">
       <div className="flex items-center gap-3">
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={onToggleMobileSidebar}
-          className="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-100 lg:hidden"
+          className="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-100"
           aria-label="Toggle Navigation Menu"
         >
           <Menu size={20} />
         </motion.button>
-        <span className="flex h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse" />
-        <span className="text-xs font-semibold uppercase tracking-wider text-gray-600 truncate">
+        <span className="text-sm font-bold tracking-tight text-gray-900">
           JayJef Auto Parts
         </span>
       </div>
-
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2.5 border-l border-gray-200 pl-4">
-          <div className="hidden sm:flex flex-col items-end leading-tight">
-            <span className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
-              {isAdmin ? (
-                <>
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  Admin ({user?.name || 'Manager'})
-                </>
-              ) : (
-                'JayJef Staff'
-              )}
-            </span>
-            <span className="text-[10px] font-medium text-gray-500">{time}</span>
-          </div>
-          <NavLink to="/settings" className="flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-white font-bold text-xs shadow-sm hover:opacity-90 transition-opacity">
-            {isAdmin ? 'AD' : 'JJ'}
-          </NavLink>
-        </div>
-      </div>
+      <span className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600 border border-red-100">
+        Admin
+      </span>
     </header>
   );
 }
@@ -205,6 +169,87 @@ function NavItem({ to, label, icon: Icon, isSpecial, onClick }) {
   );
 }
 
+function SidebarUserMenu({ onCloseMobile }) {
+  const { user, logout } = useAuth();
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    // Force light mode across the application
+    document.documentElement.classList.remove('dark');
+  }, []);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    }
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  function handleSignOut() {
+    setIsOpen(false);
+    if (onCloseMobile) onCloseMobile();
+    logout();
+    toast.info('Signed out successfully');
+  }
+
+  return (
+    <div className="relative pt-3 border-t border-gray-100 mt-auto" ref={menuRef}>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 8, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.96 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+            className="absolute bottom-full left-0 right-0 mb-2 rounded-2xl border border-gray-200 bg-white p-1.5 shadow-xl z-50"
+          >
+            {/* Sign Out Only Option */}
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors group"
+            >
+              <LogOut size={16} className="text-gray-400 group-hover:text-red-600 transition-colors" />
+              <span>Sign out</span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Trigger: User Profile Card */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`w-full flex items-center gap-3 p-2.5 rounded-2xl transition-all text-left ${
+          isOpen
+            ? 'bg-gray-100 ring-2 ring-gray-200'
+            : 'bg-gray-100/70 hover:bg-gray-100'
+        }`}
+      >
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700 font-bold text-xs">
+          {(user?.name?.[0] || 'J').toUpperCase()}
+        </div>
+        <div className="min-w-0 flex-1 leading-tight">
+          <p className="truncate text-xs font-bold text-gray-900">
+            {user?.name || 'JayJef Admin'}
+          </p>
+          <p className="truncate text-[11px] font-medium text-gray-500 mt-0.5">
+            admin@example.com
+          </p>
+        </div>
+      </button>
+    </div>
+  );
+}
+
 function SidebarContent({ onCloseMobile }) {
   return (
     <div className="flex h-full flex-col justify-between p-4">
@@ -224,7 +269,6 @@ function SidebarContent({ onCloseMobile }) {
         </div>
 
         {/* Navigation Category */}
-
         <motion.nav
           variants={navListVariants}
           initial="hidden"
@@ -237,17 +281,14 @@ function SidebarContent({ onCloseMobile }) {
         </motion.nav>
       </div>
 
-      {/* Bottom Sidebar Section: Settings */}
-      <div className="pt-3 border-t border-gray-100 mt-auto">
-        <NavItem to="/settings" label="Settings & Admin" icon={Settings} onClick={onCloseMobile} />
-      </div>
+      {/* Bottom Sidebar Section: User Profile & Theme/Logout Menu */}
+      <SidebarUserMenu onCloseMobile={onCloseMobile} />
     </div>
   );
 }
 
 function AnimatedRoutes() {
   const location = useLocation();
-  const isAssistant = location.pathname.startsWith('/assistant');
 
   return (
     <AnimatePresence mode="wait">
@@ -257,7 +298,7 @@ function AnimatedRoutes() {
         initial="hidden"
         animate="visible"
         exit="exit"
-        className={`w-full ${isAssistant ? 'flex-1 flex flex-col min-h-0 h-full' : ''}`}
+        className="w-full"
       >
         <Routes location={location}>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -267,11 +308,6 @@ function AnimatedRoutes() {
           <Route path="/inventory" element={<InventoryPage />} />
           <Route path="/movements" element={<Navigate to="/inventory" replace />} />
           <Route path="/audit-log" element={<AuditLogPage />} />
-          <Route path="/orders/*" element={<OrdersPage />} />
-          <Route path="/suppliers/*" element={<SuppliersPage />} />
-          <Route path="/ocr/*" element={<OcrPage />} />
-          <Route path="/map" element={<MapPage />} />
-          <Route path="/assistant" element={<AssistantPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </motion.div>
@@ -283,8 +319,6 @@ function AnimatedRoutes() {
 function MainAppLayout() {
   const { isAdmin } = useAuth();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const location = useLocation();
-  const isAssistant = location.pathname.startsWith('/assistant');
 
   // FIRST ENCOUNTER GATEKEEPER:
   // If user is not logged in as Admin, display full-screen Admin Login page immediately!
@@ -293,7 +327,7 @@ function MainAppLayout() {
   }
 
   return (
-    <div className={`flex bg-slate-50/70 text-gray-900 ${isAssistant ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
+    <div className="flex bg-slate-50/70 text-gray-900 min-h-screen">
       {/* Mobile Backdrop Overlay */}
       <AnimatePresence>
         {mobileSidebarOpen && (
@@ -330,7 +364,7 @@ function MainAppLayout() {
       {/* Main Content Area with Header */}
       <div className="flex min-w-0 flex-1 flex-col min-h-0">
         <HeaderBar onToggleMobileSidebar={() => setMobileSidebarOpen(!mobileSidebarOpen)} />
-        <main className={`min-w-0 flex-1 p-4 sm:p-6 lg:p-8 flex flex-col ${isAssistant ? 'min-h-0 overflow-hidden' : ''}`}>
+        <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8 flex flex-col">
           <ErrorBoundary>
             <AnimatedRoutes />
           </ErrorBoundary>

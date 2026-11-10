@@ -38,7 +38,7 @@ export async function list({ productId, reason, dateFrom, dateTo, page = 1, page
     pool.query(`SELECT COUNT(*)::int AS total FROM stock_movements m ${where}`, params),
   ]);
 
-  return { items: itemsResult.rows, total: countResult.rows[0].total, page, pageSize };
+  return { items: itemsResult.rows || [], total: countResult.rows?.[0]?.total ?? 0, page, pageSize };
 }
 
 export async function lowStock({ category }) {

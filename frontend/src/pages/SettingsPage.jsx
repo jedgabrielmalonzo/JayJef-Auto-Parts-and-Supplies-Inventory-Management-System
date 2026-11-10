@@ -49,8 +49,8 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="border-b border-gray-200 pb-5">
         <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900">
-            System Settings
+          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
+            Admin — System Settings
           </h1>
           <p className="text-sm text-gray-500 mt-1">
             Manage store profile, audio notification signals, administrator session, and system configurations.
@@ -81,7 +81,7 @@ export default function SettingsPage() {
             <CardHeader className="p-0 pb-3 border-b border-gray-100">
               <CardTitle className="text-base font-bold text-gray-900">Shop Profile &amp; Details</CardTitle>
               <CardDescription className="text-xs text-gray-500">
-                Business information displayed on printed purchase orders, sales receipts, and header.
+                Business information for JayJef Auto Parts &amp; Supplies inventory management.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">

@@ -9,8 +9,6 @@
   ],
   "scripts": {
     "dev": "npx concurrently -k -n \"BACKEND,FRONTEND\" -c \"blue,green\" \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
-    "dev:all": "npx concurrently -k -n \"BACKEND,FRONTEND,OCR\" -c \"blue,green,magenta\" \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\" \"npm --prefix ocr-service run dev\"",
-    "ocr": "npm --prefix ocr-service run dev",
     "build": "npm --prefix frontend run build"
   },
   "dependencies": {

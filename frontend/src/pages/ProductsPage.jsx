@@ -201,7 +201,9 @@ function ProductsListView({ modal }) {
       {/* Header */}
       <motion.div custom={0} variants={sectionVariants} initial="hidden" animate="visible" className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900">Products Catalog</h1>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
+            Admin — Products Catalog
+          </h1>
           <p className="text-sm text-gray-500 mt-1">Manage auto parts, prices, categories, and stock thresholds</p>
         </div>
         <Button render={<Link to="/products/new" />} nativeButton={false} className="shadow-md bg-red-600 hover:bg-red-700">

@@ -183,7 +183,7 @@ export function BrandLetterJ({ className = 'text-red-600', size = 'text-3xl' }) 
     <span
       className={`font-black tracking-tight select-none inline-block ${size} ${className}`}
       style={{
-        fontFamily: '"Archivo Black", "Impact", "Arial Black", sans-serif',
+        fontFamily: '"Poppins", sans-serif',
         color: '#E60026',
         textShadow: '0 1px 2px rgba(230, 0, 38, 0.25)',
         transform: 'scaleY(1.05)',
@@ -221,18 +221,18 @@ export function JayJefLogo({ variant = 'sidebar', className = '' }) {
         <div className="flex flex-col leading-none">
           <div className="flex items-baseline gap-0.5">
             {/* Jay */}
-            <span className="text-2xl font-black text-red-600 tracking-tight" style={{ fontFamily: '"Archivo Black", sans-serif' }}>
+            <span className="text-2xl font-black text-red-600 tracking-tight" style={{ fontFamily: '"Poppins", sans-serif' }}>
               J
             </span>
-            <span className="text-xl font-black text-gray-900 tracking-tight mr-1.5" style={{ fontFamily: '"Archivo Black", sans-serif' }}>
+            <span className="text-xl font-black text-gray-900 tracking-tight mr-1.5" style={{ fontFamily: '"Poppins", sans-serif' }}>
               ay
             </span>
 
             {/* Jef */}
-            <span className="text-2xl font-black text-red-600 tracking-tight" style={{ fontFamily: '"Archivo Black", sans-serif' }}>
+            <span className="text-2xl font-black text-red-600 tracking-tight" style={{ fontFamily: '"Poppins", sans-serif' }}>
               J
             </span>
-            <span className="text-xl font-black text-gray-900 tracking-tight" style={{ fontFamily: '"Archivo Black", sans-serif' }}>
+            <span className="text-xl font-black text-gray-900 tracking-tight" style={{ fontFamily: '"Poppins", sans-serif' }}>
               ef
             </span>
           </div>
@@ -258,10 +258,10 @@ export function JayJefLogo({ variant = 'sidebar', className = '' }) {
       {/* Brand Header */}
       <div className="flex flex-col">
         <div className="flex items-baseline">
-          <span className="text-4xl font-black text-red-600" style={{ fontFamily: '"Archivo Black", sans-serif' }}>J</span>
-          <span className="text-3xl font-black text-gray-900 mr-2" style={{ fontFamily: '"Archivo Black", sans-serif' }}>ay</span>
-          <span className="text-4xl font-black text-red-600" style={{ fontFamily: '"Archivo Black", sans-serif' }}>J</span>
-          <span className="text-3xl font-black text-gray-900" style={{ fontFamily: '"Archivo Black", sans-serif' }}>ef</span>
+          <span className="text-4xl font-black text-red-600" style={{ fontFamily: '"Poppins", sans-serif' }}>J</span>
+          <span className="text-3xl font-black text-gray-900 mr-2" style={{ fontFamily: '"Poppins", sans-serif' }}>ay</span>
+          <span className="text-4xl font-black text-red-600" style={{ fontFamily: '"Poppins", sans-serif' }}>J</span>
+          <span className="text-3xl font-black text-gray-900" style={{ fontFamily: '"Poppins", sans-serif' }}>ef</span>
         </div>
 
         {/* 3 Auto Parts Thumbnails */}

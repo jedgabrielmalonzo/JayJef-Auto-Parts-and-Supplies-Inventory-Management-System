@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Loader2, ImagePlus, X, DollarSign, Tag, PackageCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { getProduct, createProduct, updateProduct } from '../api/products.js';
-import { listSuppliers } from '../api/suppliers.js';
 import { API_ORIGIN } from '../api/client.js';
 import { CATEGORIES, formatCategory } from '../constants.js';
 import { Button } from '../components/ui/button.jsx';
@@ -58,7 +57,6 @@ const EMPTY_FORM = {
   cost_price: '',
   selling_price: '',
   reorder_threshold: '',
-  supplier_id: '',
   location_aisle: '',
   location_shelf: '',
   location_bin: '',
@@ -78,11 +76,6 @@ export default function ProductFormPage() {
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
-  const [suppliers, setSuppliers] = useState([]);
-
-  useEffect(() => {
-    listSuppliers({ page_size: 500 }).then((r) => setSuppliers(r.items)).catch(() => {});
-  }, []);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -98,155 +91,165 @@ export default function ProductFormPage() {
   }, [id, isEdit]);
 
   useEffect(() => {
-    if (!imageFile) return;
-    const url = URL.createObjectURL(imageFile);
-    setImagePreview(url);
-    return () => URL.revokeObjectURL(url);
-  }, [imageFile]);
+    if (imageFile) {
+      const url = URL.createObjectURL(imageFile);
+      setImagePreview(url);
+      return () => URL.revokeObjectURL(url);
+    }
+    if (form.image_path) {
+      const fullUrl = form.image_path.startsWith('http') ? form.image_path : `${API_ORIGIN}${form.image_path}`;
+      setImagePreview(fullUrl);
+    } else {
+      setImagePreview(null);
+    }
+  }, [imageFile, form.image_path]);
 
-  function set(field, value) {
-    setForm((f) => ({ ...f, [field]: value }));
+  function set(k, v) {
+    setForm((f) => ({ ...f, [k]: v }));
+    if (fieldErrors[k]) setFieldErrors((fe) => ({ ...fe, [k]: undefined }));
   }
 
-  function close() {
-    navigate('/products');
-  }
-
-  function handleImageChange(e) {
+  function handleFileSelect(e) {
     const file = e.target.files?.[0];
-    if (file) setImageFile(file);
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        toast.error('Only image files (JPG, PNG, WebP) are allowed');
+        return;
+      }
+      setImageFile(file);
+    }
   }
 
-  function clearImage() {
+  function removeImage() {
     setImageFile(null);
     setImagePreview(null);
     set('image_path', '');
   }
 
+  function validate() {
+    const errs = {};
+    if (!form.sku.trim()) errs.sku = 'SKU / Part Number is required';
+    if (!form.name.trim()) errs.name = 'Product name is required';
+    if (!form.category) errs.category = 'Category selection is required';
+
+    const cost = Number(form.cost_price);
+    const sell = Number(form.selling_price);
+    if (form.cost_price && (isNaN(cost) || cost < 0)) errs.cost_price = 'Cost price cannot be negative';
+    if (form.selling_price && (isNaN(sell) || sell < 0)) errs.selling_price = 'Selling price cannot be negative';
+
+    const init = Number(form.initial_stock);
+    if (!isEdit && form.initial_stock && (isNaN(init) || init < 0)) {
+      errs.initial_stock = 'Initial stock cannot be negative';
+    }
+
+    setFieldErrors(errs);
+    return Object.keys(errs).length === 0;
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
-    setSaving(true);
-    setFieldErrors({});
+    if (!validate()) {
+      toast.error('Please fix highlighted errors in the form.');
+      return;
+    }
 
-    const payload = {
-      ...form,
-      cost_price: form.cost_price === '' ? undefined : Number(form.cost_price),
-      selling_price: form.selling_price === '' ? undefined : Number(form.selling_price),
-      reorder_threshold: form.reorder_threshold === '' ? undefined : Number(form.reorder_threshold),
-      supplier_id: form.supplier_id === '' ? undefined : Number(form.supplier_id),
-      initial_stock: isEdit || form.initial_stock === '' ? undefined : Number(form.initial_stock),
-      image: imageFile || undefined,
-    };
+    setSaving(true);
+    const fd = new FormData();
+    Object.entries(form).forEach(([k, v]) => {
+      if (v !== '' && v !== null && v !== undefined) fd.append(k, v);
+    });
+    if (imageFile) fd.append('image', imageFile);
 
     try {
       if (isEdit) {
-        await updateProduct(id, payload);
-        toast.success('Product updated successfully');
+        await updateProduct(id, fd);
+        toast.success(`Updated "${form.name}"`);
       } else {
-        await createProduct(payload);
-        toast.success('New product added to catalog');
+        await createProduct(fd);
+        toast.success(`Created "${form.name}"`);
       }
-      close();
+      navigate('/products');
     } catch (err) {
-      if (err.fields) setFieldErrors(err.fields);
+      if (err.data?.fields) setFieldErrors(err.data.fields);
       toast.error(err.message);
     } finally {
       setSaving(false);
     }
   }
 
-  const displayedImage = imagePreview || (form.image_path ? `${API_ORIGIN}${form.image_path}` : null);
-
-  const [modalSize, setModalSize] = useState(() => localStorage.getItem('jayjef_modal_size') || 'standard');
-
-  function changeModalSize(newSize) {
-    setModalSize(newSize);
-    localStorage.setItem('jayjef_modal_size', newSize);
-  }
-
-  const SIZE_CLASSES = {
-    standard: 'sm:max-w-xl max-h-[90vh]',
-    wide: 'sm:max-w-4xl max-h-[92vh]',
-    'extra-wide': 'sm:max-w-6xl max-h-[94vh]',
-    fullscreen: 'sm:max-w-[98vw] sm:w-[98vw] w-[98vw] max-w-[98vw] h-[95vh] max-h-[95vh]',
-  };
-
   return (
-    <Dialog open onOpenChange={(open) => !open && close()}>
-      <DialogContent className={`${SIZE_CLASSES[modalSize] || SIZE_CLASSES.standard} overflow-y-auto rounded-2xl p-6 shadow-2xl border border-gray-200 transition-all duration-200`}>
-        <DialogHeader className="flex flex-row items-center justify-between pb-3 border-b border-gray-100 pr-8">
-          <DialogTitle className="font-heading text-xl font-bold text-gray-900">
-            {isEdit ? 'Edit Product' : 'Add New Auto Part'}
-          </DialogTitle>
-
-          {/* Modal Size Switcher */}
-          <div className="hidden sm:flex items-center gap-1 bg-gray-100/80 p-1 rounded-xl">
-            <span className="text-[11px] text-gray-500 font-bold px-1.5">Size:</span>
-            {[
-              { key: 'standard', label: 'Standard' },
-              { key: 'wide', label: 'Wide' },
-              { key: 'extra-wide', label: 'Extra Wide' },
-              { key: 'fullscreen', label: 'Full Screen' },
-            ].map((s) => (
-              <button
-                key={s.key}
-                type="button"
-                onClick={() => changeModalSize(s.key)}
-                className={`px-2.5 py-0.5 rounded-lg text-[11px] font-bold transition-all ${
-                  modalSize === s.key ? 'bg-white text-gray-900 shadow-xs font-extrabold' : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                {s.label}
-              </button>
-            ))}
+    <Dialog open onOpenChange={(open) => !open && navigate('/products')}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 rounded-3xl border-gray-200">
+        <DialogHeader className="p-6 pb-4 border-b border-gray-100 bg-gray-50/50 sticky top-0 z-10 backdrop-blur-xs">
+          <div className="flex items-center gap-2">
+            <span className="p-2 rounded-xl bg-red-50 text-red-600">
+              <PackageCheck size={20} />
+            </span>
+            <div>
+              <DialogTitle className="font-heading text-lg font-bold text-gray-900">
+                {isEdit ? `Edit Part — ${form.sku || 'Loading...'}` : 'Add New Aircon Part / Supply'}
+              </DialogTitle>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {isEdit ? 'Update product information and catalog details' : 'Enter product specs and catalog details'}
+              </p>
+            </div>
           </div>
         </DialogHeader>
 
         {loading ? (
-          <div className="flex items-center justify-center gap-2 py-12 text-gray-500">
-            <Loader2 size={18} className="animate-spin text-red-600" />
-            <span>Loading product specifications...</span>
+          <div className="flex h-72 items-center justify-center gap-2 text-gray-500">
+            <Loader2 className="animate-spin text-red-600" size={24} />
+            <span className="text-sm">Loading part details...</span>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-5 pt-2">
+          <form onSubmit={handleSubmit} className="p-6 space-y-6">
             <Section title="Product Image">
               <div className="flex items-center gap-4">
-                <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-gray-50 shadow-xs">
-                  {displayedImage ? (
-                    <img src={displayedImage} alt="" className="h-full w-full object-cover" />
+                <div className="relative size-24 shrink-0 rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center overflow-hidden group">
+                  {imagePreview ? (
+                    <>
+                      <img src={imagePreview} alt="Preview" className="size-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={removeImage}
+                        className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Remove image"
+                      >
+                        <X size={20} />
+                      </button>
+                    </>
                   ) : (
-                    <ImagePlus size={24} className="text-gray-400" strokeWidth={1.5} />
+                    <ImagePlus size={24} className="text-gray-400" />
                   )}
                 </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="product-image" className="w-fit cursor-pointer">
-                    <span className="inline-flex h-9 items-center rounded-xl border border-gray-300 bg-white px-3.5 text-xs font-semibold text-gray-800 shadow-xs hover:bg-gray-50 transition-colors">
-                      {displayedImage ? 'Change Photo' : 'Upload Part Photo'}
+
+                <div className="space-y-1.5 flex-1">
+                  <label className="inline-block">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-xs font-semibold text-gray-700 cursor-pointer shadow-xs transition-colors">
+                      <ImagePlus size={14} /> Choose File
                     </span>
-                    <input id="product-image" type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-                  </Label>
-                  {displayedImage && (
-                    <button type="button" onClick={clearImage} className="inline-flex w-fit items-center gap-1 text-xs text-gray-500 hover:text-red-600 transition-colors">
-                      <X size={13} /> Remove Photo
-                    </button>
-                  )}
+                    <input type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+                  </label>
+                  <p className="text-[11px] text-gray-500 leading-relaxed">
+                    JPG, PNG, or WebP. Square aspect ratio recommended (e.g. 600×600 px). Max 5MB.
+                  </p>
                 </div>
               </div>
             </Section>
 
-            <Section title="Basic Details">
+            <Section title="General Information">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="Part Number" required error={fieldErrors.sku}>
+                <Field label="Part Number / SKU" required error={fieldErrors.sku}>
                   <Input
-                    className="font-mono text-sm uppercase rounded-xl border-gray-300 focus:border-red-600"
+                    className="font-mono uppercase rounded-xl border-gray-300 focus:border-red-600"
                     aria-invalid={!!fieldErrors.sku}
-                    placeholder="e.g. CMP-1023"
+                    placeholder="e.g. COMP-DEN-10PA17"
                     value={form.sku}
-                    onChange={(e) => set('sku', e.target.value)}
+                    onChange={(e) => set('sku', e.target.value.toUpperCase())}
                     required
                   />
                 </Field>
-                <Field label="Category" required error={fieldErrors.category}>
+                <Field label="AC Component Category" required error={fieldErrors.category}>
                   <Select value={form.category} onValueChange={(v) => set('category', v)}>
                     <SelectTrigger className="rounded-xl border-gray-300" aria-invalid={!!fieldErrors.category}>
                       <SelectValue placeholder="Select Category">{(v) => v && formatCategory(v)}</SelectValue>
@@ -289,23 +292,9 @@ export default function ProductFormPage() {
                 </Field>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="Compatible Vehicles">
-                  <Input className="rounded-xl border-gray-300" value={form.compatible_vehicles} onChange={(e) => set('compatible_vehicles', e.target.value)} placeholder="e.g. Toyota Vios 2013–2018" />
-                </Field>
-                <Field label="Default Supplier">
-                  <Select value={form.supplier_id} onValueChange={(v) => set('supplier_id', v)}>
-                    <SelectTrigger className="rounded-xl border-gray-300">
-                      <SelectValue placeholder="Select Supplier">
-                        {(v) => suppliers.find((s) => String(s.id) === v)?.name}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {suppliers.map((s) => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </Field>
-              </div>
+              <Field label="Compatible Vehicles / Notes">
+                <Input className="rounded-xl border-gray-300" value={form.compatible_vehicles} onChange={(e) => set('compatible_vehicles', e.target.value)} placeholder="e.g. Toyota Vios 2013–2018, Innova 2.5 D4D" />
+              </Field>
             </Section>
 
             <Section title="Philippine Peso (₱) Pricing &amp; Inventory">
@@ -366,19 +355,20 @@ export default function ProductFormPage() {
             <Section title="Notes / Specifications">
               <Textarea
                 className="rounded-xl border-gray-300 text-sm"
-                placeholder="Fitment details, OEM interchange part numbers, supplier warranty..."
+                placeholder="Fitment details, OEM interchange part numbers, notes..."
                 value={form.notes}
                 onChange={(e) => set('notes', e.target.value)}
+                rows={3}
               />
             </Section>
 
-            <div className="flex gap-3 pt-3 border-t border-gray-100">
-              <Button type="submit" disabled={saving} className="rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-md">
-                {saving && <Loader2 size={16} className="animate-spin" />}
-                {saving ? 'Saving...' : 'Save Product'}
-              </Button>
-              <Button type="button" variant="secondary" onClick={close} className="rounded-xl border border-gray-200">
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+              <Button type="button" variant="outline" className="rounded-xl border-gray-300 font-semibold" onClick={() => navigate('/products')}>
                 Cancel
+              </Button>
+              <Button type="submit" disabled={saving} className="rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold gap-2">
+                {saving && <Loader2 size={16} className="animate-spin" />}
+                {isEdit ? 'Save Changes' : 'Create Product'}
               </Button>
             </div>
           </form>
@@ -387,4 +377,3 @@ export default function ProductFormPage() {
     </Dialog>
   );
 }
-

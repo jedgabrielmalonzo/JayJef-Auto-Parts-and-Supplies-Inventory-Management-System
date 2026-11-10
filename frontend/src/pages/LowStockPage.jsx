@@ -122,11 +122,11 @@ export default function LowStockPage() {
         className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"
       >
         <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-3">
+          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
               <AlertTriangle size={22} />
             </span>
-            Low Stock Alerts
+            Admin — Low Stock Alerts
           </h1>
           <p className="text-sm text-gray-500 mt-1">
             Real-time tracking of auto parts below minimum safety thresholds and critical stockouts
