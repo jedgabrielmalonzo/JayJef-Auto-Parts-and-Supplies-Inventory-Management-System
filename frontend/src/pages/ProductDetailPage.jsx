@@ -15,6 +15,7 @@ import { Card } from '../components/ui/card.jsx';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs.jsx';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table.jsx';
 import ProductThumb from '../components/ProductThumb.jsx';
+import ProductFormPage from './ProductFormPage.jsx';
 
 function peso(n) {
   return `₱${Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -68,13 +69,14 @@ function MovementsTable({ movements, emptyText }) {
   );
 }
 
-export default function ProductDetailPage() {
+export default function ProductDetailPage({ initialEdit = false }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [movements, setMovements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updatingStock, setUpdatingStock] = useState(false);
+  const [isEditing, setIsEditing] = useState(initialEdit);
 
   const loadData = async () => {
     try {
@@ -195,8 +197,8 @@ export default function ProductDetailPage() {
 
         <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
           <Button
-            onClick={() => navigate(`/products/${product.id}/edit`)}
-            className="rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold gap-2 shadow-xs transition-all"
+            onClick={() => setIsEditing(true)}
+            className="rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold gap-2 shadow-xs transition-all cursor-pointer"
           >
             <Pencil size={15} />
             Edit Product
@@ -326,21 +328,17 @@ export default function ProductDetailPage() {
                       </p>
                     </div>
 
-                    <div className="space-y-1 sm:col-span-2">
-                      <span className="text-xs font-medium text-gray-500 flex items-center gap-1">
-                        <MapPin size={14} className="text-gray-400" /> Shop Floor Storage Location
-                      </span>
-                      <p className="font-bold text-gray-900 bg-gray-50/80 p-3 rounded-xl border border-gray-200/60 flex items-center gap-2">
-                        {locationText ? (
-                          <>
-                            <span className="inline-block size-2 rounded-full bg-red-600" />
-                            {locationText}
-                          </>
-                        ) : (
-                          <span className="text-gray-400 font-normal">Unassigned (Aisle / Shelf / Bin not set)</span>
-                        )}
-                      </p>
-                    </div>
+                    {locationText && (
+                      <div className="space-y-1 sm:col-span-2">
+                        <span className="text-xs font-medium text-gray-500 flex items-center gap-1">
+                          <MapPin size={14} className="text-gray-400" /> Shop Floor Storage Location
+                        </span>
+                        <p className="font-bold text-gray-900 bg-gray-50/80 p-3 rounded-xl border border-gray-200/60 flex items-center gap-2">
+                          <span className="inline-block size-2 rounded-full bg-red-600" />
+                          {locationText}
+                        </p>
+                      </div>
+                    )}
 
                     {product.notes && (
                       <div className="space-y-1 sm:col-span-2">
@@ -373,6 +371,26 @@ export default function ProductDetailPage() {
           </TabsContent>
         </Tabs>
       </motion.div>
+
+      {/* Edit Product Modal (Keeps user on the Product Detail page) */}
+      {isEditing && product && (
+        <ProductFormPage
+          productId={product.id}
+          onSuccess={() => {
+            setIsEditing(false);
+            if (window.location.pathname.endsWith('/edit')) {
+              navigate(`/products/${product.id}`, { replace: true });
+            }
+            loadData();
+          }}
+          onClose={() => {
+            setIsEditing(false);
+            if (window.location.pathname.endsWith('/edit')) {
+              navigate(`/products/${product.id}`, { replace: true });
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

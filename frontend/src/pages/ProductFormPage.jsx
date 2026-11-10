@@ -65,8 +65,9 @@ const EMPTY_FORM = {
   image_path: '',
 };
 
-export default function ProductFormPage() {
-  const { id } = useParams();
+export default function ProductFormPage({ onSuccess, onClose, productId }) {
+  const params = useParams();
+  const id = productId || params.id;
   const isEdit = !!id;
   const navigate = useNavigate();
 
@@ -168,7 +169,11 @@ export default function ProductFormPage() {
         await createProduct(fd);
         toast.success(`Created "${form.name}"`);
       }
-      navigate('/products');
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        navigate('/products');
+      }
     } catch (err) {
       if (err.data?.fields) setFieldErrors(err.data.fields);
       toast.error(err.message);
@@ -177,16 +182,24 @@ export default function ProductFormPage() {
     }
   }
 
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      navigate('/products');
+    }
+  };
+
   return (
-    <Dialog open onOpenChange={(open) => !open && navigate('/products')}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 rounded-3xl border-gray-200">
-        <DialogHeader className="p-6 pb-4 border-b border-gray-100 bg-gray-50/50 sticky top-0 z-10 backdrop-blur-xs">
-          <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-red-50 text-red-600">
-              <PackageCheck size={20} />
+    <Dialog open onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="w-[96vw] max-w-[96vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl max-h-[92vh] flex flex-col p-0 rounded-3xl border border-gray-200/90 shadow-2xl bg-white overflow-hidden">
+        <DialogHeader className="px-6 sm:px-8 py-5 border-b border-gray-100 bg-gray-50/60 sticky top-0 z-20 backdrop-blur-xs shrink-0">
+          <div className="flex items-center gap-3">
+            <span className="p-2.5 rounded-2xl bg-red-50 text-red-600 border border-red-100 shadow-xs">
+              <PackageCheck size={22} />
             </span>
             <div>
-              <DialogTitle className="font-heading text-lg font-bold text-gray-900">
+              <DialogTitle className="font-heading text-xl font-bold text-gray-900 tracking-tight">
                 {isEdit ? `Edit Part — ${form.sku || 'Loading...'}` : 'Add New Aircon Part / Supply'}
               </DialogTitle>
               <p className="text-xs text-gray-500 mt-0.5">
@@ -202,171 +215,188 @@ export default function ProductFormPage() {
             <span className="text-sm">Loading part details...</span>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
-            <Section title="Product Image">
-              <div className="flex items-center gap-4">
-                <div className="relative size-24 shrink-0 rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center overflow-hidden group">
-                  {imagePreview ? (
-                    <>
-                      <img src={imagePreview} alt="Preview" className="size-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={removeImage}
-                        className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                        title="Remove image"
-                      >
-                        <X size={20} />
-                      </button>
-                    </>
-                  ) : (
-                    <ImagePlus size={24} className="text-gray-400" />
-                  )}
+          <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            {/* Scrollable Form Body */}
+            <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 space-y-7">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+                {/* Left Column: Product Photo & Preview */}
+                <div className="lg:col-span-4 space-y-4">
+                  <Section title="Product Image">
+                    <div className="rounded-2xl border border-gray-200 bg-gray-50/60 p-4 space-y-4 flex flex-col items-center text-center">
+                      <div className="relative size-36 sm:size-44 rounded-2xl border-2 border-dashed border-gray-300 bg-white flex items-center justify-center overflow-hidden group shadow-xs">
+                        {imagePreview ? (
+                          <>
+                            <img src={imagePreview} alt="Preview" className="size-full object-contain p-2" />
+                            <button
+                              type="button"
+                              onClick={removeImage}
+                              className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                              title="Remove image"
+                            >
+                              <X size={24} />
+                            </button>
+                          </>
+                        ) : (
+                          <div className="flex flex-col items-center gap-2 text-gray-400 p-3">
+                            <ImagePlus size={32} strokeWidth={1.5} />
+                            <span className="text-[11px] font-medium text-gray-400">No photo uploaded</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-2 w-full">
+                        <label className="block w-full">
+                          <span className="inline-flex w-full items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-xs font-bold text-gray-700 cursor-pointer shadow-xs transition-colors">
+                            <ImagePlus size={15} /> Choose Photo
+                          </span>
+                          <input type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+                        </label>
+                        <p className="text-[11px] text-gray-400 leading-relaxed text-left">
+                          Supported formats: JPG, PNG, or WebP. Transparent or white background recommended. Max 5MB.
+                        </p>
+                      </div>
+                    </div>
+                  </Section>
                 </div>
 
-                <div className="space-y-1.5 flex-1">
-                  <label className="inline-block">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-xs font-semibold text-gray-700 cursor-pointer shadow-xs transition-colors">
-                      <ImagePlus size={14} /> Choose File
-                    </span>
-                    <input type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
-                  </label>
-                  <p className="text-[11px] text-gray-500 leading-relaxed">
-                    JPG, PNG, or WebP. Square aspect ratio recommended (e.g. 600×600 px). Max 5MB.
-                  </p>
+                {/* Right Column: General Information, Pricing, Compatibility, Notes */}
+                <div className="lg:col-span-8 space-y-6">
+                  <Section title="General Information">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <Field label="Part Number" required error={fieldErrors.sku}>
+                        <Input
+                          className="font-mono uppercase rounded-xl border-gray-300 focus:border-red-600"
+                          aria-invalid={!!fieldErrors.sku}
+                          placeholder="e.g. COMP-DEN-10PA17"
+                          value={form.sku}
+                          onChange={(e) => set('sku', e.target.value.toUpperCase())}
+                          required
+                        />
+                      </Field>
+                      <Field label="Category" required error={fieldErrors.category}>
+                        <Select value={form.category} onValueChange={(v) => set('category', v)}>
+                          <SelectTrigger className="rounded-xl border-gray-300" aria-invalid={!!fieldErrors.category}>
+                            <SelectValue placeholder="Select Category">{(v) => v && formatCategory(v)}</SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{formatCategory(c)}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                    </div>
+
+                    <Field label="Product Title / Name" required error={fieldErrors.name}>
+                      <Input
+                        className="rounded-xl border-gray-300 focus:border-red-600"
+                        aria-invalid={!!fieldErrors.name}
+                        placeholder="e.g. AC Compressor — Denso 10PA17C"
+                        value={form.name}
+                        onChange={(e) => set('name', e.target.value)}
+                        required
+                      />
+                    </Field>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <Field label="Brand">
+                        <Input className="rounded-xl border-gray-300" placeholder="e.g. Denso, Sanden, Valeo" value={form.brand} onChange={(e) => set('brand', e.target.value)} />
+                      </Field>
+                      <Field label="Packaging Unit">
+                        <Select value={form.unit} onValueChange={(v) => set('unit', v)}>
+                          <SelectTrigger className="rounded-xl border-gray-300">
+                            <SelectValue placeholder="Select Unit">
+                              {(v) => STANDARD_UNITS.find((u) => u.value === v)?.label || v}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {STANDARD_UNITS.map((u) => (
+                              <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                    </div>
+
+                    <Field label="Compatible Vehicles / Notes">
+                      <Input className="rounded-xl border-gray-300" value={form.compatible_vehicles} onChange={(e) => set('compatible_vehicles', e.target.value)} placeholder="e.g. Toyota Vios 2013–2018, Innova 2.5 D4D" />
+                    </Field>
+                  </Section>
+
+                  <Section title="Philippine Peso (₱) Pricing & Inventory">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <Field label="Cost Price (₱)">
+                        <div className="relative flex items-center">
+                          <span className="pointer-events-none absolute left-3 font-heading font-bold text-sm text-gray-500">₱</span>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            className="pl-7 rounded-xl border-gray-300 font-mono text-sm tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            placeholder="0.00"
+                            value={form.cost_price}
+                            onChange={(e) => set('cost_price', e.target.value)}
+                          />
+                        </div>
+                      </Field>
+                      <Field label="Selling Price (₱)">
+                        <div className="relative flex items-center">
+                          <span className="pointer-events-none absolute left-3 font-heading font-bold text-sm text-red-600">₱</span>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            className="pl-7 rounded-xl border-gray-300 font-mono font-bold text-sm text-gray-900 tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            placeholder="0.00"
+                            value={form.selling_price}
+                            onChange={(e) => set('selling_price', e.target.value)}
+                          />
+                        </div>
+                      </Field>
+                      <Field label="Reorder Alert Qty">
+                        <Input
+                          type="number"
+                          min="0"
+                          className="rounded-xl border-gray-300 font-mono text-sm tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          placeholder="5"
+                          value={form.reorder_threshold}
+                          onChange={(e) => set('reorder_threshold', e.target.value)}
+                        />
+                      </Field>
+                    </div>
+                    {!isEdit && (
+                      <div className="mt-4">
+                        <Field label="Initial Stock Quantity" error={fieldErrors.initial_stock}>
+                          <Input
+                            type="number"
+                            min="0"
+                            className="rounded-xl border-gray-300 font-mono text-sm tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            placeholder="0"
+                            value={form.initial_stock}
+                            onChange={(e) => set('initial_stock', e.target.value)}
+                          />
+                        </Field>
+                      </div>
+                    )}
+                  </Section>
+
+                  <Section title="Notes / Specifications">
+                    <Textarea
+                      className="rounded-xl border-gray-300 text-sm"
+                      placeholder="Fitment details, OEM interchange part numbers, notes..."
+                      value={form.notes}
+                      onChange={(e) => set('notes', e.target.value)}
+                      rows={3}
+                    />
+                  </Section>
                 </div>
               </div>
-            </Section>
+            </div>
 
-            <Section title="General Information">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="Part Number" required error={fieldErrors.sku}>
-                  <Input
-                    className="font-mono uppercase rounded-xl border-gray-300 focus:border-red-600"
-                    aria-invalid={!!fieldErrors.sku}
-                    placeholder="e.g. COMP-DEN-10PA17"
-                    value={form.sku}
-                    onChange={(e) => set('sku', e.target.value.toUpperCase())}
-                    required
-                  />
-                </Field>
-                <Field label="AC Component Category" required error={fieldErrors.category}>
-                  <Select value={form.category} onValueChange={(v) => set('category', v)}>
-                    <SelectTrigger className="rounded-xl border-gray-300" aria-invalid={!!fieldErrors.category}>
-                      <SelectValue placeholder="Select Category">{(v) => v && formatCategory(v)}</SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{formatCategory(c)}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </Field>
-              </div>
-
-              <Field label="Product Title / Name" required error={fieldErrors.name}>
-                <Input
-                  className="rounded-xl border-gray-300 focus:border-red-600"
-                  aria-invalid={!!fieldErrors.name}
-                  placeholder="e.g. AC Compressor — Denso 10PA17C"
-                  value={form.name}
-                  onChange={(e) => set('name', e.target.value)}
-                  required
-                />
-              </Field>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="Brand / Manufacturer">
-                  <Input className="rounded-xl border-gray-300" placeholder="e.g. Denso, Sanden, Valeo" value={form.brand} onChange={(e) => set('brand', e.target.value)} />
-                </Field>
-                <Field label="Packaging Unit">
-                  <Select value={form.unit} onValueChange={(v) => set('unit', v)}>
-                    <SelectTrigger className="rounded-xl border-gray-300">
-                      <SelectValue placeholder="Select Unit">
-                        {(v) => STANDARD_UNITS.find((u) => u.value === v)?.label || v}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STANDARD_UNITS.map((u) => (
-                        <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-              </div>
-
-              <Field label="Compatible Vehicles / Notes">
-                <Input className="rounded-xl border-gray-300" value={form.compatible_vehicles} onChange={(e) => set('compatible_vehicles', e.target.value)} placeholder="e.g. Toyota Vios 2013–2018, Innova 2.5 D4D" />
-              </Field>
-            </Section>
-
-            <Section title="Philippine Peso (₱) Pricing &amp; Inventory">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <Field label="Cost Price (₱)">
-                  <div className="relative flex items-center">
-                    <span className="pointer-events-none absolute left-3 font-heading font-bold text-sm text-gray-500">₱</span>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      className="pl-7 rounded-xl border-gray-300 font-mono text-sm tabular-nums"
-                      placeholder="0.00"
-                      value={form.cost_price}
-                      onChange={(e) => set('cost_price', e.target.value)}
-                    />
-                  </div>
-                </Field>
-                <Field label="Selling Price (₱)">
-                  <div className="relative flex items-center">
-                    <span className="pointer-events-none absolute left-3 font-heading font-bold text-sm text-red-600">₱</span>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      className="pl-7 rounded-xl border-gray-300 font-mono font-bold text-sm text-gray-900 tabular-nums"
-                      placeholder="0.00"
-                      value={form.selling_price}
-                      onChange={(e) => set('selling_price', e.target.value)}
-                    />
-                  </div>
-                </Field>
-                <Field label="Reorder Alert Qty">
-                  <Input type="number" min="0" className="rounded-xl border-gray-300 font-mono text-sm tabular-nums" placeholder="5" value={form.reorder_threshold} onChange={(e) => set('reorder_threshold', e.target.value)} />
-                </Field>
-              </div>
-              {!isEdit && (
-                <Field label="Initial Stock Quantity" error={fieldErrors.initial_stock}>
-                  <Input type="number" min="0" className="rounded-xl border-gray-300 font-mono text-sm tabular-nums" placeholder="0" value={form.initial_stock} onChange={(e) => set('initial_stock', e.target.value)} />
-                </Field>
-              )}
-            </Section>
-
-            <Section title="Shop Storage Location">
-              <div className="grid grid-cols-3 gap-3">
-                <Field label="Aisle">
-                  <Input className="rounded-xl border-gray-300 font-mono uppercase" placeholder="e.g. A1" value={form.location_aisle} onChange={(e) => set('location_aisle', e.target.value)} />
-                </Field>
-                <Field label="Shelf">
-                  <Input className="rounded-xl border-gray-300 font-mono uppercase" placeholder="e.g. S2" value={form.location_shelf} onChange={(e) => set('location_shelf', e.target.value)} />
-                </Field>
-                <Field label="Bin">
-                  <Input className="rounded-xl border-gray-300 font-mono uppercase" placeholder="e.g. B3" value={form.location_bin} onChange={(e) => set('location_bin', e.target.value)} />
-                </Field>
-              </div>
-            </Section>
-
-            <Section title="Notes / Specifications">
-              <Textarea
-                className="rounded-xl border-gray-300 text-sm"
-                placeholder="Fitment details, OEM interchange part numbers, notes..."
-                value={form.notes}
-                onChange={(e) => set('notes', e.target.value)}
-                rows={3}
-              />
-            </Section>
-
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
-              <Button type="button" variant="outline" className="rounded-xl border-gray-300 font-semibold" onClick={() => navigate('/products')}>
+            {/* Sticky Action Footer */}
+            <div className="sticky bottom-0 z-20 px-6 sm:px-8 py-4 border-t border-gray-100 bg-gray-50/80 backdrop-blur-xs flex items-center justify-end gap-3 shrink-0">
+              <Button type="button" variant="outline" className="rounded-xl border-gray-300 font-semibold px-5" onClick={handleClose}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={saving} className="rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold gap-2">
+              <Button type="submit" disabled={saving} className="rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold gap-2 px-6 shadow-sm cursor-pointer">
                 {saving && <Loader2 size={16} className="animate-spin" />}
                 {isEdit ? 'Save Changes' : 'Create Product'}
               </Button>

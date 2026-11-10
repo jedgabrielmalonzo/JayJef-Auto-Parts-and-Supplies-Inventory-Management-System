@@ -597,7 +597,7 @@ export default function ProductsPage() {
     <Routes>
       <Route index element={<ProductsListView />} />
       <Route path="new" element={<ProductsListView modal={<ProductFormPage />} />} />
-      <Route path=":id/edit" element={<ProductsListView modal={<ProductFormPage />} />} />
+      <Route path=":id/edit" element={<ProductDetailPage initialEdit />} />
       <Route path=":id" element={<ProductDetailPage />} />
     </Routes>
   );
