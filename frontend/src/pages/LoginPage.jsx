@@ -7,75 +7,6 @@ import { Input } from '../components/ui/input.jsx';
 import { Label } from '../components/ui/label.jsx';
 import { JayJefLogo } from '../components/JayJefLogo.jsx';
 
-/**
- * Automotive hero background art matching the FurFeel design concept:
- * 1. Giant stylized car silhouette watermark in the upper area (like the paw print)
- * 2. Crisp horizontal aerodynamic speedline cutting edge-to-edge (like the heartbeat pulse)
- */
-function AutomotiveHeroArt() {
-  return (
-    <svg
-      className="absolute inset-0 w-full h-full pointer-events-none"
-      viewBox="0 0 800 900"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      preserveAspectRatio="xMidYMid slice"
-    >
-      {/* ── Giant Minimalist Car Silhouette (Watermark) ── */}
-      <g opacity="0.14" transform="translate(130, 110) scale(1.18)">
-        {/* Sleek Aerodynamic Car Silhouette Body */}
-        <path
-          d="M 40 260
-             C 50 260, 65 215, 105 215
-             C 145 215, 160 260, 170 260
-             L 370 260
-             C 380 260, 395 215, 435 215
-             C 475 215, 490 260, 500 260
-             L 535 260
-             C 545 250, 550 230, 540 215
-             C 525 190, 500 185, 460 180
-             C 415 175, 370 165, 330 105
-             C 290 45, 240 35, 170 35
-             C 115 35, 80 65, 55 105
-             L 15 150
-             C 0 165, -10 185, -5 210
-             C 0 235, 20 255, 40 260
-             Z"
-          fill="white"
-        />
-
-        {/* Windows / Cabin Glass Cutout */}
-        <path
-          d="M 170 55
-             C 230 55, 275 65, 310 120
-             L 170 120
-             Z"
-          fill="#FF0A33"
-          fillOpacity="0.45"
-        />
-        <path
-          d="M 150 60
-             L 150 120
-             L 70 120
-             C 90 85, 120 62, 150 60
-             Z"
-          fill="#FF0A33"
-          fillOpacity="0.45"
-        />
-
-        {/* Wheels & Tires */}
-        <circle cx="105" cy="260" r="40" fill="#FF0A33" fillOpacity="0.35" stroke="white" strokeWidth="8" />
-        <circle cx="105" cy="260" r="16" fill="white" />
-        <circle cx="435" cy="260" r="40" fill="#FF0A33" fillOpacity="0.35" stroke="white" strokeWidth="8" />
-        <circle cx="435" cy="260" r="16" fill="white" />
-      </g>
-
-      {/* ── Crisp Horizontal Automotive Speedline across center ── */}
-
-    </svg>
-  );
-}
-
 export default function LoginPage() {
   const { login } = useAuth();
   const [username, setUsername] = useState('admin');
@@ -196,7 +127,7 @@ export default function LoginPage() {
         </p>
       </motion.div>
 
-      {/* ─── Right Panel: Branded #FF0A33 Hero (FurFeel Concept with Car Elements) ─── */}
+      {/* ─── Right Panel: Branded #FF0A33 Hero (Minimalist FurFeel Concept) ─── */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -206,10 +137,33 @@ export default function LoginPage() {
           backgroundColor: '#FF0A33',
         }}
       >
-        <AutomotiveHeroArt />
+        {/* Crisp Horizontal Speedline across center */}
+        <svg
+          className="absolute inset-0 w-full h-full pointer-events-none z-10"
+          viewBox="0 0 800 900"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          preserveAspectRatio="xMidYMid slice"
+        >
+          <path
+            d="M 0 470
+               L 180 470
+               C 220 470, 245 445, 275 390
+               C 310 330, 355 310, 420 310
+               C 485 310, 530 335, 565 395
+               C 595 445, 615 470, 660 470
+               L 800 470"
+            stroke="white"
+            strokeWidth="3.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+            opacity="0.9"
+          />
+        </svg>
 
-        {/* Hero Headline — Bottom-Left Aligned, exactly like the reference */}
-        <div className="relative z-10 max-w-lg">
+        {/* Hero Headline — Bottom-Left Aligned */}
+        <div className="relative z-20 max-w-lg">
           <h2 className="text-4xl xl:text-5xl font-extrabold text-white leading-[1.15] tracking-tight">
             Every auto part,<br />
             in plain sight.
