@@ -46,7 +46,7 @@ export function AuthProvider({ children }) {
       localStorage.setItem('jayjef_auth_user', JSON.stringify(userData));
       return { success: true, user: userData };
     }
-    return { success: false, error: 'Invalid email or password. Please use fixed credentials (jayjef2014@gmail.com / jayjef2014).' };
+    return { success: false, error: 'Invalid email or password. Please check your credentials and try again.' };
   }
 
   function logout() {

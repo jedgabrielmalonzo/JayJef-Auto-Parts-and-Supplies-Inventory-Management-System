@@ -13,6 +13,7 @@ import { Button } from '../components/ui/button.jsx';
 import { Input } from '../components/ui/input.jsx';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.jsx';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table.jsx';
+import { Skeleton } from '../components/ui/skeleton.jsx';
 import {
   Pagination,
   PaginationContent,
@@ -202,10 +203,43 @@ export default function LowStockPage() {
         {/* Low Stock Table */}
         <div className="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
           {loading ? (
-            <div className="flex items-center justify-center gap-2 py-20 text-gray-500">
-              <Loader2 size={18} className="animate-spin text-red-600" />
-              Loading low stock alerts...
-            </div>
+            <Table className="w-full">
+              <TableHeader className="bg-gray-50/80">
+                <TableRow>
+                  <TableHead className="font-bold text-gray-700">Product &amp; Part Number</TableHead>
+                  <TableHead className="font-bold text-gray-700">Category</TableHead>
+                  <TableHead className="font-bold text-gray-700">Brand</TableHead>
+                  <TableHead className="font-bold text-gray-700">Stock vs Reorder Threshold</TableHead>
+                  <TableHead className="font-bold text-gray-700">Status</TableHead>
+                  <TableHead className="font-bold text-gray-700 text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Array.from({ length: 5 }).map((_, idx) => (
+                  <TableRow key={idx} className="border-b border-gray-100">
+                    <TableCell className="py-4">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-10 w-10 rounded-xl shrink-0" />
+                        <div className="space-y-1.5">
+                          <Skeleton className="h-4 w-44 rounded" />
+                          <Skeleton className="h-3 w-24 rounded" />
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20 rounded" /></TableCell>
+                    <TableCell>
+                      <div className="space-y-1.5">
+                        <Skeleton className="h-4 w-28 rounded" />
+                        <Skeleton className="h-2 w-32 rounded-full" />
+                      </div>
+                    </TableCell>
+                    <TableCell><Skeleton className="h-5 w-24 rounded-full" /></TableCell>
+                    <TableCell className="text-right"><Skeleton className="h-8 w-24 rounded-xl ml-auto" /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           ) : filteredItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 py-16 text-center text-gray-500">
               {items.length === 0 ? (

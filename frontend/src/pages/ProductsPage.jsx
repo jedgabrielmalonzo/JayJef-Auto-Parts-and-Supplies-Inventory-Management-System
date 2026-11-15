@@ -15,6 +15,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Checkbox } from '../components/ui/checkbox.jsx';
 import { Label } from '../components/ui/label.jsx';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table.jsx';
+import { Skeleton } from '../components/ui/skeleton.jsx';
 import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
   AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
@@ -340,10 +341,55 @@ function ProductsListView({ modal }) {
         </div>
       </motion.div>
 
-      {loading && (
-        <div className="flex items-center justify-center gap-2 py-20 text-gray-500">
-          <Loader2 size={20} className="animate-spin text-red-600" />
-          Loading products...
+      {loading && view === 'grid' && (
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="flex flex-col justify-between overflow-hidden rounded-3xl border border-gray-200/80 bg-[#f4f4f6]/60 p-3.5 space-y-3">
+              <Skeleton className="w-full aspect-square rounded-2xl" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-24 rounded-full" />
+                <Skeleton className="h-5 w-4/5 rounded" />
+                <Skeleton className="h-3 w-1/2 rounded" />
+              </div>
+              <div className="flex items-center justify-between pt-2">
+                <Skeleton className="h-5 w-20 rounded" />
+                <Skeleton className="h-5 w-16 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {loading && view === 'list' && (
+        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xs">
+          <Table className="w-full">
+            <TableHeader className="bg-gray-50/80">
+              <TableRow>
+                <TableHead className="w-10 px-4"></TableHead>
+                <TableHead className="font-bold text-gray-700">Part Number</TableHead>
+                <TableHead className="font-bold text-gray-700">Name</TableHead>
+                <TableHead className="font-bold text-gray-700">Category</TableHead>
+                <TableHead className="font-bold text-gray-700">Stock</TableHead>
+                <TableHead className="font-bold text-gray-700">Price</TableHead>
+                <TableHead className="font-bold text-gray-700">Status</TableHead>
+                <TableHead className="w-24 text-right font-bold text-gray-700">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 8 }).map((_, i) => (
+                <TableRow key={i} className="border-b border-gray-100">
+                  <TableCell className="w-10 px-4"><Skeleton className="h-4 w-4 rounded" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24 rounded" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-48 rounded" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
+                  <TableCell><Skeleton className="h-7 w-20 rounded-lg" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-16 rounded" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
+                  <TableCell className="text-right"><Skeleton className="h-7 w-16 rounded-xl ml-auto" /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
 

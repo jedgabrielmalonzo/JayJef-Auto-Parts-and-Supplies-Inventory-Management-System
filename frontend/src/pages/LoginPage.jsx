@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { Input } from '../components/ui/input.jsx';
 import { Label } from '../components/ui/label.jsx';
@@ -69,8 +69,8 @@ function ProductMarqueeRow({ items, speedClass = 'animate-marquee-left' }) {
 
 export default function LoginPage() {
   const { login } = useAuth();
-  const [username, setUsername] = useState('jayjef2014@gmail.com');
-  const [password, setPassword] = useState('jayjef2014');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -117,9 +117,14 @@ export default function LoginPage() {
 
           {/* Error message */}
           {error && (
-            <div className="mb-5 p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-semibold text-[#FF0A33]">
-              {error}
-            </div>
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-5 p-3.5 rounded-xl bg-red-50/80 border border-red-200/90 text-xs font-semibold text-red-700 flex items-center gap-2.5 shadow-2xs"
+            >
+              <AlertCircle size={16} className="text-red-600 shrink-0" />
+              <span>{error}</span>
+            </motion.div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -133,7 +138,7 @@ export default function LoginPage() {
                 className="h-12 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:border-[#FF0A33] focus:ring-2 focus:ring-[#FF0A33]/20 transition-all"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="jayjef2014@gmail.com"
+                placeholder="Enter username or email"
                 required
               />
             </div>

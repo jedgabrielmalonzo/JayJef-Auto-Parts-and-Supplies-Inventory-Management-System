@@ -16,6 +16,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '.
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.jsx';
 import ProductPicker from '../components/ProductPicker.jsx';
 import { DatePickerWithRange } from '../components/DatePickerWithRange.jsx';
+import { Skeleton } from '../components/ui/skeleton.jsx';
 import {
   Pagination,
   PaginationContent,
@@ -55,14 +56,28 @@ function groupMovementsByDateAndProduct(movements) {
         dateKey,
         dateObj: d,
         totalChange: 0,
+        totalIn: 0,
+        totalOut: 0,
+        inCount: 0,
+        outCount: 0,
         count: 0,
         reasons: new Set(),
         latestTime: m.created_at,
       };
     }
 
-    groups[groupKey].totalChange += Number(m.quantity_change || 0);
+    const change = Number(m.quantity_change || 0);
+    groups[groupKey].totalChange += change;
     groups[groupKey].count += 1;
+
+    if (change > 0) {
+      groups[groupKey].totalIn += change;
+      groups[groupKey].inCount += 1;
+    } else if (change < 0) {
+      groups[groupKey].totalOut += Math.abs(change);
+      groups[groupKey].outCount += 1;
+    }
+
     if (m.reason) groups[groupKey].reasons.add(MOVEMENT_REASON_LABELS[m.reason] || m.reason);
 
     if (new Date(m.created_at) > new Date(groups[groupKey].latestTime)) {
@@ -576,9 +591,63 @@ export default function InventoryPage() {
       </motion.div>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-16 text-gray-500">
-          <Loader2 size={16} className="animate-spin text-red-600" />
-          Loading inventory movements...
+        <div className="space-y-4 w-full">
+          {/* Skeleton Filter Bar */}
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-xs">
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+              <Skeleton className="h-9 flex-1 rounded-xl" />
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-9 w-48 rounded-xl" />
+                <Skeleton className="h-9 w-40 rounded-xl" />
+              </div>
+            </div>
+          </div>
+
+          {/* Skeleton Movements Table */}
+          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xs w-full">
+            <div className="overflow-x-auto w-full">
+              <Table className="w-full">
+                <TableHeader className="bg-gray-50/80">
+                  <TableRow>
+                    <TableHead className="font-bold text-gray-700">Product &amp; Part Number</TableHead>
+                    <TableHead className="font-bold text-gray-700">Stock In / Out</TableHead>
+                    <TableHead className="font-bold text-gray-700">Activity</TableHead>
+                    <TableHead className="font-bold text-gray-700">Date &amp; Time</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Array.from({ length: 6 }).map((_, idx) => (
+                    <TableRow key={idx} className="border-b border-gray-100">
+                      <TableCell className="py-4">
+                        <div className="space-y-1.5">
+                          <Skeleton className="h-4 w-52 rounded" />
+                          <Skeleton className="h-3 w-28 rounded" />
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <div className="flex items-center gap-2">
+                          <Skeleton className="h-6 w-16 rounded-full" />
+                          <Skeleton className="h-6 w-16 rounded-full" />
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <div className="space-y-1.5">
+                          <Skeleton className="h-4 w-32 rounded" />
+                          <Skeleton className="h-3 w-44 rounded" />
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <div className="space-y-1.5">
+                          <Skeleton className="h-4 w-28 rounded" />
+                          <Skeleton className="h-3 w-20 rounded" />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
         </div>
       ) : (
         <motion.div custom={1} variants={sectionVariants} initial="hidden" animate="visible" className="space-y-4 w-full">
@@ -685,7 +754,7 @@ export default function InventoryPage() {
                       <TableHeader className="bg-gray-50/80">
                         <TableRow>
                           <TableHead className="font-bold text-gray-700">Product &amp; Part Number</TableHead>
-                          <TableHead className="font-bold text-gray-700">Daily Net Change</TableHead>
+                          <TableHead className="font-bold text-gray-700">Stock In / Out</TableHead>
                           <TableHead className="font-bold text-gray-700">Activity</TableHead>
                           <TableHead className="font-bold text-gray-700">Date &amp; Time</TableHead>
                         </TableRow>
@@ -714,19 +783,34 @@ export default function InventoryPage() {
                                 <p className="font-mono text-xs text-gray-500">{g.product_sku}</p>
                               </TableCell>
                               <TableCell className="tabular-nums">
-                                <span
-                                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold ${g.totalChange >= 0
-                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                    : 'bg-red-50 text-red-700 border border-red-200'
-                                    }`}
-                                >
-                                  {g.totalChange >= 0 ? `+${g.totalChange}` : g.totalChange} Total
-                                </span>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  {g.totalIn > 0 && (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
+                                      +{g.totalIn} In
+                                    </span>
+                                  )}
+                                  {g.totalOut > 0 && (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-200 shadow-2xs">
+                                      -{g.totalOut} Out
+                                    </span>
+                                  )}
+                                  {g.totalIn > 0 && g.totalOut > 0 && (
+                                    <span className="text-[11px] font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200">
+                                      Net: {g.totalChange >= 0 ? `+${g.totalChange}` : g.totalChange}
+                                    </span>
+                                  )}
+                                  {g.totalIn === 0 && g.totalOut === 0 && (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-600 border border-gray-200">
+                                      0 Change
+                                    </span>
+                                  )}
+                                </div>
                               </TableCell>
                               <TableCell>
                                 <div className="space-y-0.5">
                                   <span className="inline-block rounded-md bg-gray-100 px-2 py-0.5 text-[11px] font-bold text-gray-800">
                                     {g.count} {g.count === 1 ? 'operation' : 'operations stacked'}
+                                    {g.inCount > 0 && g.outCount > 0 ? ` (${g.inCount} in, ${g.outCount} out)` : ''}
                                   </span>
                                   <p className="text-xs text-gray-500 font-medium">
                                     {Array.from(g.reasons).map(r => MOVEMENT_REASON_LABELS[r] || r).join(', ') || 'Manual Adjustment'}

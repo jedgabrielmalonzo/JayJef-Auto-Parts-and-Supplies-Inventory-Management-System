@@ -11,9 +11,11 @@ import { listMovements, createMovement } from '../api/inventory.js';
 import { formatCategory, MOVEMENT_REASON_LABELS, availability } from '../constants.js';
 import { Badge } from '../components/ui/badge.jsx';
 import { Button } from '../components/ui/button.jsx';
+import { Input } from '../components/ui/input.jsx';
 import { Card } from '../components/ui/card.jsx';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs.jsx';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table.jsx';
+import { Skeleton } from '../components/ui/skeleton.jsx';
 import ProductThumb from '../components/ProductThumb.jsx';
 import ProductFormPage from './ProductFormPage.jsx';
 
@@ -125,11 +127,51 @@ export default function ProductDetailPage({ initialEdit = false }) {
     }
   }
 
+  async function handleDirectStockChange(newQty) {
+    if (!product) return;
+    if (isNaN(newQty) || newQty < 0 || newQty === product.stock_quantity) {
+      return;
+    }
+    const diff = newQty - product.stock_quantity;
+    setUpdatingStock(true);
+    setProduct((prev) => ({ ...prev, stock_quantity: newQty }));
+
+    try {
+      await createMovement({
+        product_id: product.id,
+        quantity_change: diff,
+        reason: 'manual_adjustment',
+        note: `Manual stock adjustment to ${newQty}`,
+      });
+      toast.success(`Updated stock for "${product.name}" to ${newQty}`);
+      loadData();
+    } catch (err) {
+      toast.error(err.message || 'Failed to update stock');
+      loadData();
+    } finally {
+      setUpdatingStock(false);
+    }
+  }
+
   if (loading) {
     return (
-      <div className="flex h-96 flex-col items-center justify-center gap-3 text-gray-500">
-        <Loader2 size={28} className="animate-spin text-red-600" />
-        <p className="text-sm font-medium">Loading product details...</p>
+      <div className="space-y-6 max-w-6xl mx-auto pb-12 animate-pulse">
+        <Skeleton className="h-5 w-40 rounded" />
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-gray-200/80 shadow-xs">
+          <div className="flex items-center gap-4">
+            <Skeleton className="size-20 rounded-2xl" />
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-32 rounded-md" />
+              <Skeleton className="h-6 w-64 rounded-md" />
+              <Skeleton className="h-4 w-40 rounded-md" />
+            </div>
+          </div>
+          <Skeleton className="h-10 w-28 rounded-xl" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Skeleton className="h-64 rounded-3xl md:col-span-1" />
+          <Skeleton className="h-64 rounded-3xl md:col-span-2" />
+        </div>
       </div>
     );
   }
@@ -232,11 +274,6 @@ export default function ProductDetailPage({ initialEdit = false }) {
                     </span>
                     <span className="text-sm font-bold text-gray-500">{product.unit || 'units'}</span>
                   </div>
-                  <div className="mt-2">
-                    <Badge variant={avail.badgeVariant} className="font-bold text-xs">
-                      {avail.label}
-                    </Badge>
-                  </div>
                 </div>
 
                 <div className="space-y-3 pt-4 border-t border-gray-100">
@@ -254,31 +291,39 @@ export default function ProductDetailPage({ initialEdit = false }) {
                   </div>
                 </div>
 
-                {/* 1-Click Fast Stock Adjuster */}
+                {/* Direct Stock Adjustment Input */}
                 <div className="space-y-2 pt-4 border-t border-gray-100">
                   <span className="text-xs font-bold uppercase tracking-wider text-gray-500 block">
                     Quick Stock Adjustment
                   </span>
                   <div className="flex items-center gap-2">
-                    <Button
-                      disabled={updatingStock || product.stock_quantity <= 0}
-                      onClick={() => handleQuickAdjust(-1)}
-                      variant="outline"
-                      className="flex-1 rounded-xl border-gray-300 hover:border-red-600 hover:text-red-700 font-bold text-xs py-2.5 shadow-xs"
-                    >
-                      <Minus size={14} strokeWidth={3} />
-                      Deduct (-1)
-                    </Button>
-                    <Button
+                    <Input
+                      type="number"
+                      min="0"
                       disabled={updatingStock}
-                      onClick={() => handleQuickAdjust(1)}
-                      variant="outline"
-                      className="flex-1 rounded-xl border-gray-300 hover:border-emerald-600 hover:text-emerald-700 font-bold text-xs py-2.5 shadow-xs"
-                    >
-                      <Plus size={14} strokeWidth={3} />
-                      Restock (+1)
-                    </Button>
+                      key={`${product.id}-${product.stock_quantity}`}
+                      defaultValue={product.stock_quantity}
+                      title="Directly edit stock quantity (Press Enter to save)"
+                      className="w-full h-10 text-center font-bold text-sm font-mono rounded-xl border-gray-300 bg-white hover:border-gray-400 focus:border-red-600 focus:ring-2 focus:ring-red-600/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.target.blur();
+                        } else if (e.key === 'Escape') {
+                          e.target.value = product.stock_quantity;
+                          e.target.blur();
+                        }
+                      }}
+                      onBlur={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        if (isNaN(val) || val < 0 || val === product.stock_quantity) {
+                          e.target.value = product.stock_quantity;
+                          return;
+                        }
+                        handleDirectStockChange(val);
+                      }}
+                    />
                   </div>
+                  <p className="text-[11px] text-gray-400">Type a new count and press Enter or click away to save.</p>
                 </div>
               </Card>
 

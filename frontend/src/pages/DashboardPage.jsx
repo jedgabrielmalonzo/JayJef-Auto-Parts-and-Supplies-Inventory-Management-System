@@ -14,6 +14,7 @@ import { Button } from '../components/ui/button.jsx';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table.jsx';
 import ProductThumb from '../components/ProductThumb.jsx';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.jsx';
+import { Skeleton } from '../components/ui/skeleton.jsx';
 
 function CustomCategoryStockTooltip({ active, payload }) {
   if (!active || !payload || !payload.length) return null;
@@ -114,9 +115,30 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 py-24 text-gray-500">
-        <Loader2 size={28} className="animate-spin text-red-600" />
-        <span className="text-sm font-medium">Loading inventory dashboard...</span>
+      <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-pulse">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="space-y-2">
+            <Skeleton className="h-7 w-64 rounded-xl" />
+            <Skeleton className="h-4 w-96 rounded-md" />
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-9 w-24 rounded-xl" />
+            <Skeleton className="h-9 w-24 rounded-xl" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-2xl border border-gray-200 bg-white p-5 space-y-3">
+              <Skeleton className="h-4 w-28 rounded" />
+              <Skeleton className="h-7 w-20 rounded" />
+              <Skeleton className="h-3 w-36 rounded" />
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Skeleton className="h-80 rounded-2xl lg:col-span-2" />
+          <Skeleton className="h-80 rounded-2xl lg:col-span-1" />
+        </div>
       </div>
     );
   }
