@@ -6,26 +6,37 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config(); // Also check current working directory for serverless environments
 
-const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/jayjef_ims';
-
-let isConnected = false;
+let cachedPromise = null;
 
 export async function connectMongo() {
-  if (isConnected || mongoose.connection.readyState === 1) {
-    isConnected = true;
-    return;
+  if (mongoose.connection.readyState === 1) {
+    return mongoose.connection;
   }
-  try {
-    await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 10000,
-    });
-    isConnected = true;
+
+  if (cachedPromise) {
+    return cachedPromise;
+  }
+
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    throw new Error('MONGODB_URI environment variable is not defined on the host! Please add MONGODB_URI in your hosting dashboard.');
+  }
+
+  cachedPromise = mongoose.connect(uri, {
+    bufferCommands: false,
+    serverSelectionTimeoutMS: 8000,
+  }).then((mongooseInstance) => {
     console.log('Successfully connected to MongoDB Atlas');
-  } catch (err) {
+    return mongooseInstance;
+  }).catch((err) => {
+    cachedPromise = null;
     console.error('Failed to connect to MongoDB:', err.message);
     throw err;
-  }
+  });
+
+  return cachedPromise;
 }
 
 export { mongoose };

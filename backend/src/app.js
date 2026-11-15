@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import { connectMongo } from './db/mongo.js';
 import productsRouter from './routes/products.js';
 import inventoryRouter from './routes/inventory.js';
 import dashboardRouter from './routes/dashboard.js';
@@ -11,6 +12,19 @@ export const app = express();
 app.use(cors());
 app.use(express.json());
 app.use('/uploads/products', express.static(productUploadsDir));
+
+// Ensure MongoDB is connected before handling requests (crucial for Vercel/serverless live hosting)
+app.use(async (req, res, next) => {
+  try {
+    await connectMongo();
+    next();
+  } catch (err) {
+    console.error('Database connection error:', err.message);
+    res.status(500).json({
+      error: `Database connection error: ${err.message}. Please verify MONGODB_URI is configured in your live host environment variables.`,
+    });
+  }
+});
 
 const apiRouter = express.Router();
 
