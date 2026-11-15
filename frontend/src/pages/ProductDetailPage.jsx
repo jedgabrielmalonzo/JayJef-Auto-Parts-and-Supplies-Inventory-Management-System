@@ -227,9 +227,6 @@ export default function ProductDetailPage({ initialEdit = false }) {
             </h1>
             <p className="text-xs text-gray-500 font-medium">
               Brand: <span className="font-bold text-gray-700">{product.brand || 'Unbranded'}</span>
-              {locationText && (
-                <> • Bin/Aisle: <span className="font-bold text-gray-700">{locationText}</span></>
-              )}
             </p>
           </div>
         </div>
@@ -365,18 +362,6 @@ export default function ProductDetailPage({ initialEdit = false }) {
                         {product.compatible_vehicles || 'No specific vehicle fitment notes recorded.'}
                       </p>
                     </div>
-
-                    {locationText && (
-                      <div className="space-y-1 sm:col-span-2">
-                        <span className="text-xs font-medium text-gray-500 flex items-center gap-1">
-                          <MapPin size={14} className="text-gray-400" /> Shop Floor Storage Location
-                        </span>
-                        <p className="font-bold text-gray-900 bg-gray-50/80 p-3 rounded-xl border border-gray-200/60 flex items-center gap-2">
-                          <span className="inline-block size-2 rounded-full bg-red-600" />
-                          {locationText}
-                        </p>
-                      </div>
-                    )}
 
                     {product.notes && (
                       <div className="space-y-1 sm:col-span-2">

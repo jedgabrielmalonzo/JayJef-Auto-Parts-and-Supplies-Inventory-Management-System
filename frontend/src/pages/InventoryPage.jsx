@@ -794,11 +794,6 @@ export default function InventoryPage() {
                                       -{g.totalOut} Out
                                     </span>
                                   )}
-                                  {g.totalIn > 0 && g.totalOut > 0 && (
-                                    <span className="text-[11px] font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200">
-                                      Net: {g.totalChange >= 0 ? `+${g.totalChange}` : g.totalChange}
-                                    </span>
-                                  )}
                                   {g.totalIn === 0 && g.totalOut === 0 && (
                                     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-600 border border-gray-200">
                                       0 Change
