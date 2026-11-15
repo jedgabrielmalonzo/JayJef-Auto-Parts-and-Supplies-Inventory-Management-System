@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   AlertTriangle, Search, RotateCcw, X, ShieldAlert,
-  ArrowUpRight, PackageX, Layers, ExternalLink, RefreshCw, Loader2
+  ArrowUpRight, PackageX, ExternalLink, RefreshCw, Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { lowStock } from '../api/inventory.js';
@@ -119,12 +119,6 @@ export default function LowStockPage() {
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             Refresh
           </Button>
-          <Link to="/inventory">
-            <Button className="bg-red-600 hover:bg-red-700 text-white shadow-md rounded-xl text-xs font-bold gap-1.5">
-              <Layers size={14} />
-              Stock &amp; Movements
-            </Button>
-          </Link>
         </div>
       </motion.div>
 

@@ -24,6 +24,7 @@ export function getProductPurchases(id) {
 // blank by the caller before reaching here, since Postgres rejects '' for
 // those column types.
 function toProductFormData(data) {
+  if (data instanceof FormData) return data;
   const form = new FormData();
   for (const [key, value] of Object.entries(data)) {
     if (value === undefined || value === null) continue;

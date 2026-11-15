@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Loader2, PlusCircle, Search, Layers, ListFilter, Calendar, Clock,
-  RotateCcw, X, AlertTriangle
+  RotateCcw, X
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { listMovements, createMovement, createBatchMovements } from '../api/inventory.js';
@@ -124,23 +124,6 @@ function AdjustStockModal({ open, onClose, onSaved }) {
   const [bundleNote, setBundleNote] = useState('');
   const [addItemProduct, setAddItemProduct] = useState(null);
 
-  // Modal Size State
-  const [modalSize, setModalSize] = useState(() => {
-    return localStorage.getItem('jayjef_modal_size') || 'standard';
-  });
-
-  const SIZE_CLASSES = {
-    standard: 'sm:max-w-xl max-h-[90vh]',
-    wide: 'sm:max-w-4xl max-h-[92vh]',
-    'extra-wide': 'sm:max-w-6xl max-h-[94vh]',
-    fullscreen: 'sm:max-w-[98vw] sm:w-[98vw] w-[98vw] max-w-[98vw] h-[95vh] max-h-[95vh]',
-  };
-
-  function changeModalSize(newSize) {
-    setModalSize(newSize);
-    localStorage.setItem('jayjef_modal_size', newSize);
-  }
-
   function handleAddProductToBundle(prod) {
     if (!prod) return;
     setBundleItems((prev) => {
@@ -229,236 +212,259 @@ function AdjustStockModal({ open, onClose, onSaved }) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className={`${SIZE_CLASSES[modalSize] || SIZE_CLASSES.standard} overflow-y-auto rounded-2xl p-6 shadow-2xl border border-gray-200 transition-all duration-200`}>
-        <DialogHeader className="flex flex-row items-center justify-between pb-3 border-b border-gray-100 pr-8">
-          <DialogTitle className="font-heading text-xl font-bold text-gray-900">
-            Adjust Stock
-          </DialogTitle>
-
-          <div className="hidden sm:flex items-center gap-1 bg-gray-100/80 p-1 rounded-xl">
-            <span className="text-[11px] text-gray-500 font-bold px-1.5">Size:</span>
-            {[
-              { key: 'standard', label: 'Standard' },
-              { key: 'wide', label: 'Wide' },
-              { key: 'extra-wide', label: 'Extra Wide' },
-              { key: 'fullscreen', label: 'Full Screen' },
-            ].map((s) => (
-              <button
-                key={s.key}
-                type="button"
-                onClick={() => changeModalSize(s.key)}
-                className={`px-2.5 py-0.5 rounded-lg text-[11px] font-bold transition-all ${modalSize === s.key ? 'bg-white text-gray-900 shadow-xs font-extrabold' : 'text-gray-600 hover:text-gray-900'
-                  }`}
-              >
-                {s.label}
-              </button>
-            ))}
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent className="w-[96vw] max-w-[96vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl max-h-[92vh] flex flex-col p-0 rounded-3xl border border-gray-200/90 shadow-2xl bg-white overflow-hidden">
+        <DialogHeader className="px-6 sm:px-8 py-5 border-b border-gray-100 bg-gray-50/60 sticky top-0 z-20 backdrop-blur-xs shrink-0">
+          <div className="flex items-center gap-3">
+            <span className="p-2.5 rounded-2xl bg-red-50 text-red-600 border border-red-100 shadow-xs">
+              <Layers size={22} />
+            </span>
+            <div>
+              <DialogTitle className="font-heading text-xl font-bold text-gray-900 tracking-tight">
+                Adjust Stock
+              </DialogTitle>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Record stock adjustments, daily inventory ins/outs, and batch reconciliations
+              </p>
+            </div>
           </div>
         </DialogHeader>
 
-        {/* Mode Switcher Segmented Control */}
-        <div className="pt-1 pb-1">
-          <div className="inline-flex p-1 bg-gray-100/80 rounded-xl border border-gray-200/50">
-            <button
-              type="button"
-              onClick={() => setMode('single')}
-              className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all ${mode === 'single'
-                ? 'bg-white text-gray-900 shadow-xs font-extrabold'
-                : 'text-gray-600 hover:text-gray-900'
-                }`}
-            >
-              Single Product
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode('bundle')}
-              className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all ${mode === 'bundle'
-                ? 'bg-white text-gray-900 shadow-xs font-extrabold'
-                : 'text-gray-600 hover:text-gray-900'
-                }`}
-            >
-              Adjust by Bundle / Whole Order
-            </button>
-          </div>
-        </div>
-
         {mode === 'single' ? (
-          <form onSubmit={handleSubmitSingle} className="space-y-5 pt-2">
-            <ModalSection title="Target Product">
-              <ModalField label="Auto Part / Product" required>
-                <ProductPicker selected={product} onSelect={setProduct} onClear={() => setProduct(null)} />
-              </ModalField>
-            </ModalSection>
-
-            <ModalSection title="Stock Movement Details">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <ModalField label="Movement Direction" required>
-                  <Select value={direction} onValueChange={setDirection}>
-                    <SelectTrigger className="rounded-xl border-gray-300">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="in">Stock In (+)</SelectItem>
-                      <SelectItem value="out">Stock Out (−)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </ModalField>
-                <ModalField label="Quantity" required>
-                  <Input
-                    type="number"
-                    min="1"
-                    placeholder="1"
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
-                    className="rounded-xl border-gray-300 font-mono text-sm tabular-nums focus:border-red-600"
-                    required
-                  />
-                </ModalField>
+          <form onSubmit={handleSubmitSingle} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 space-y-6">
+              {/* Mode Switcher */}
+              <div className="flex items-center justify-between pb-1">
+                <div className="inline-flex p-1 bg-gray-100/90 rounded-2xl border border-gray-200/60">
+                  <button
+                    type="button"
+                    onClick={() => setMode('single')}
+                    className="px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer bg-white text-gray-900 shadow-xs"
+                  >
+                    Single Product
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMode('bundle')}
+                    className="px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer text-gray-500 hover:text-gray-900"
+                  >
+                    Adjust by Bundle / Whole Order
+                  </button>
+                </div>
               </div>
-            </ModalSection>
 
-            <ModalSection title="Reason & Documentation">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <ModalField label="Adjustment Reason" required>
-                  <Select value={reason} onValueChange={setReason}>
-                    <SelectTrigger className="rounded-xl border-gray-300">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="manual_adjustment">Manual Adjustment</SelectItem>
-                      <SelectItem value="correction">Correction</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <ModalSection title="Target Product">
+                <ModalField label="Auto Part / Product" required>
+                  <ProductPicker selected={product} onSelect={setProduct} onClear={() => setProduct(null)} />
                 </ModalField>
-                <ModalField label="Note / Reference (optional)">
-                  <Input
-                    placeholder="Reason for adjustment, PO #, etc."
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    className="rounded-xl border-gray-300 text-sm"
-                  />
-                </ModalField>
-              </div>
-            </ModalSection>
+              </ModalSection>
 
-            <div className="flex gap-3 pt-3 border-t border-gray-100">
-              <Button type="submit" disabled={saving || !product || !quantity} className="rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-md font-semibold">
+              <ModalSection title="Stock Movement Details">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <ModalField label="Movement Direction" required>
+                    <Select value={direction} onValueChange={setDirection}>
+                      <SelectTrigger className="rounded-xl border-gray-300">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="in">Stock In (+)</SelectItem>
+                        <SelectItem value="out">Stock Out (−)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </ModalField>
+                  <ModalField label="Quantity" required>
+                    <Input
+                      type="number"
+                      min="1"
+                      placeholder="1"
+                      value={quantity}
+                      onChange={(e) => setQuantity(e.target.value)}
+                      className="rounded-xl border-gray-300 font-mono text-sm tabular-nums focus:border-red-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      required
+                    />
+                  </ModalField>
+                </div>
+              </ModalSection>
+
+              <ModalSection title="Reason & Documentation">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <ModalField label="Adjustment Reason" required>
+                    <Select value={reason} onValueChange={setReason}>
+                      <SelectTrigger className="rounded-xl border-gray-300">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="manual_adjustment">Manual Adjustment</SelectItem>
+                        <SelectItem value="correction">Correction</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </ModalField>
+                  <ModalField label="Note / Reference (optional)">
+                    <Input
+                      placeholder="Reason for adjustment, PO #, etc."
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      className="rounded-xl border-gray-300 text-sm"
+                    />
+                  </ModalField>
+                </div>
+              </ModalSection>
+            </div>
+
+            {/* Sticky Action Footer */}
+            <div className="sticky bottom-0 z-20 px-6 sm:px-8 py-4 border-t border-gray-100 bg-gray-50/80 backdrop-blur-xs flex items-center justify-end gap-3 shrink-0">
+              <Button type="button" variant="outline" className="rounded-xl border-gray-300 font-semibold px-5" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={saving || !product || !quantity}
+                className="rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold gap-2 px-6 shadow-sm cursor-pointer"
+              >
                 {saving && <Loader2 size={16} className="animate-spin" />}
                 {saving ? 'Recording Movement...' : 'Record Movement'}
-              </Button>
-              <Button type="button" variant="secondary" onClick={onClose} className="rounded-xl border border-gray-200">
-                Cancel
               </Button>
             </div>
           </form>
         ) : (
-          <form onSubmit={handleSubmitBundle} className="space-y-5 pt-2">
-            <ModalSection title="Add Parts to Batch Adjustment">
-              <ModalField label="Search & Add Aircon Part">
-                <ProductPicker selected={addItemProduct} onSelect={handleAddProductToBundle} onClear={() => setAddItemProduct(null)} placeholder="Search product name or part number to add to batch..." />
-              </ModalField>
-            </ModalSection>
-
-            <ModalSection title={`Batch Line Items (${bundleItems.length})`}>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">Review quantities and direction before recording batch adjustments.</span>
-                {bundleItems.length > 0 && (
-                  <button type="button" onClick={() => setBundleItems([])} className="text-xs text-red-600 hover:underline font-semibold">
-                    Clear All Items
+          <form onSubmit={handleSubmitBundle} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 space-y-6">
+              {/* Mode Switcher */}
+              <div className="flex items-center justify-between pb-1">
+                <div className="inline-flex p-1 bg-gray-100/90 rounded-2xl border border-gray-200/60">
+                  <button
+                    type="button"
+                    onClick={() => setMode('single')}
+                    className="px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer text-gray-500 hover:text-gray-900"
+                  >
+                    Single Product
                   </button>
-                )}
+                  <button
+                    type="button"
+                    onClick={() => setMode('bundle')}
+                    className="px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer bg-white text-gray-900 shadow-xs"
+                  >
+                    Adjust by Bundle / Whole Order
+                  </button>
+                </div>
               </div>
 
-              {bundleItems.length === 0 ? (
-                <div className="border border-dashed border-gray-300 rounded-xl py-8 text-center text-xs text-gray-500 bg-gray-50/50">
-                  No items in batch yet. Search and select products above to add them.
-                </div>
-              ) : (
-                <div className="rounded-xl border border-gray-200 overflow-hidden bg-white shadow-xs">
-                  <div className="max-h-64 overflow-y-auto overflow-x-auto">
-                    <Table className="text-xs">
-                      <TableHeader className="bg-gray-50/80 sticky top-0 z-10">
-                        <TableRow>
-                          <TableHead className="font-bold text-gray-700">Product & Part Number</TableHead>
-                          <TableHead className="font-bold text-gray-700 w-32">Direction</TableHead>
-                          <TableHead className="font-bold text-gray-700 w-24">Qty</TableHead>
-                          <TableHead className="w-16 text-right font-bold text-gray-700">Action</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {bundleItems.map((item, idx) => (
-                          <TableRow key={`${item.product_id}_${idx}`} className="hover:bg-gray-50/60">
-                            <TableCell className="py-2">
-                              <p className="font-bold text-gray-900">{item.product_name}</p>
-                              <p className="font-mono text-[11px] text-gray-500">{item.product_sku}</p>
-                            </TableCell>
-                            <TableCell className="py-2">
-                              <Select value={item.direction} onValueChange={(val) => updateBundleItem(idx, 'direction', val)}>
-                                <SelectTrigger className="h-8 text-xs rounded-lg border-gray-300">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="in">In (+)</SelectItem>
-                                  <SelectItem value="out">Out (−)</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </TableCell>
-                            <TableCell className="py-2">
-                              <Input
-                                type="number"
-                                min="1"
-                                value={item.quantity}
-                                onChange={(e) => updateBundleItem(idx, 'quantity', e.target.value)}
-                                className="h-8 text-xs font-mono tabular-nums rounded-lg border-gray-300"
-                              />
-                            </TableCell>
-                            <TableCell className="py-2 text-right">
-                              <button type="button" onClick={() => removeBundleItem(idx)} className="text-xs text-red-600 hover:underline font-semibold">
-                                Remove
-                              </button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
-              )}
-            </ModalSection>
-
-            <ModalSection title="Batch Reason & Documentation">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <ModalField label="Batch Adjustment Reason" required>
-                  <Select value={bundleReason} onValueChange={setBundleReason}>
-                    <SelectTrigger className="rounded-xl border-gray-300">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="manual_adjustment">Manual Adjustment</SelectItem>
-                      <SelectItem value="initial_stock">Initial Stock Take</SelectItem>
-                      <SelectItem value="correction">Inventory Correction</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </ModalField>
-                <ModalField label="Batch Note (optional)">
-                  <Input
-                    placeholder="Order #, Restock batch, etc."
-                    value={bundleNote}
-                    onChange={(e) => setBundleNote(e.target.value)}
-                    className="rounded-xl border-gray-300 text-sm"
+              <ModalSection title="Add Parts to Batch Adjustment">
+                <ModalField label="Search & Add Aircon Part">
+                  <ProductPicker
+                    selected={addItemProduct}
+                    onSelect={handleAddProductToBundle}
+                    onClear={() => setAddItemProduct(null)}
+                    placeholder="Search product name or part number to add to batch..."
                   />
                 </ModalField>
-              </div>
-            </ModalSection>
+              </ModalSection>
 
-            <div className="flex gap-3 pt-3 border-t border-gray-100">
-              <Button type="submit" disabled={saving || bundleItems.length === 0} className="rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-md font-semibold">
+              <ModalSection title={`Batch Line Items (${bundleItems.length})`}>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-500">Review quantities and direction before recording batch adjustments.</span>
+                  {bundleItems.length > 0 && (
+                    <button type="button" onClick={() => setBundleItems([])} className="text-xs text-red-600 hover:underline font-semibold cursor-pointer">
+                      Clear All Items
+                    </button>
+                  )}
+                </div>
+
+                {bundleItems.length === 0 ? (
+                  <div className="border border-dashed border-gray-300 rounded-2xl py-8 text-center text-xs text-gray-500 bg-gray-50/50">
+                    No items in batch yet. Search and select products above to add them.
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-gray-200 overflow-hidden bg-white shadow-xs">
+                    <div className="max-h-64 overflow-y-auto overflow-x-auto">
+                      <Table className="text-xs">
+                        <TableHeader className="bg-gray-50/80 sticky top-0 z-10">
+                          <TableRow>
+                            <TableHead className="font-bold text-gray-700">Product & Part Number</TableHead>
+                            <TableHead className="font-bold text-gray-700 w-32">Direction</TableHead>
+                            <TableHead className="font-bold text-gray-700 w-24">Qty</TableHead>
+                            <TableHead className="w-16 text-right font-bold text-gray-700">Action</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {bundleItems.map((item, idx) => (
+                            <TableRow key={`${item.product_id}_${idx}`} className="hover:bg-gray-50/60">
+                              <TableCell className="py-2.5">
+                                <p className="font-bold text-gray-900">{item.product_name}</p>
+                                <p className="font-mono text-[11px] text-gray-500">{item.product_sku}</p>
+                              </TableCell>
+                              <TableCell className="py-2.5">
+                                <Select value={item.direction} onValueChange={(val) => updateBundleItem(idx, 'direction', val)}>
+                                  <SelectTrigger className="h-8 text-xs rounded-xl border-gray-300">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="in">In (+)</SelectItem>
+                                    <SelectItem value="out">Out (−)</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                              <TableCell className="py-2.5">
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={item.quantity}
+                                  onChange={(e) => updateBundleItem(idx, 'quantity', e.target.value)}
+                                  className="h-8 text-xs font-mono tabular-nums rounded-xl border-gray-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                />
+                              </TableCell>
+                              <TableCell className="py-2.5 text-right">
+                                <button type="button" onClick={() => removeBundleItem(idx)} className="text-xs text-red-600 hover:underline font-semibold cursor-pointer">
+                                  Remove
+                                </button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                )}
+              </ModalSection>
+
+              <ModalSection title="Batch Reason & Documentation">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <ModalField label="Batch Adjustment Reason" required>
+                    <Select value={bundleReason} onValueChange={setBundleReason}>
+                      <SelectTrigger className="rounded-xl border-gray-300">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="manual_adjustment">Manual Adjustment</SelectItem>
+                        <SelectItem value="initial_stock">Initial Stock Take</SelectItem>
+                        <SelectItem value="correction">Inventory Correction</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </ModalField>
+                  <ModalField label="Batch Note (optional)">
+                    <Input
+                      placeholder="Order #, Restock batch, etc."
+                      value={bundleNote}
+                      onChange={(e) => setBundleNote(e.target.value)}
+                      className="rounded-xl border-gray-300 text-sm"
+                    />
+                  </ModalField>
+                </div>
+              </ModalSection>
+            </div>
+
+            {/* Sticky Action Footer */}
+            <div className="sticky bottom-0 z-20 px-6 sm:px-8 py-4 border-t border-gray-100 bg-gray-50/80 backdrop-blur-xs flex items-center justify-end gap-3 shrink-0">
+              <Button type="button" variant="outline" className="rounded-xl border-gray-300 font-semibold px-5" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={saving || bundleItems.length === 0}
+                className="rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold gap-2 px-6 shadow-sm cursor-pointer"
+              >
                 {saving && <Loader2 size={16} className="animate-spin" />}
                 {saving ? 'Adjusting Stock...' : `Adjust Stock (${bundleItems.length} items)`}
-              </Button>
-              <Button type="button" variant="secondary" onClick={onClose} className="rounded-xl border border-gray-200">
-                Cancel
               </Button>
             </div>
           </form>
@@ -562,12 +568,6 @@ export default function InventoryPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Link to="/low-stock">
-            <Button variant="outline" className="border-amber-200 bg-amber-50/50 hover:bg-amber-100/70 text-amber-800 rounded-xl text-xs font-bold gap-1.5">
-              <AlertTriangle size={14} className="text-amber-600" />
-              Low Stock Alerts
-            </Button>
-          </Link>
           <Button onClick={() => setAdjustOpen(true)} className="bg-red-600 hover:bg-red-700 shadow-md rounded-xl text-xs font-bold gap-1.5">
             <PlusCircle size={16} strokeWidth={2.5} />
             Adjust Stock

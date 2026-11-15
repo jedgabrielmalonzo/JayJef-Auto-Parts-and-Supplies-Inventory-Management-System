@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Loader2, ImagePlus, X, DollarSign, Tag, PackageCheck } from 'lucide-react';
 import { toast } from 'sonner';
@@ -77,6 +77,7 @@ export default function ProductFormPage({ onSuccess, onClose, productId }) {
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -92,11 +93,7 @@ export default function ProductFormPage({ onSuccess, onClose, productId }) {
   }, [id, isEdit]);
 
   useEffect(() => {
-    if (imageFile) {
-      const url = URL.createObjectURL(imageFile);
-      setImagePreview(url);
-      return () => URL.revokeObjectURL(url);
-    }
+    if (imageFile) return;
     if (form.image_path) {
       const fullUrl = form.image_path.startsWith('http') ? form.image_path : `${API_ORIGIN}${form.image_path}`;
       setImagePreview(fullUrl);
@@ -118,6 +115,11 @@ export default function ProductFormPage({ onSuccess, onClose, productId }) {
         return;
       }
       setImageFile(file);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setImagePreview(event.target.result);
+      };
+      reader.readAsDataURL(file);
     }
   }
 
@@ -125,6 +127,7 @@ export default function ProductFormPage({ onSuccess, onClose, productId }) {
     setImageFile(null);
     setImagePreview(null);
     set('image_path', '');
+    if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
   function validate() {
@@ -245,12 +248,20 @@ export default function ProductFormPage({ onSuccess, onClose, productId }) {
                       </div>
 
                       <div className="space-y-2 w-full">
-                        <label className="block w-full">
-                          <span className="inline-flex w-full items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-xs font-bold text-gray-700 cursor-pointer shadow-xs transition-colors">
-                            <ImagePlus size={15} /> Choose Photo
-                          </span>
-                          <input type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
-                        </label>
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="inline-flex w-full items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-xs font-bold text-gray-700 cursor-pointer shadow-xs transition-colors"
+                        >
+                          <ImagePlus size={15} /> Choose Photo
+                        </button>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleFileSelect}
+                        />
                         <p className="text-[11px] text-gray-400 leading-relaxed text-left">
                           Supported formats: JPG, PNG, or WebP. Transparent or white background recommended. Max 5MB.
                         </p>
@@ -265,7 +276,7 @@ export default function ProductFormPage({ onSuccess, onClose, productId }) {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <Field label="Part Number" required error={fieldErrors.sku}>
                         <Input
-                          className="font-mono uppercase rounded-xl border-gray-300 focus:border-red-600"
+                          className="font-mono uppercase rounded-xl border-gray-300 focus:border-red-600 placeholder:normal-case placeholder:font-normal placeholder:text-gray-400"
                           aria-invalid={!!fieldErrors.sku}
                           placeholder="e.g. COMP-DEN-10PA17"
                           value={form.sku}

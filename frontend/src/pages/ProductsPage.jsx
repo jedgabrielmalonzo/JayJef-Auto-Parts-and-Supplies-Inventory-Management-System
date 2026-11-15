@@ -166,6 +166,42 @@ function ProductsListView({ modal }) {
     }
   }
 
+  async function handleStockInputChange(p, newQty) {
+    if (isNaN(newQty) || newQty < 0 || newQty === p.stock_quantity) {
+      return;
+    }
+    const diff = newQty - p.stock_quantity;
+    setDeductingId(p.id);
+
+    setProducts((prev) =>
+      prev.map((item) => (item.id === p.id ? { ...item, stock_quantity: newQty } : item))
+    );
+
+    soundService.checkAndPlayAlert(newQty, p.reorder_threshold);
+
+    try {
+      await createMovement({
+        product_id: p.id,
+        quantity_change: diff,
+        reason: 'manual_adjustment',
+        note: `Manual stock adjustment to ${newQty}`,
+      });
+      if (newQty === 0) {
+        toast.error(`🔴 OUT OF STOCK: "${p.name}" reached 0 units!`);
+      } else if (newQty <= (p.reorder_threshold || 5)) {
+        toast.warning(`⚠️ REORDER WARNING: "${p.name}" is low in stock (${newQty} left)!`);
+      } else {
+        toast.success(`Updated stock for "${p.name}" to ${newQty}`);
+      }
+      getOverview().then(setSummary).catch(() => { });
+    } catch (err) {
+      toast.error(err.message || 'Failed to update stock');
+      load();
+    } finally {
+      setDeductingId(null);
+    }
+  }
+
   async function handleQuickRestock(p) {
     setDeductingId(p.id);
 
@@ -400,28 +436,6 @@ function ProductsListView({ modal }) {
                     </div>
                   </div>
                 </div>
-
-                {/* Card Bottom Footer Matching Reference Button */}
-                <div className="mt-4 pt-3 border-t border-gray-200/80 flex items-center justify-between gap-2 px-1">
-                  <Badge variant={avail.variant}>{avail.label}</Badge>
-                  <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      disabled={p.stock_quantity <= 0 || deductingId === p.id}
-                      onClick={() => handleQuickDeduct(p)}
-                      title="1-Click Quick Sell (-1 Unit)"
-                      className="inline-flex items-center gap-1.5 rounded-full bg-red-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-red-700 disabled:opacity-40 transition-all hover:scale-105 active:scale-95"
-                    >
-                      <Minus size={13} strokeWidth={3} />
-                      1 Sold
-                    </button>
-                    <button
-                      onClick={() => navigate(`/products/${p.id}`)}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-[#09090b] px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-gray-800 transition-colors"
-                    >
-                      <Eye size={13} /> View
-                    </button>
-                  </div>
-                </div>
               </motion.div>
             );
           })}
@@ -479,23 +493,30 @@ function ProductsListView({ modal }) {
                       <TableCell><Badge variant="outline">{formatCategory(p.category)}</Badge></TableCell>
                       <TableCell className="tabular-nums font-semibold text-gray-900" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1.5">
-                          <button
-                            disabled={p.stock_quantity <= 0 || deductingId === p.id}
-                            onClick={() => handleQuickDeduct(p)}
-                            title="1-Click Quick Sell (-1 Unit)"
-                            className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-700 hover:border-red-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-40 transition-colors"
-                          >
-                            <Minus size={13} strokeWidth={2.5} />
-                          </button>
-                          <span className="w-8 text-center font-bold text-gray-900 tabular-nums">{p.stock_quantity}</span>
-                          <button
-                            disabled={deductingId === p.id}
-                            onClick={() => handleQuickRestock(p)}
-                            title="1-Click Quick Restock (+1 Unit)"
-                            className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-700 hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-40 transition-colors"
-                          >
-                            <Plus size={13} strokeWidth={2.5} />
-                          </button>
+                          <Input
+                            type="number"
+                            min="0"
+                            key={`${p.id}-${p.stock_quantity}`}
+                            defaultValue={p.stock_quantity}
+                            title="Directly edit stock quantity (Press Enter to save)"
+                            className="w-20 h-8 text-center font-bold text-xs font-mono rounded-lg border-gray-300 bg-white hover:border-gray-400 focus:border-red-600 focus:ring-1 focus:ring-red-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.target.blur();
+                              } else if (e.key === 'Escape') {
+                                e.target.value = p.stock_quantity;
+                                e.target.blur();
+                              }
+                            }}
+                            onBlur={(e) => {
+                              const val = parseInt(e.target.value, 10);
+                              if (isNaN(val) || val < 0 || val === p.stock_quantity) {
+                                e.target.value = p.stock_quantity;
+                                return;
+                              }
+                              handleStockInputChange(p, val);
+                            }}
+                          />
                         </div>
                       </TableCell>
                       <TableCell className="font-heading font-bold text-gray-900 tabular-nums">
