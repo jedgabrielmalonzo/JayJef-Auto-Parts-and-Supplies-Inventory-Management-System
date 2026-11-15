@@ -1,22 +1,23 @@
-import { pool } from '../db/pool.js';
-
-const WRITABLE_FIELDS = ['name', 'address', 'phone'];
+import { ShopSettings } from '../db/schemas.js';
 
 export async function get() {
-  const result = await pool.query('SELECT * FROM shop_settings WHERE id = 1');
-  return result.rows[0];
+  let settings = await ShopSettings.findOne().lean({ virtuals: true });
+  if (!settings) {
+    const created = await ShopSettings.create({
+      name: 'JayJef Auto Parts & Supplies',
+      address: '123 Industrial Ave, Quezon City, Philippines',
+      phone: '0917 123 4567',
+    });
+    return { ...created.toObject(), id: created._id.toString() };
+  }
+  return { ...settings, id: settings._id.toString() };
 }
 
 export async function update(data) {
-  const fields = WRITABLE_FIELDS.filter((f) => data[f] !== undefined);
-  if (fields.length === 0) return get();
-
-  const setClause = fields.map((f, i) => `${f} = $${i + 1}`).join(', ');
-  const values = fields.map((f) => data[f]);
-
-  const result = await pool.query(
-    `UPDATE shop_settings SET ${setClause}, updated_at = now() WHERE id = 1 RETURNING *`,
-    values
-  );
-  return result.rows[0];
+  const updated = await ShopSettings.findOneAndUpdate(
+    {},
+    { $set: data },
+    { new: true, upsert: true }
+  ).lean({ virtuals: true });
+  return { ...updated, id: updated._id.toString() };
 }

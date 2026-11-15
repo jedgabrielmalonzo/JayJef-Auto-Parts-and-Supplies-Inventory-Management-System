@@ -1,56 +1,54 @@
-import { pool } from '../db/pool.js';
+import { StockMovement, Product } from '../db/schemas.js';
 
 export async function list({ productId, reason, dateFrom, dateTo, page = 1, pageSize = 25 }) {
-  const conditions = [];
-  const params = [];
+  const query = {};
 
   if (productId) {
-    params.push(productId);
-    conditions.push(`m.product_id = $${params.length}`);
+    query.product_id = productId;
   }
   if (reason) {
-    params.push(reason);
-    conditions.push(`m.reason = $${params.length}`);
+    query.reason = reason;
   }
-  if (dateFrom) {
-    params.push(dateFrom);
-    conditions.push(`m.created_at >= $${params.length}`);
-  }
-  if (dateTo) {
-    params.push(dateTo);
-    conditions.push(`m.created_at <= $${params.length}`);
+  if (dateFrom || dateTo) {
+    query.created_at = {};
+    if (dateFrom) query.created_at.$gte = new Date(dateFrom);
+    if (dateTo) query.created_at.$lte = new Date(dateTo);
   }
 
-  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const offset = (page - 1) * pageSize;
 
-  const [itemsResult, countResult] = await Promise.all([
-    pool.query(
-      `SELECT m.*, p.sku AS product_sku, p.name AS product_name, u.name AS user_name
-       FROM stock_movements m
-       JOIN products p ON p.id = m.product_id
-       LEFT JOIN users u ON u.id = m.user_id
-       ${where}
-       ORDER BY m.created_at DESC, m.id DESC
-       LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
-      [...params, pageSize, offset]
-    ),
-    pool.query(`SELECT COUNT(*)::int AS total FROM stock_movements m ${where}`, params),
+  const [items, total] = await Promise.all([
+    StockMovement.find(query)
+      .populate('product_id', 'sku name category brand')
+      .populate('user_id', 'name')
+      .sort({ created_at: -1, _id: -1 })
+      .skip(offset)
+      .limit(pageSize)
+      .lean({ virtuals: true }),
+    StockMovement.countDocuments(query),
   ]);
 
-  return { items: itemsResult.rows || [], total: countResult.rows?.[0]?.total ?? 0, page, pageSize };
+  const formattedItems = items.map((doc) => ({
+    ...doc,
+    id: doc._id.toString(),
+    product_id: doc.product_id?._id ? doc.product_id._id.toString() : doc.product_id,
+    product_sku: doc.product_id?.sku || '',
+    product_name: doc.product_id?.name || '',
+    user_name: doc.user_id?.name || 'System Manager',
+  }));
+
+  return { items: formattedItems, total, page, pageSize };
 }
 
 export async function lowStock({ category }) {
-  const conditions = ['stock_quantity <= reorder_threshold', 'is_active = true'];
-  const params = [];
+  const query = {
+    is_active: true,
+    $expr: { $lte: ['$stock_quantity', '$reorder_threshold'] },
+  };
   if (category) {
-    params.push(category);
-    conditions.push(`category = $${params.length}`);
+    query.category = category;
   }
-  const result = await pool.query(
-    `SELECT * FROM products WHERE ${conditions.join(' AND ')} ORDER BY (stock_quantity - reorder_threshold) ASC`,
-    params
-  );
-  return result.rows;
+  const products = await Product.find(query).lean({ virtuals: true });
+  products.sort((a, b) => (a.stock_quantity - a.reorder_threshold) - (b.stock_quantity - b.reorder_threshold));
+  return products.map((p) => ({ ...p, id: p._id.toString() }));
 }

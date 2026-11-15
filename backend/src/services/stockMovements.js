@@ -1,4 +1,4 @@
-import { pool } from '../db/pool.js';
+import { Product, StockMovement } from '../db/schemas.js';
 
 const REASONS = [
   'initial_stock', 'manual_adjustment', 'ocr_restock',
@@ -14,67 +14,53 @@ export class InsufficientStockError extends Error {
   }
 }
 
-/**
- * The one shared code path allowed to change products.stock_quantity (docs/02).
- * Must run inside a transaction the caller owns — locks the product row so
- * concurrent movements against the same product serialize instead of racing.
- */
 export async function createMovement(client, { productId, userId, quantityChange, reason, referenceType, referenceId, note }) {
-  if (!REASONS.includes(reason)) throw new Error(`Invalid movement reason: ${reason}`);
+  if (!REASONS.includes(reason)) {
+    throw new Error(`Invalid movement reason: ${reason}`);
+  }
 
-  const productResult = await client.query('SELECT stock_quantity FROM products WHERE id = $1 FOR UPDATE', [productId]);
-  if (productResult.rows.length === 0) throw new Error(`Product ${productId} not found`);
+  const product = await Product.findById(productId);
+  if (!product) {
+    throw new Error(`Product ${productId} not found`);
+  }
 
-  const before = productResult.rows[0].stock_quantity;
-  const after = before + quantityChange;
-  if (after < 0) throw new InsufficientStockError(productId, before, -quantityChange);
+  const before = Number(product.stock_quantity || 0);
+  const change = Number(quantityChange || 0);
+  const after = before + change;
 
-  await client.query('UPDATE products SET stock_quantity = $1, updated_at = now() WHERE id = $2', [after, productId]);
+  if (after < 0) {
+    throw new InsufficientStockError(productId, before, -change);
+  }
 
-  const movementResult = await client.query(
-    `INSERT INTO stock_movements
-       (product_id, user_id, quantity_change, reason, reference_type, reference_id, quantity_before, quantity_after, note)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-     RETURNING *`,
-    [productId, userId ?? null, quantityChange, reason, referenceType ?? null, referenceId ?? null, before, after, note ?? null]
-  );
+  product.stock_quantity = after;
+  await product.save();
 
-  return movementResult.rows[0];
+  const movement = new StockMovement({
+    product_id: product._id,
+    user_id: userId || null,
+    quantity_change: change,
+    reason,
+    reference_type: referenceType || null,
+    reference_id: referenceId || null,
+    quantity_before: before,
+    quantity_after: after,
+    note: note || null,
+  });
+
+  await movement.save();
+  const obj = movement.toObject();
+  return { ...obj, id: movement._id.toString() };
 }
 
-/** Convenience wrapper for callers that only need to record a single movement. */
 export async function createMovementStandalone(data) {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const movement = await createMovement(client, data);
-    await client.query('COMMIT');
-    return movement;
-  } catch (err) {
-    await client.query('ROLLBACK');
-    throw err;
-  } finally {
-    client.release();
-  }
+  return createMovement(null, data);
 }
 
-/** Convenient wrapper to execute multiple stock movements inside a single database transaction. */
 export async function createBatchMovementsStandalone(items) {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const movements = [];
-    for (const item of items) {
-      const movement = await createMovement(client, item);
-      movements.push(movement);
-    }
-    await client.query('COMMIT');
-    return movements;
-  } catch (err) {
-    await client.query('ROLLBACK');
-    throw err;
-  } finally {
-    client.release();
+  const movements = [];
+  for (const item of items) {
+    const movement = await createMovement(null, item);
+    movements.push(movement);
   }
+  return movements;
 }
-

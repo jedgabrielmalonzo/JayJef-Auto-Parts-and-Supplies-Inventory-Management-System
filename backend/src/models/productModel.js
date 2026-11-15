@@ -1,134 +1,116 @@
-import { pool } from '../db/pool.js';
-
-const WRITABLE_FIELDS = [
-  'sku', 'name', 'brand', 'category', 'compatible_vehicles', 'unit',
-  'cost_price', 'selling_price', 'reorder_threshold', 'supplier_id',
-  'location_aisle', 'location_shelf', 'location_bin', 'notes', 'image_path',
-];
+import mongoose from 'mongoose';
+import { Product, StockMovement } from '../db/schemas.js';
 
 export async function list({ search, category, supplierId, isActive, lowStock, page = 1, pageSize = 25 }) {
-  const conditions = [];
-  const params = [];
+  const query = {};
 
-  if (search) {
-    params.push(`%${search}%`);
-    conditions.push(`(sku ILIKE $${params.length} OR name ILIKE $${params.length} OR brand ILIKE $${params.length} OR compatible_vehicles ILIKE $${params.length})`);
+  if (isActive !== undefined) {
+    query.is_active = isActive;
   }
   if (category) {
-    params.push(category);
-    conditions.push(`category = $${params.length}`);
+    query.category = category;
   }
   if (supplierId) {
-    params.push(supplierId);
-    conditions.push(`supplier_id = $${params.length}`);
-  }
-  if (isActive !== undefined) {
-    params.push(isActive);
-    conditions.push(`is_active = $${params.length}`);
+    query.supplier_id = supplierId;
   }
   if (lowStock) {
-    conditions.push('stock_quantity <= reorder_threshold');
+    query.$expr = { $lte: ['$stock_quantity', '$reorder_threshold'] };
+  }
+  if (search && search.trim()) {
+    const q = search.trim();
+    const regex = new RegExp(q, 'i');
+    query.$or = [
+      { sku: regex },
+      { name: regex },
+      { brand: regex },
+      { compatible_vehicles: regex },
+    ];
   }
 
-  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const offset = (page - 1) * pageSize;
-
-  const [itemsResult, countResult] = await Promise.all([
-    pool.query(
-      `SELECT * FROM products ${where} ORDER BY name ASC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
-      [...params, pageSize, offset]
-    ),
-    pool.query(`SELECT COUNT(*)::int AS total FROM products ${where}`, params),
+  const [items, total] = await Promise.all([
+    Product.find(query)
+      .sort({ name: 1 })
+      .skip(offset)
+      .limit(pageSize)
+      .lean({ virtuals: true }),
+    Product.countDocuments(query),
   ]);
 
-  return { items: itemsResult.rows || [], total: countResult.rows?.[0]?.total ?? 0, page, pageSize };
+  const formattedItems = items.map((doc) => ({
+    ...doc,
+    id: doc._id.toString(),
+  }));
+
+  return { items: formattedItems, total, page, pageSize };
 }
 
 export async function findById(id) {
-  const result = await pool.query('SELECT * FROM products WHERE id = $1', [id]);
-  return result.rows[0] || null;
+  let doc = null;
+  if (mongoose.isValidObjectId(id)) {
+    doc = await Product.findById(id).lean({ virtuals: true });
+  } else {
+    doc = await Product.findOne({ sku: id }).lean({ virtuals: true });
+  }
+  if (!doc) return null;
+  return { ...doc, id: doc._id.toString() };
 }
 
-/** Lightweight bulk list for the shop map's product picker (docs/06#products). */
 export async function locations({ search }) {
-  const conditions = ['is_active = true', 'location_aisle IS NOT NULL'];
-  const params = [];
-  if (search) {
-    params.push(`%${search}%`);
-    conditions.push(`(sku ILIKE $${params.length} OR name ILIKE $${params.length})`);
+  const query = { is_active: true, location_aisle: { $ne: null } };
+  if (search && search.trim()) {
+    const regex = new RegExp(search.trim(), 'i');
+    query.$or = [{ sku: regex }, { name: regex }];
   }
-  const result = await pool.query(
-    `SELECT id, sku, name, location_aisle, location_shelf, location_bin
-     FROM products WHERE ${conditions.join(' AND ')} ORDER BY name ASC`,
-    params
-  );
-  return result.rows;
+  const docs = await Product.find(query)
+    .select('sku name location_aisle location_shelf location_bin')
+    .sort({ name: 1 })
+    .lean();
+  return docs.map((d) => ({ ...d, id: d._id.toString() }));
 }
 
 export async function create(data) {
-  const fields = WRITABLE_FIELDS.filter((f) => data[f] !== undefined);
-  const columns = fields.join(', ');
-  const placeholders = fields.map((_, i) => `$${i + 1}`).join(', ');
-  const values = fields.map((f) => data[f]);
-
-  const result = await pool.query(
-    `INSERT INTO products (${columns}) VALUES (${placeholders}) RETURNING *`,
-    values
-  );
-  return result.rows[0];
+  const product = new Product(data);
+  await product.save();
+  const obj = product.toObject();
+  return { ...obj, id: product._id.toString() };
 }
 
 export async function update(id, data) {
-  const fields = WRITABLE_FIELDS.filter((f) => data[f] !== undefined);
-  if (fields.length === 0) return findById(id);
-
-  const setClause = fields.map((f, i) => `${f} = $${i + 1}`).join(', ');
-  const values = fields.map((f) => data[f]);
-
-  const result = await pool.query(
-    `UPDATE products SET ${setClause}, updated_at = now() WHERE id = $${fields.length + 1} RETURNING *`,
-    [...values, id]
-  );
-  return result.rows[0] || null;
+  const query = mongoose.isValidObjectId(id) ? { _id: id } : { sku: id };
+  const updated = await Product.findOneAndUpdate(query, { $set: data }, { new: true }).lean({ virtuals: true });
+  if (!updated) return null;
+  return { ...updated, id: updated._id.toString() };
 }
 
 export async function softDelete(id) {
-  const result = await pool.query(
-    'UPDATE products SET is_active = false, updated_at = now() WHERE id = $1 RETURNING *',
-    [id]
-  );
-  return result.rows[0] || null;
+  const query = mongoose.isValidObjectId(id) ? { _id: id } : { sku: id };
+  const updated = await Product.findOneAndUpdate(query, { $set: { is_active: false } }, { new: true }).lean({ virtuals: true });
+  if (!updated) return null;
+  return { ...updated, id: updated._id.toString() };
 }
 
 export async function reactivate(id) {
-  const result = await pool.query(
-    'UPDATE products SET is_active = true, updated_at = now() WHERE id = $1 RETURNING *',
-    [id]
-  );
-  return result.rows[0] || null;
+  const query = mongoose.isValidObjectId(id) ? { _id: id } : { sku: id };
+  const updated = await Product.findOneAndUpdate(query, { $set: { is_active: true } }, { new: true }).lean({ virtuals: true });
+  if (!updated) return null;
+  return { ...updated, id: updated._id.toString() };
 }
 
 export async function hasHistory(id) {
-  const result = await pool.query(
-    `SELECT
-       EXISTS(SELECT 1 FROM stock_movements WHERE product_id = $1) OR
-       EXISTS(SELECT 1 FROM purchase_order_items WHERE product_id = $1)
-       AS has_history`,
-    [id]
-  );
-  return result.rows[0].has_history;
+  const count = await StockMovement.countDocuments({ product_id: id });
+  return count > 0;
 }
 
 export async function hardDelete(id) {
-  const result = await pool.query('DELETE FROM products WHERE id = $1 RETURNING id', [id]);
-  return result.rows.length > 0;
+  const query = mongoose.isValidObjectId(id) ? { _id: id } : { sku: id };
+  const res = await Product.deleteOne(query);
+  return res.deletedCount > 0;
 }
 
 export async function bulkSoftDelete(ids = []) {
   if (!ids.length) return 0;
-  const result = await pool.query(
-    'UPDATE products SET is_active = false, updated_at = now() WHERE id = ANY($1::int[]) RETURNING id',
-    [ids.map(Number)]
-  );
-  return result.rowCount || result.rows?.length || 0;
+  const validIds = ids.filter(mongoose.isValidObjectId);
+  const res = await Product.updateMany({ _id: { $in: validIds } }, { $set: { is_active: false } });
+  return res.modifiedCount || 0;
 }
