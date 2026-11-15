@@ -169,81 +169,30 @@ function NavItem({ to, label, icon: Icon, isSpecial, onClick }) {
 }
 
 function SidebarUserMenu({ onCloseMobile }) {
-  const { user, logout } = useAuth();
-  const [isOpen, setIsOpen] = useState(false);
-  const menuRef = useRef(null);
+  const { logout } = useAuth();
 
   useEffect(() => {
     // Force light mode across the application
     document.documentElement.classList.remove('dark');
   }, []);
 
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setIsOpen(false);
-      }
-    }
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isOpen]);
-
   function handleSignOut() {
-    setIsOpen(false);
     if (onCloseMobile) onCloseMobile();
     logout();
     toast.info('Signed out successfully');
   }
 
   return (
-    <div className="relative pt-3 border-t border-gray-100 mt-auto" ref={menuRef}>
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 8, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.96 }}
-            transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute bottom-full left-0 right-0 mb-2 rounded-2xl border border-gray-200 bg-white p-1.5 shadow-xl z-50"
-          >
-            {/* Sign Out Only Option */}
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors group"
-            >
-              <LogOut size={16} className="text-gray-400 group-hover:text-red-600 transition-colors" />
-              <span>Sign out</span>
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Trigger: User Profile Card */}
+    <div className="pt-3 border-t border-gray-100 mt-auto">
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center gap-3 p-2.5 rounded-2xl transition-all text-left ${
-          isOpen
-            ? 'bg-gray-100 ring-2 ring-gray-200'
-            : 'bg-gray-100/70 hover:bg-gray-100'
-        }`}
+        onClick={handleSignOut}
+        className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold text-gray-700 hover:text-red-600 hover:bg-red-50 border border-gray-200/80 hover:border-red-200 shadow-2xs transition-all duration-200 group cursor-pointer"
       >
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700 font-bold text-xs">
-          {(user?.name?.[0] || 'J').toUpperCase()}
-        </div>
-        <div className="min-w-0 flex-1 leading-tight">
-          <p className="truncate text-xs font-bold text-gray-900">
-            {user?.name || 'JayJef Admin'}
-          </p>
-          <p className="truncate text-[11px] font-medium text-gray-500 mt-0.5">
-            admin@example.com
-          </p>
-        </div>
+        <span className="flex size-8 items-center justify-center rounded-xl bg-gray-100 text-gray-500 group-hover:bg-red-100 group-hover:text-red-600 transition-colors">
+          <LogOut size={16} strokeWidth={2.2} />
+        </span>
+        <span className="font-heading font-bold text-xs tracking-tight">Sign out</span>
       </button>
     </div>
   );
