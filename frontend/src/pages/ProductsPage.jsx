@@ -427,7 +427,11 @@ function ProductsListView({ modal }) {
 
                     <div className="flex items-center gap-2">
                       <Box size={14} className="text-gray-400" />
-                      <span>Stock: <strong className="text-gray-900">{p.stock_quantity}</strong> {p.unit}</span>
+                      <span className="text-xs text-gray-500">Stock:</span>
+                      <span className="font-heading text-base font-bold text-gray-900 tabular-nums">
+                        {p.stock_quantity}
+                      </span>
+                      <span className="text-[10px] text-gray-400">/ {p.unit}</span>
                       {p.location_aisle && (
                         <span className="ml-auto flex items-center gap-1 font-mono text-[11px] text-gray-500 bg-gray-200/60 px-2 py-0.5 rounded-md">
                           <MapPin size={10} /> {p.location_aisle}

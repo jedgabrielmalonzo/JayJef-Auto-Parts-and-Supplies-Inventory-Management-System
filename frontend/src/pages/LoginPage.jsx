@@ -69,8 +69,8 @@ function ProductMarqueeRow({ items, speedClass = 'animate-marquee-left' }) {
 
 export default function LoginPage() {
   const { login } = useAuth();
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('admin123');
+  const [username, setUsername] = useState('jayjef2014@gmail.com');
+  const [password, setPassword] = useState('jayjef2014');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -133,7 +133,7 @@ export default function LoginPage() {
                 className="h-12 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:border-[#FF0A33] focus:ring-2 focus:ring-[#FF0A33]/20 transition-all"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="admin"
+                placeholder="jayjef2014@gmail.com"
                 required
               />
             </div>

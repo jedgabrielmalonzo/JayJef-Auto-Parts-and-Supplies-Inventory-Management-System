@@ -1,8 +1,9 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 
 const FIXED_ADMIN_CREDENTIALS = {
-  username: 'admin',
-  password: 'admin123',
+  username: 'jayjef2014@gmail.com',
+  email: 'jayjef2014@gmail.com',
+  password: 'jayjef2014',
   name: 'JayJef System Admin',
   role: 'Administrator',
 };
@@ -16,7 +17,7 @@ export function AuthProvider({ children }) {
       const saved = localStorage.getItem('jayjef_auth_user');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed?.username === FIXED_ADMIN_CREDENTIALS.username) {
+        if (parsed?.username === FIXED_ADMIN_CREDENTIALS.username || parsed?.username === 'admin') {
           return parsed;
         }
       }
@@ -26,13 +27,17 @@ export function AuthProvider({ children }) {
     }
   });
 
-  const isAdmin = !!user && user.username === FIXED_ADMIN_CREDENTIALS.username;
+  const isAdmin = !!user && (user.username === FIXED_ADMIN_CREDENTIALS.username || user.username === 'admin');
 
-  function login(username, password) {
-    const cleanUsername = username.trim().toLowerCase();
-    if (cleanUsername === FIXED_ADMIN_CREDENTIALS.username && password === FIXED_ADMIN_CREDENTIALS.password) {
+  function login(usernameInput, passwordInput) {
+    const clean = usernameInput.trim().toLowerCase();
+    const isValidUsername = clean === 'jayjef2014@gmail.com' || clean === 'admin';
+    const isValidPassword = passwordInput === 'jayjef2014' || passwordInput === 'admin123';
+
+    if (isValidUsername && isValidPassword) {
       const userData = {
         username: FIXED_ADMIN_CREDENTIALS.username,
+        email: FIXED_ADMIN_CREDENTIALS.email,
         name: FIXED_ADMIN_CREDENTIALS.name,
         role: FIXED_ADMIN_CREDENTIALS.role,
         loggedInAt: new Date().toISOString(),
@@ -41,7 +46,7 @@ export function AuthProvider({ children }) {
       localStorage.setItem('jayjef_auth_user', JSON.stringify(userData));
       return { success: true, user: userData };
     }
-    return { success: false, error: 'Invalid admin username or password. Please use fixed credentials.' };
+    return { success: false, error: 'Invalid email or password. Please use fixed credentials (jayjef2014@gmail.com / jayjef2014).' };
   }
 
   function logout() {

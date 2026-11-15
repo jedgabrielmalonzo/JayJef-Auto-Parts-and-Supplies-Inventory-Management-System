@@ -162,7 +162,12 @@ export default function ProductFormPage({ onSuccess, onClose, productId }) {
     Object.entries(form).forEach(([k, v]) => {
       if (v !== '' && v !== null && v !== undefined) fd.append(k, v);
     });
-    if (imageFile) fd.append('image', imageFile);
+    if (imageFile) {
+      fd.append('image', imageFile);
+      if (imagePreview && imagePreview.startsWith('data:')) {
+        fd.set('image_path', imagePreview);
+      }
+    }
 
     try {
       if (isEdit) {

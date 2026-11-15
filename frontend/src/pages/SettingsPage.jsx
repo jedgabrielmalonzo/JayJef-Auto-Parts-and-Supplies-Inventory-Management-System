@@ -195,7 +195,7 @@ export default function SettingsPage() {
 
               <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-4 text-xs text-blue-900 space-y-1">
                 <div className="font-bold text-blue-950">Fixed Credentials Access</div>
-                <p className="text-[11px]">System access is protected by fixed administrator credentials (Username: admin | Password: admin123).</p>
+                <p className="text-[11px]">System access is protected by fixed administrator credentials (Email: jayjef2014@gmail.com | Password: jayjef2014).</p>
               </div>
             </CardContent>
           </Card>
