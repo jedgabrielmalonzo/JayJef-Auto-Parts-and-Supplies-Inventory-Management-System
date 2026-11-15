@@ -268,7 +268,7 @@ export default function LowStockPage() {
                     <TableHead className="font-bold text-gray-700">Product &amp; Part Number</TableHead>
                     <TableHead className="font-bold text-gray-700">Category</TableHead>
                     <TableHead className="font-bold text-gray-700">Brand</TableHead>
-                    <TableHead className="font-bold text-gray-700">Stock vs Reorder Threshold</TableHead>
+                    <TableHead className="font-bold text-gray-700">Current Stock</TableHead>
                     <TableHead className="font-bold text-gray-700">Status</TableHead>
                     <TableHead className="font-bold text-gray-700 text-right">Actions</TableHead>
                   </TableRow>
