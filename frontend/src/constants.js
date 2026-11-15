@@ -2,7 +2,6 @@ export const CATEGORIES = [
   'compressor',
   'condenser',
   'evaporator',
-  'filter',
   'cabin_filter',
   'expansion_valve',
   'hose',
@@ -15,8 +14,7 @@ export const CATEGORIES = [
 
 export function formatCategory(category) {
   if (!category) return '';
-  if (category === 'filter') return 'Filter';
-  if (category === 'cabin_filter') return 'Cabin Filter';
+  if (category === 'cabin_filter' || category === 'filter') return 'Cabin Filter';
   return category
     .split('_')
     .map((word) => (word ? word[0].toUpperCase() + word.slice(1) : ''))
