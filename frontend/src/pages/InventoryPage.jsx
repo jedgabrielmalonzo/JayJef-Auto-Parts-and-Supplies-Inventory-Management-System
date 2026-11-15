@@ -2,14 +2,12 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  ClipboardList, Loader2, PlusCircle, Search, Layers, ListFilter, Calendar, Clock,
-  TrendingUp, ArrowUpRight, ArrowDownRight, RotateCcw, X, AlertTriangle
+  Loader2, PlusCircle, Search, Layers, ListFilter, Calendar, Clock,
+  RotateCcw, X, AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { listMovements, createMovement, createBatchMovements } from '../api/inventory.js';
-import { getOverview } from '../api/dashboard.js';
 import { MOVEMENT_REASON_LABELS } from '../constants.js';
-import MicroStatCard from '../components/MicroStatCard.jsx';
 import { Button } from '../components/ui/button.jsx';
 import { Input } from '../components/ui/input.jsx';
 import { Label } from '../components/ui/label.jsx';
@@ -472,14 +470,12 @@ function AdjustStockModal({ open, onClose, onSaved }) {
 
 export default function InventoryPage() {
   const [movements, setMovements] = useState([]);
-  const [summary, setSummary] = useState(null);
   const [viewMode, setViewMode] = useState('stacked'); // 'stacked' | 'raw'
   const [loading, setLoading] = useState(true);
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [dateRange, setDateRange] = useState(undefined);
 
   const [movementSearch, setMovementSearch] = useState('');
-  const [movementTypeFilter, setMovementTypeFilter] = useState('all');
 
   // Pagination States
   const [movementsPage, setMovementsPage] = useState(1);
@@ -498,7 +494,6 @@ export default function InventoryPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
-  useEffect(() => { getOverview().then(setSummary).catch(() => { }); }, []);
 
   // Filter movements by Date Range, Smart Search & Movement Type
   const filteredMovements = useMemo(() => {
@@ -514,18 +509,7 @@ export default function InventoryPage() {
       });
     }
 
-    // 2. Movement Type Filter
-    if (movementTypeFilter === 'in') {
-      list = list.filter((m) => Number(m.quantity_change) > 0);
-    } else if (movementTypeFilter === 'out') {
-      list = list.filter((m) => Number(m.quantity_change) < 0);
-    } else if (movementTypeFilter === 'adjustment') {
-      list = list.filter((m) => m.reason === 'manual_adjustment' || m.reason === 'correction');
-    } else if (movementTypeFilter === 'initial') {
-      list = list.filter((m) => m.reason === 'initial_stock');
-    }
-
-    // 3. Smart Search query (SKU, Product Name, Reason, Note, Date)
+    // 2. Smart Search query (Part Number, Product Name, Reason, Note, Date)
     if (movementSearch.trim()) {
       const q = movementSearch.toLowerCase().trim();
       list = list.filter((m) => {
@@ -545,29 +529,11 @@ export default function InventoryPage() {
     }
 
     return list;
-  }, [movements, dateRange, movementTypeFilter, movementSearch]);
+  }, [movements, dateRange, movementSearch]);
 
   const stackedMovements = useMemo(() => {
     return groupMovementsByDateAndProduct(filteredMovements);
   }, [filteredMovements]);
-
-  // Movement Statistics for Current Filter
-  const movementStats = useMemo(() => {
-    let totalIn = 0;
-    let totalOut = 0;
-    filteredMovements.forEach((m) => {
-      const qty = Number(m.quantity_change || 0);
-      if (qty > 0) totalIn += qty;
-      else totalOut += Math.abs(qty);
-    });
-    return {
-      totalIn,
-      totalOut,
-      net: totalIn - totalOut,
-      count: filteredMovements.length,
-      stackedCount: stackedMovements.length,
-    };
-  }, [filteredMovements, stackedMovements]);
 
   const currentMovementsList = viewMode === 'stacked' ? stackedMovements : filteredMovements;
 
@@ -580,11 +546,7 @@ export default function InventoryPage() {
   function handleAdjusted() {
     setAdjustOpen(false);
     load();
-    getOverview().then(setSummary).catch(() => { });
   }
-
-  const stockQty = summary?.inventory?.quantityInHand || 0;
-  const toBeReceived = summary?.inventory?.toBeReceived || 0;
 
   return (
     <div className="space-y-6 text-gray-900">
@@ -613,136 +575,24 @@ export default function InventoryPage() {
         </div>
       </motion.div>
 
-      {/* LAYER 1: 4 KPI Micro-Stat Cards */}
-      <motion.section custom={1} variants={sectionVariants} initial="hidden" animate="visible">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MicroStatCard
-            title="Quantity In Hand"
-            subtitle="Total Stocked Units"
-            value={Number(stockQty).toLocaleString()}
-          />
-          <MicroStatCard
-            title="To Be Received"
-            subtitle="Pending Shipments"
-            value={Number(toBeReceived).toLocaleString()}
-          />
-          <MicroStatCard
-            title="Logged Movements"
-            subtitle="Total Movement Records"
-            value={movements.length.toLocaleString()}
-          />
-          <MicroStatCard
-            title="Net Flow"
-            subtitle="Current Filter Flow"
-            value={movementStats.net >= 0 ? `+${movementStats.net.toLocaleString()}` : movementStats.net.toLocaleString()}
-          />
-        </div>
-      </motion.section>
-
       {loading ? (
         <div className="flex items-center justify-center gap-2 py-16 text-gray-500">
           <Loader2 size={16} className="animate-spin text-red-600" />
           Loading inventory movements...
         </div>
       ) : (
-        <motion.div custom={2} variants={sectionVariants} initial="hidden" animate="visible" className="space-y-4 w-full">
+        <motion.div custom={1} variants={sectionVariants} initial="hidden" animate="visible" className="space-y-4 w-full">
           {/* Movements Table Section */}
-          <section className="w-full space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <h2 className="font-heading font-bold text-sm uppercase tracking-wide text-gray-700 flex items-center gap-2">
-                  <ClipboardList size={15} />
-                  {viewMode === 'stacked' ? 'Stacked Daily Movements' : 'All Raw Movement Logs'}
-                </h2>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-gray-100 text-gray-700">
-                  {currentMovementsList.length} {viewMode === 'stacked' ? 'stacked rows' : 'raw logs'}
-                </span>
-              </div>
-
-              {/* View Switcher & Date Range Picker Controls */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <DatePickerWithRange
-                  date={dateRange}
-                  setDate={(d) => {
-                    setDateRange(d);
-                    setMovementsPage(1);
-                  }}
-                />
-
-                <div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-white p-1 shadow-xs">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setViewMode('stacked');
-                      setMovementsPage(1);
-                    }}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg transition-colors ${viewMode === 'stacked' ? 'bg-black text-white' : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                  >
-                    <Layers size={13} />
-                    Stacked ({stackedMovements.length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setViewMode('raw');
-                      setMovementsPage(1);
-                    }}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg transition-colors ${viewMode === 'raw' ? 'bg-black text-white' : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                  >
-                    <ListFilter size={13} />
-                    Raw Logs ({filteredMovements.length})
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Movement Summary Counters for Current Filtered Set */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <div className="flex items-center justify-between p-2.5 rounded-xl border border-emerald-100 bg-emerald-50/50">
-                <span className="text-xs font-medium text-emerald-800 flex items-center gap-1">
-                  <ArrowUpRight size={13} className="text-emerald-600" />
-                  Total In
-                </span>
-                <span className="font-mono text-xs font-bold text-emerald-700">+{movementStats.totalIn.toLocaleString()}</span>
-              </div>
-
-              <div className="flex items-center justify-between p-2.5 rounded-xl border border-red-100 bg-red-50/50">
-                <span className="text-xs font-medium text-red-800 flex items-center gap-1">
-                  <ArrowDownRight size={13} className="text-red-600" />
-                  Total Out
-                </span>
-                <span className="font-mono text-xs font-bold text-red-700">−{movementStats.totalOut.toLocaleString()}</span>
-              </div>
-
-              <div className="flex items-center justify-between p-2.5 rounded-xl border border-gray-200 bg-gray-50/50">
-                <span className="text-xs font-medium text-gray-700 flex items-center gap-1">
-                  <TrendingUp size={13} className="text-gray-500" />
-                  Net Flow
-                </span>
-                <span className={`font-mono text-xs font-bold ${movementStats.net >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
-                  {movementStats.net >= 0 ? `+${movementStats.net.toLocaleString()}` : movementStats.net.toLocaleString()}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between p-2.5 rounded-xl border border-gray-200 bg-gray-50/50">
-                <span className="text-xs font-medium text-gray-700 flex items-center gap-1">
-                  <Clock size={13} className="text-gray-500" />
-                  Filtered Logs
-                </span>
-                <span className="font-mono text-xs font-bold text-gray-900">{movementStats.count.toLocaleString()}</span>
-              </div>
-            </div>
-
-            {/* Smart Search & Filter Type Chips */}
-            <div className="space-y-2">
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <section className="w-full space-y-4">
+            {/* Search and Filters Bar (Matching Low Stock Alerts Design Pattern) */}
+            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-xs">
+              <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+                {/* Search Input */}
                 <div className="relative flex-1">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <Input
                     type="text"
-                    placeholder="Smart search movements by product name, part number, reason, note, or date..."
+                    placeholder="Search movements by product name, part number, reason, note, or date..."
                     value={movementSearch}
                     onChange={(e) => {
                       setMovementSearch(e.target.value);
@@ -764,92 +614,64 @@ export default function InventoryPage() {
                   )}
                 </div>
 
-                {(movementSearch || movementTypeFilter !== 'all' || dateRange) && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setMovementSearch('');
-                      setMovementTypeFilter('all');
-                      setDateRange(undefined);
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Date Range Picker */}
+                  <DatePickerWithRange
+                    date={dateRange}
+                    setDate={(d) => {
+                      setDateRange(d);
                       setMovementsPage(1);
                     }}
-                    className="h-9 px-2.5 text-xs text-gray-500 hover:text-gray-900 rounded-xl shrink-0"
-                  >
-                    <RotateCcw size={13} className="mr-1" />
-                    Reset All
-                  </Button>
-                )}
-              </div>
+                  />
 
-              {/* Filter chips for movement type */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMovementTypeFilter('all');
-                    setMovementsPage(1);
-                  }}
-                  className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${movementTypeFilter === 'all'
-                    ? 'bg-gray-900 text-white shadow-xs'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                >
-                  All Types
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMovementTypeFilter('in');
-                    setMovementsPage(1);
-                  }}
-                  className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${movementTypeFilter === 'in'
-                    ? 'bg-emerald-700 text-white shadow-xs'
-                    : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
-                    }`}
-                >
-                  🟢 Stock In (+)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMovementTypeFilter('out');
-                    setMovementsPage(1);
-                  }}
-                  className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${movementTypeFilter === 'out'
-                    ? 'bg-red-700 text-white shadow-xs'
-                    : 'bg-red-50 text-red-700 hover:bg-red-100 border border-red-200'
-                    }`}
-                >
-                  🔴 Stock Out (−)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMovementTypeFilter('adjustment');
-                    setMovementsPage(1);
-                  }}
-                  className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${movementTypeFilter === 'adjustment'
-                    ? 'bg-amber-700 text-white shadow-xs'
-                    : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'
-                    }`}
-                >
-                  ⚙️ Adjustments
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMovementTypeFilter('initial');
-                    setMovementsPage(1);
-                  }}
-                  className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${movementTypeFilter === 'initial'
-                    ? 'bg-blue-700 text-white shadow-xs'
-                    : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
-                    }`}
-                >
-                  🏷️ Initial Stock
-                </button>
+                  {/* Reset */}
+                  {(movementSearch || dateRange) && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setMovementSearch('');
+                        setDateRange(undefined);
+                        setMovementsPage(1);
+                      }}
+                      className="h-9 px-2.5 text-xs text-gray-500 hover:text-gray-900 rounded-xl shrink-0"
+                    >
+                      <RotateCcw size={13} className="mr-1" />
+                      Reset
+                    </Button>
+                  )}
+
+                  {/* View Switcher */}
+                  <div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-gray-50/70 p-0.5 h-9 shrink-0 ml-auto lg:ml-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setViewMode('stacked');
+                        setMovementsPage(1);
+                      }}
+                      className={`flex items-center gap-1.5 px-3 h-7 text-xs font-bold rounded-lg transition-colors ${
+                        viewMode === 'stacked' ? 'bg-black text-white shadow-2xs' : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      <Layers size={13} />
+                      Stacked ({stackedMovements.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setViewMode('raw');
+                        setMovementsPage(1);
+                      }}
+                      className={`flex items-center gap-1.5 px-3 h-7 text-xs font-bold rounded-lg transition-colors ${
+                        viewMode === 'raw' ? 'bg-black text-white shadow-2xs' : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      <ListFilter size={13} />
+                      Raw Logs ({filteredMovements.length})
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 

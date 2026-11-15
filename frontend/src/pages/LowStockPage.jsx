@@ -9,12 +9,10 @@ import { toast } from 'sonner';
 import { lowStock } from '../api/inventory.js';
 import { CATEGORIES, formatCategory } from '../constants.js';
 import { Badge } from '../components/ui/badge.jsx';
-import MicroStatCard from '../components/MicroStatCard.jsx';
 import { Button } from '../components/ui/button.jsx';
 import { Input } from '../components/ui/input.jsx';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.jsx';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table.jsx';
-import ProductThumb from '../components/ProductThumb.jsx';
 import {
   Pagination,
   PaginationContent,
@@ -40,7 +38,6 @@ export default function LowStockPage() {
   // Filters
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'out_of_stock' | 'low_stock'
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -62,31 +59,12 @@ export default function LowStockPage() {
     fetchLowStock();
   }, [fetchLowStock]);
 
-  // Statistics
-  const stats = useMemo(() => {
-    const total = items.length;
-    const outOfStock = items.filter((p) => Number(p.stock_quantity || 0) <= 0).length;
-    const lowQuantity = items.filter((p) => Number(p.stock_quantity || 0) > 0).length;
-    const totalDeficit = items.reduce((acc, p) => {
-      const deficit = Math.max(0, (Number(p.reorder_threshold) || 0) - (Number(p.stock_quantity) || 0));
-      return acc + deficit;
-    }, 0);
-
-    return { total, outOfStock, lowQuantity, totalDeficit };
-  }, [items]);
-
   // Filtered List
   const filteredItems = useMemo(() => {
     let list = items;
 
     if (category && category !== '_all') {
       list = list.filter((p) => p.category === category);
-    }
-
-    if (statusFilter === 'out_of_stock') {
-      list = list.filter((p) => Number(p.stock_quantity || 0) <= 0);
-    } else if (statusFilter === 'low_stock') {
-      list = list.filter((p) => Number(p.stock_quantity || 0) > 0);
     }
 
     if (search.trim()) {
@@ -102,7 +80,7 @@ export default function LowStockPage() {
     }
 
     return list;
-  }, [items, category, statusFilter, search]);
+  }, [items, category, search]);
 
   // Pagination
   const totalPages = Math.ceil(filteredItems.length / pageSize) || 1;
@@ -150,37 +128,11 @@ export default function LowStockPage() {
         </div>
       </motion.div>
 
-      {/* KPI Cards */}
-      <motion.section custom={1} variants={sectionVariants} initial="hidden" animate="visible">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MicroStatCard
-            title="Total Alert Items"
-            subtitle="Require Attention"
-            value={stats.total.toString()}
-          />
-          <MicroStatCard
-            title="Out of Stock"
-            subtitle="Critical Outages (0 Qty)"
-            value={stats.outOfStock.toString()}
-          />
-          <MicroStatCard
-            title="Low Quantity"
-            subtitle="Approaching Depletion"
-            value={stats.lowQuantity.toString()}
-          />
-          <MicroStatCard
-            title="Units Deficit"
-            subtitle="Total Units Below Threshold"
-            value={stats.totalDeficit.toLocaleString()}
-          />
-        </div>
-      </motion.section>
-
       {/* Main Filter & Table Section */}
-      <motion.div custom={2} variants={sectionVariants} initial="hidden" animate="visible" className="space-y-4">
+      <motion.div custom={1} variants={sectionVariants} initial="hidden" animate="visible" className="space-y-4">
         {/* Search and Filters Bar */}
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-xs space-y-3">
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             {/* Search Input */}
             <div className="relative flex-1">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -209,19 +161,21 @@ export default function LowStockPage() {
             </div>
 
             {/* Category Dropdown */}
-            <div className="w-full lg:w-56">
+            <div className="w-full sm:w-56">
               <Select
-                value={category || '_all'}
+                value={category}
                 onValueChange={(val) => {
                   setCategory(val === '_all' ? '' : val);
                   setPage(1);
                 }}
               >
                 <SelectTrigger className="h-9 text-xs rounded-xl border-gray-200 bg-white">
-                  <SelectValue placeholder="All Categories" />
+                  <SelectValue placeholder="All categories">
+                    {(v) => (!v || v === '_all') ? 'All categories' : formatCategory(v)}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="_all">All Categories</SelectItem>
+                  <SelectItem value="_all">All categories</SelectItem>
                   {CATEGORIES.map((c) => (
                     <SelectItem key={c} value={c}>
                       {formatCategory(c)}
@@ -231,51 +185,8 @@ export default function LowStockPage() {
               </Select>
             </div>
 
-            {/* Status Segmented Buttons */}
-            <div className="flex items-center gap-1 bg-gray-100/80 p-1 rounded-xl border border-gray-200/60 shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  setStatusFilter('all');
-                  setPage(1);
-                }}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${statusFilter === 'all'
-                  ? 'bg-white text-gray-900 shadow-xs'
-                  : 'text-gray-600 hover:text-gray-900'
-                  }`}
-              >
-                All ({items.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setStatusFilter('out_of_stock');
-                  setPage(1);
-                }}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${statusFilter === 'out_of_stock'
-                  ? 'bg-red-600 text-white shadow-xs'
-                  : 'text-red-700 hover:text-red-800'
-                  }`}
-              >
-                Out of Stock ({stats.outOfStock})
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setStatusFilter('low_stock');
-                  setPage(1);
-                }}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${statusFilter === 'low_stock'
-                  ? 'bg-amber-600 text-white shadow-xs'
-                  : 'text-amber-700 hover:text-amber-800'
-                  }`}
-              >
-                Low Stock ({stats.lowQuantity})
-              </button>
-            </div>
-
             {/* Reset */}
-            {(search || category || statusFilter !== 'all') && (
+            {(search || category) && (
               <Button
                 type="button"
                 variant="ghost"
@@ -283,7 +194,6 @@ export default function LowStockPage() {
                 onClick={() => {
                   setSearch('');
                   setCategory('');
-                  setStatusFilter('all');
                   setPage(1);
                 }}
                 className="h-9 px-2.5 text-xs text-gray-500 hover:text-gray-900 rounded-xl shrink-0"
@@ -328,7 +238,8 @@ export default function LowStockPage() {
                 <TableHeader className="bg-gray-50/80">
                   <TableRow>
                     <TableHead className="font-bold text-gray-700">Product &amp; Part Number</TableHead>
-                    <TableHead className="font-bold text-gray-700">Category &amp; Brand</TableHead>
+                    <TableHead className="font-bold text-gray-700">Category</TableHead>
+                    <TableHead className="font-bold text-gray-700">Brand</TableHead>
                     <TableHead className="font-bold text-gray-700">Stock vs Reorder Threshold</TableHead>
                     <TableHead className="font-bold text-gray-700">Status</TableHead>
                     <TableHead className="font-bold text-gray-700 text-right">Actions</TableHead>
@@ -344,46 +255,42 @@ export default function LowStockPage() {
                     return (
                       <TableRow key={p.id} className="hover:bg-gray-50/70 transition-colors">
                         <TableCell>
-                          <div className="flex items-center gap-3">
-                            <ProductThumb product={p} />
-                            <div>
-                              <Link
-                                to={`/products/${p.id}/edit`}
-                                className="font-bold text-gray-900 hover:text-red-600 transition-colors block text-sm"
-                              >
-                                {p.name}
-                              </Link>
-                              <span className="font-mono text-xs text-gray-500">{p.sku}</span>
-                              {p.compatible_vehicles && (
-                                <p className="text-[11px] text-gray-400 truncate max-w-xs">{p.compatible_vehicles}</p>
-                              )}
-                            </div>
-                          </div>
-                        </TableCell>
-
-                        <TableCell>
-                          <div className="space-y-1">
-                            <Badge variant="secondary" className="text-[11px] py-0 font-medium">
-                              {formatCategory(p.category)}
-                            </Badge>
-                            {p.brand && (
-                              <p className="text-xs text-gray-600 font-medium">{p.brand}</p>
+                          <div>
+                            <Link
+                              to={`/products/${p.id}`}
+                              className="font-bold text-gray-900 hover:text-red-600 transition-colors block text-sm"
+                            >
+                              {p.name}
+                            </Link>
+                            <span className="font-mono text-xs text-gray-500 font-semibold">{p.sku}</span>
+                            {p.compatible_vehicles && (
+                              <p className="text-[11px] text-gray-400 truncate max-w-xs">{p.compatible_vehicles}</p>
                             )}
                           </div>
                         </TableCell>
 
                         <TableCell>
-                          <div className="space-y-1.5 min-w-[140px] max-w-[200px]">
-                            <div className="flex items-center justify-between text-xs tabular-nums">
-                              <span className="font-bold text-gray-900">
-                                {p.stock_quantity} <span className="text-gray-400 font-normal">{p.unit || 'units'}</span>
+                          <Badge variant="outline" className="border-gray-200 text-gray-700 font-semibold text-xs">
+                            {formatCategory(p.category)}
+                          </Badge>
+                        </TableCell>
+
+                        <TableCell className="text-xs font-semibold text-gray-700">
+                          {p.brand || '—'}
+                        </TableCell>
+
+                        <TableCell>
+                          <div className="space-y-1.5 min-w-[170px] max-w-[240px]">
+                            <div className="flex items-center justify-between text-sm tabular-nums">
+                              <span className="font-extrabold text-gray-900">
+                                {p.stock_quantity} <span className="text-gray-500 font-medium text-xs">{p.unit || 'units'}</span>
                               </span>
-                              <span className="text-gray-500 font-mono text-[11px]">
+                              <span className="text-gray-600 font-mono text-xs font-semibold">
                                 Limit: {p.reorder_threshold}
                               </span>
                             </div>
                             {/* Stock Level Progress Bar */}
-                            <div className="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
+                            <div className="h-2 w-full rounded-full bg-gray-100 overflow-hidden">
                               <div
                                 className={`h-full rounded-full transition-all duration-300 ${isOutOfStock ? 'bg-red-500' : ratio <= 40 ? 'bg-amber-500' : 'bg-yellow-400'
                                   }`}
@@ -404,7 +311,7 @@ export default function LowStockPage() {
 
                         <TableCell className="text-right">
                           <Link
-                            to={`/products/${p.id}/edit`}
+                            to={`/products/${p.id}`}
                             className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"
                           >
                             Manage

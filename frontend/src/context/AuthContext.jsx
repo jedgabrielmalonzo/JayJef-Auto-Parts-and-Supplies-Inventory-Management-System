@@ -10,8 +10,21 @@ const FIXED_ADMIN_CREDENTIALS = {
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  // Always start logged out on initial website load so Login Screen pops up first
-  const [user, setUser] = useState(null);
+  // Restore persisted session from localStorage so browser refresh doesn't log the user out
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('jayjef_auth_user');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.username === FIXED_ADMIN_CREDENTIALS.username) {
+          return parsed;
+        }
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  });
 
   const isAdmin = !!user && user.username === FIXED_ADMIN_CREDENTIALS.username;
 

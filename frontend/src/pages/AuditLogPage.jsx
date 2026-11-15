@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
-  ShieldCheck, Search, Filter, RefreshCw, UserCheck, FileText, ArrowRight,
-  TrendingUp, TrendingDown, Clock, Calendar, ChevronLeft, ChevronRight, Layers, FileSpreadsheet
+  Search, RefreshCw, UserCheck, FileText, ArrowRight,
+  Clock, Calendar, ChevronLeft, ChevronRight, Layers, FileSpreadsheet, X, RotateCcw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { listMovements } from '../api/inventory.js';
@@ -11,7 +11,6 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '.
 import { Button } from '../components/ui/button.jsx';
 import { Input } from '../components/ui/input.jsx';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.jsx';
-import MicroStatCard from '../components/MicroStatCard.jsx';
 
 const sectionVariants = {
   hidden: { opacity: 0, y: 15 },
@@ -77,23 +76,6 @@ export default function AuditLogPage() {
     return filteredLogs.slice(start, start + pageSize);
   }, [filteredLogs, page, pageSize]);
 
-  // KPI Metrics
-  const metrics = useMemo(() => {
-    const totalEvents = movements.length;
-    let totalIn = 0;
-    let totalOut = 0;
-    let manualAdjustments = 0;
-
-    movements.forEach((m) => {
-      const change = Number(m.quantity_change || 0);
-      if (change > 0) totalIn += change;
-      if (change < 0) totalOut += Math.abs(change);
-      if (m.reason === 'manual_adjustment' || m.reason === 'correction') manualAdjustments++;
-    });
-
-    return { totalEvents, totalIn, totalOut, manualAdjustments };
-  }, [movements]);
-
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
@@ -127,68 +109,55 @@ export default function AuditLogPage() {
         </div>
       </motion.div>
 
-      {/* KPI Cards Layer */}
+      {/* Search & Filter Toolbar (Matching Low Stock Alerts Design Pattern) */}
       <motion.div
         variants={sectionVariants}
         initial="hidden"
         animate="visible"
         custom={1}
-        className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+        className="rounded-2xl border border-gray-200 bg-white p-4 shadow-xs"
       >
-        <MicroStatCard
-          icon={ShieldCheck}
-          iconBgColor="bg-red-50 text-red-600"
-          title="Total Audit Events"
-          value={metrics.totalEvents}
-        />
-        <MicroStatCard
-          icon={TrendingUp}
-          iconBgColor="bg-emerald-50 text-emerald-600"
-          title="Total Units Received"
-          value={`+${metrics.totalIn}`}
-        />
-        <MicroStatCard
-          icon={TrendingDown}
-          iconBgColor="bg-amber-50 text-amber-600"
-          title="Total Units Removed"
-          value={`-${metrics.totalOut}`}
-        />
-        <MicroStatCard
-          icon={UserCheck}
-          iconBgColor="bg-blue-50 text-blue-600"
-          title="Manual Adjustments"
-          value={metrics.manualAdjustments}
-        />
-      </motion.div>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          {/* Search Input */}
+          <div className="relative flex-1">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Input
+              type="text"
+              className="pl-9 pr-8 text-xs h-9 rounded-xl border-gray-200 bg-white"
+              placeholder="Search audit log by product, part number, staff, or notes..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch('');
+                  setPage(1);
+                }}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
 
-      {/* Search & Filter Toolbar */}
-      <motion.div
-        variants={sectionVariants}
-        initial="hidden"
-        animate="visible"
-        custom={2}
-        className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-gray-200 shadow-xs"
-      >
-        <div className="relative w-full sm:w-80">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-          <Input
-            type="text"
-            className="pl-9 h-9 text-xs rounded-xl border-gray-200 bg-gray-50/50 focus:bg-white transition-colors"
-            placeholder="Search product, part number, staff, or notes..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-          />
-        </div>
-
-        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-          <div className="flex items-center gap-2">
-            <Filter size={14} className="text-gray-400" />
+          {/* Reason Filter Dropdown */}
+          <div className="w-full sm:w-56">
             <Select value={reasonFilter} onValueChange={(val) => { setReasonFilter(val); setPage(1); }}>
-              <SelectTrigger className="h-9 text-xs w-44 rounded-xl border-gray-200 bg-white">
-                <SelectValue placeholder="All Event Reasons" />
+              <SelectTrigger className="h-9 text-xs rounded-xl border-gray-200 bg-white">
+                <SelectValue placeholder="All Event Reasons">
+                  {(v) => {
+                    if (!v || v === 'all') return 'All Event Reasons';
+                    if (v === 'manual_adjustment') return 'Manual Adjustment';
+                    if (v === 'correction') return 'Inventory Correction';
+                    if (v === 'initial_stock') return 'Initial Stock Take';
+                    return MOVEMENT_REASON_LABELS[v] || v;
+                  }}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Event Reasons</SelectItem>
@@ -199,9 +168,23 @@ export default function AuditLogPage() {
             </Select>
           </div>
 
-          <span className="text-xs font-semibold text-gray-400">
-            {filteredLogs.length} {filteredLogs.length === 1 ? 'record' : 'records'}
-          </span>
+          {/* Reset */}
+          {(search || reasonFilter !== 'all') && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSearch('');
+                setReasonFilter('all');
+                setPage(1);
+              }}
+              className="h-9 px-2.5 text-xs text-gray-500 hover:text-gray-900 rounded-xl shrink-0"
+            >
+              <RotateCcw size={13} className="mr-1" />
+              Reset
+            </Button>
+          )}
         </div>
       </motion.div>
 
@@ -210,7 +193,7 @@ export default function AuditLogPage() {
         variants={sectionVariants}
         initial="hidden"
         animate="visible"
-        custom={3}
+        custom={2}
         className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xs"
       >
         <Table>

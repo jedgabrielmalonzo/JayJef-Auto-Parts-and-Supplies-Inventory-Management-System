@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, Plus, Pencil, Trash2, PackageSearch, Loader2, LayoutGrid, List, Eye, Tag, MapPin, Box, Minus } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, PackageSearch, Loader2, LayoutGrid, List, Eye, Tag, MapPin, Box, Minus, X, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { listProducts, deleteProduct, bulkDeleteProducts } from '../api/products.js';
 import { createMovement } from '../api/inventory.js';
@@ -213,54 +213,94 @@ function ProductsListView({ modal }) {
       </motion.div>
 
       {/* Modern Filter Toolbar */}
-      <motion.div custom={2} variants={sectionVariants} initial="hidden" animate="visible" className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-xs">
-        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+      <motion.div custom={2} variants={sectionVariants} initial="hidden" animate="visible" className="rounded-2xl border border-gray-200 bg-white p-4 shadow-xs">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+          {/* Search Input */}
+          <div className="relative flex-1">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <Input
-              className="w-full pl-10 rounded-xl border-gray-300 focus:border-red-600 focus:ring-red-600/20"
+              className="pl-9 pr-8 text-xs h-9 rounded-xl border-gray-200 bg-white"
               placeholder="Search by part number, product name, brand..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X size={13} />
+              </button>
+            )}
           </div>
-          <Select value={category} onValueChange={(v) => setCategory(v === '_all' ? '' : v)}>
-            <SelectTrigger className="w-[190px] rounded-xl border-gray-300">
-              <SelectValue placeholder="All categories">
-                {(v) => (!v || v === '_all') ? 'All categories' : formatCategory(v)}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="_all">All categories</SelectItem>
-              {CATEGORIES.map((c) => (
-                <SelectItem key={c} value={c}>{formatCategory(c)}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer bg-gray-50 border border-gray-200 px-3 py-2 rounded-xl hover:bg-gray-100 transition-colors">
-            <Checkbox checked={lowStockOnly} onCheckedChange={(v) => setLowStockOnly(!!v)} />
-            Low stock only
-          </Label>
-        </div>
 
-        {/* View Switcher */}
-        <div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-gray-50 p-1">
-          <button
-            title="Grid view"
-            onClick={() => setView('grid')}
-            className={`flex h-9 w-9 items-center justify-center rounded-lg transition-all ${view === 'grid' ? 'bg-white text-gray-900 shadow-xs font-bold' : 'text-gray-500 hover:text-gray-900'
-              }`}
-          >
-            <LayoutGrid size={18} />
-          </button>
-          <button
-            title="List view"
-            onClick={() => setView('list')}
-            className={`flex h-9 w-9 items-center justify-center rounded-lg transition-all ${view === 'list' ? 'bg-white text-gray-900 shadow-xs font-bold' : 'text-gray-500 hover:text-gray-900'
-              }`}
-          >
-            <List size={18} />
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Category Dropdown */}
+            <div className="w-full sm:w-56">
+              <Select value={category} onValueChange={(v) => setCategory(v === '_all' ? '' : v)}>
+                <SelectTrigger className="h-9 text-xs rounded-xl border-gray-200 bg-white">
+                  <SelectValue placeholder="All categories">
+                    {(v) => (!v || v === '_all') ? 'All categories' : formatCategory(v)}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_all">All categories</SelectItem>
+                  {CATEGORIES.map((c) => (
+                    <SelectItem key={c} value={c}>{formatCategory(c)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Low Stock Checkbox Toggle */}
+            <Label className="flex items-center gap-2 text-xs font-semibold text-gray-700 cursor-pointer bg-gray-50/70 border border-gray-200 px-3 h-9 rounded-xl hover:bg-gray-100 transition-colors shrink-0">
+              <Checkbox checked={lowStockOnly} onCheckedChange={(v) => setLowStockOnly(!!v)} />
+              Low stock only
+            </Label>
+
+            {/* Reset */}
+            {(search || category || lowStockOnly) && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearch('');
+                  setCategory('');
+                  setLowStockOnly(false);
+                }}
+                className="h-9 px-2.5 text-xs text-gray-500 hover:text-gray-900 rounded-xl shrink-0"
+              >
+                <RotateCcw size={13} className="mr-1" />
+                Reset
+              </Button>
+            )}
+
+            {/* View Switcher */}
+            <div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-gray-50/70 p-0.5 h-9 shrink-0 ml-auto lg:ml-0">
+              <button
+                type="button"
+                title="Grid view"
+                onClick={() => setView('grid')}
+                className={`flex h-7 w-7 items-center justify-center rounded-lg transition-all ${
+                  view === 'grid' ? 'bg-white text-gray-900 shadow-2xs font-bold' : 'text-gray-500 hover:text-gray-900'
+                }`}
+              >
+                <LayoutGrid size={15} />
+              </button>
+              <button
+                type="button"
+                title="List view"
+                onClick={() => setView('list')}
+                className={`flex h-7 w-7 items-center justify-center rounded-lg transition-all ${
+                  view === 'list' ? 'bg-white text-gray-900 shadow-2xs font-bold' : 'text-gray-500 hover:text-gray-900'
+                }`}
+              >
+                <List size={15} />
+              </button>
+            </div>
+          </div>
         </div>
       </motion.div>
 

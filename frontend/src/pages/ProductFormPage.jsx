@@ -325,12 +325,12 @@ export default function ProductFormPage({ onSuccess, onClose, productId }) {
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <Field label="Cost Price (₱)">
                         <div className="relative flex items-center">
-                          <span className="pointer-events-none absolute left-3 font-heading font-bold text-sm text-gray-500">₱</span>
+                          <span className="pointer-events-none absolute left-3 font-heading font-bold text-sm text-emerald-600">₱</span>
                           <Input
                             type="number"
                             step="0.01"
                             min="0"
-                            className="pl-7 rounded-xl border-gray-300 font-mono text-sm tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="pl-7 rounded-xl border-gray-300 font-mono text-sm text-gray-900 tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             placeholder="0.00"
                             value={form.cost_price}
                             onChange={(e) => set('cost_price', e.target.value)}
@@ -339,12 +339,12 @@ export default function ProductFormPage({ onSuccess, onClose, productId }) {
                       </Field>
                       <Field label="Selling Price (₱)">
                         <div className="relative flex items-center">
-                          <span className="pointer-events-none absolute left-3 font-heading font-bold text-sm text-red-600">₱</span>
+                          <span className="pointer-events-none absolute left-3 font-heading font-bold text-sm text-emerald-600">₱</span>
                           <Input
                             type="number"
                             step="0.01"
                             min="0"
-                            className="pl-7 rounded-xl border-gray-300 font-mono font-bold text-sm text-gray-900 tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="pl-7 rounded-xl border-gray-300 font-mono text-sm text-gray-900 tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             placeholder="0.00"
                             value={form.selling_price}
                             onChange={(e) => set('selling_price', e.target.value)}

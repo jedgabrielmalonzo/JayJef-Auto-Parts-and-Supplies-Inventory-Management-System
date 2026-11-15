@@ -21,8 +21,6 @@ function peso(n) {
   return `₱${Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-const ADJUSTMENT_REASONS = ['manual_adjustment', 'correction'];
-
 function MovementsTable({ movements, emptyText }) {
   if (movements.length === 0) {
     return (
@@ -140,7 +138,6 @@ export default function ProductDetailPage({ initialEdit = false }) {
 
   const avail = availability(product);
   const isLow = product.stock_quantity <= product.reorder_threshold;
-  const adjustments = movements.filter((m) => ADJUSTMENT_REASONS.includes(m.reason));
   const locationText = [product.location_aisle, product.location_shelf, product.location_bin].filter(Boolean).join(' / ');
 
   return (
@@ -213,15 +210,12 @@ export default function ProductDetailPage({ initialEdit = false }) {
         transition={{ delay: 0.1 }}
       >
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="bg-gray-100/80 p-1 rounded-2xl border border-gray-200/60 max-w-md">
+          <TabsList className="bg-gray-100/80 p-1 rounded-2xl border border-gray-200/60 max-w-sm">
             <TabsTrigger value="overview" className="rounded-xl font-bold text-xs">
               Overview
             </TabsTrigger>
-            <TabsTrigger value="adjustments" className="rounded-xl font-bold text-xs">
-              Adjustments ({adjustments.length})
-            </TabsTrigger>
             <TabsTrigger value="history" className="rounded-xl font-bold text-xs">
-              Full Movement History ({movements.length})
+              Stock Movement History ({movements.length})
             </TabsTrigger>
           </TabsList>
 
@@ -231,7 +225,7 @@ export default function ProductDetailPage({ initialEdit = false }) {
               {/* Stock & Pricing Summary Card */}
               <Card className="p-6 border-gray-200/90 rounded-3xl shadow-xs space-y-6">
                 <div>
-                  <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Live Inventory Count</span>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Inventory Count</span>
                   <div className="flex items-baseline gap-2 mt-1">
                     <span className="text-4xl font-black font-heading text-gray-900 tabular-nums">
                       {product.stock_quantity}
@@ -292,14 +286,13 @@ export default function ProductDetailPage({ initialEdit = false }) {
               <div className="lg:col-span-2 space-y-6">
                 <Card className="p-6 border-gray-200/90 rounded-3xl shadow-xs space-y-4">
                   <div className="flex items-center gap-2 pb-3 border-b border-gray-100">
-                    <Box size={18} className="text-red-600" />
                     <h3 className="font-heading text-base font-bold text-gray-900">Technical Specifications</h3>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     <div className="space-y-1">
                       <span className="text-xs font-medium text-gray-500">Part Number</span>
-                      <p className="font-mono text-sm font-bold text-gray-900 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-200/80 inline-block">
+                      <p className="font-mono text-sm font-bold text-gray-900">
                         {product.sku}
                       </p>
                     </div>
@@ -310,12 +303,12 @@ export default function ProductDetailPage({ initialEdit = false }) {
                     </div>
 
                     <div className="space-y-1">
-                      <span className="text-xs font-medium text-gray-500">Manufacturer / Brand</span>
+                      <span className="text-xs font-medium text-gray-500">Brand</span>
                       <p className="font-semibold text-gray-900">{product.brand || 'Unspecified'}</p>
                     </div>
 
                     <div className="space-y-1">
-                      <span className="text-xs font-medium text-gray-500">Count Unit</span>
+                      <span className="text-xs font-medium text-gray-500">Packaging Unit</span>
                       <p className="font-semibold text-gray-900">{product.unit || 'pc'}</p>
                     </div>
 
@@ -356,14 +349,7 @@ export default function ProductDetailPage({ initialEdit = false }) {
             </div>
           </TabsContent>
 
-          {/* TAB 2: ADJUSTMENTS */}
-          <TabsContent value="adjustments" className="mt-6">
-            <Card className="overflow-hidden border-gray-200/90 rounded-3xl shadow-xs">
-              <MovementsTable movements={adjustments} emptyText="No manual adjustments or corrections recorded for this product yet." />
-            </Card>
-          </TabsContent>
-
-          {/* TAB 3: FULL HISTORY */}
+          {/* TAB 2: UNIFIED STOCK MOVEMENT HISTORY */}
           <TabsContent value="history" className="mt-6">
             <Card className="overflow-hidden border-gray-200/90 rounded-3xl shadow-xs">
               <MovementsTable movements={movements} emptyText="No stock movements recorded for this product yet." />
