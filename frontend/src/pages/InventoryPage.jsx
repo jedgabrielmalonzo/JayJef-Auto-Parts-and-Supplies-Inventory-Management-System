@@ -206,13 +206,19 @@ function AdjustStockModal({ open, onClose, onSaved }) {
 
     setSaving(true);
     try {
-      const adjustments = bundleItems.map((item) => ({
-        product_id: item.product_id,
-        quantity_change: item.direction === 'out' ? -Math.abs(item.quantity) : Math.abs(item.quantity),
-      }));
+      const movements = bundleItems.map((item) => {
+        const qty = Math.max(1, Math.abs(Number(item.quantity) || 1));
+        return {
+          product_id: item.product_id,
+          quantity_change: item.direction === 'out' ? -qty : qty,
+          reason: bundleReason,
+          note: bundleNote.trim() || undefined,
+        };
+      });
 
       await createBatchMovements({
-        adjustments,
+        movements,
+        adjustments: movements,
         reason: bundleReason,
         note: bundleNote.trim() || undefined,
       });

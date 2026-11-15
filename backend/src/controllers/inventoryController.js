@@ -53,19 +53,31 @@ export async function createMovement(req, res, next) {
 
 export async function createBatchMovements(req, res, next) {
   try {
-    const { movements, user_id } = req.body;
-    if (!Array.isArray(movements) || movements.length === 0) {
+    let rawMovements = req.body.movements;
+    const batchReason = req.body.reason || 'manual_adjustment';
+    const batchNote = req.body.note || null;
+
+    if (!rawMovements && Array.isArray(req.body.adjustments)) {
+      rawMovements = req.body.adjustments.map((a) => ({
+        product_id: a.product_id || a.productId,
+        quantity_change: a.quantity_change ?? a.quantityChange,
+        reason: a.reason || batchReason,
+        note: a.note || batchNote,
+      }));
+    }
+
+    if (!Array.isArray(rawMovements) || rawMovements.length === 0) {
       return res.status(400).json({ error: 'Missing or empty movements array' });
     }
 
-    const itemsToProcess = movements.map((m) => ({
-      productId: m.product_id,
-      userId: m.user_id || user_id,
-      quantityChange: Number(m.quantity_change),
-      reason: m.reason || 'manual_adjustment',
-      referenceType: m.reference_type || null,
-      referenceId: m.reference_id || null,
-      note: m.note || null,
+    const itemsToProcess = rawMovements.map((m) => ({
+      productId: m.product_id || m.productId,
+      userId: m.user_id || req.body.user_id,
+      quantityChange: Number(m.quantity_change ?? m.quantityChange),
+      reason: m.reason || batchReason,
+      referenceType: m.reference_type || m.referenceType || null,
+      referenceId: m.reference_id || m.referenceId || null,
+      note: m.note ?? batchNote,
     }));
 
     const results = await createBatchMovementsStandalone(itemsToProcess);

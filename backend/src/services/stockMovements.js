@@ -6,9 +6,12 @@ const REASONS = [
 ];
 
 export class InsufficientStockError extends Error {
-  constructor(productId, available, requested) {
-    super(`Insufficient stock for product ${productId}: have ${available}, need ${requested}`);
-    this.productId = productId;
+  constructor(productOrId, available, requested) {
+    const label = (productOrId && typeof productOrId === 'object' && productOrId.name)
+      ? `${productOrId.name}${productOrId.sku ? ` (${productOrId.sku})` : ''}`
+      : `product ${productOrId}`;
+    super(`Insufficient stock for ${label}: available stock is ${available}, cannot deduct ${requested}`);
+    this.productId = productOrId && typeof productOrId === 'object' ? productOrId._id : productOrId;
     this.available = available;
     this.requested = requested;
   }
@@ -29,7 +32,7 @@ export async function createMovement(client, { productId, userId, quantityChange
   const after = before + change;
 
   if (after < 0) {
-    throw new InsufficientStockError(productId, before, -change);
+    throw new InsufficientStockError(product, before, -change);
   }
 
   product.stock_quantity = after;
