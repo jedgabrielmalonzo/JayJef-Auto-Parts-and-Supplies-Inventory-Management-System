@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, Plus, Pencil, Trash2, PackageSearch, Loader2, LayoutGrid, List, Eye, Tag, MapPin, Box, Minus, X, RotateCcw } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, PackageSearch, Loader2, LayoutGrid, List, Eye, Tag, Box, Minus, X, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { listProducts, deleteProduct, bulkDeleteProducts } from '../api/products.js';
 import { createMovement } from '../api/inventory.js';
@@ -417,19 +417,22 @@ function ProductsListView({ modal }) {
                 onClick={() => navigate(`/products/${p.id}`)}
               >
                 {/* Top Image Container with Top-Left Dark Overlay SKU Badge & Top-Right Selection Checkbox */}
-                <div className="relative h-48 w-full overflow-hidden rounded-2xl bg-gray-200">
+                <div className="relative h-48 w-full overflow-hidden rounded-2xl bg-white border border-gray-100/90 shadow-2xs p-3 flex items-center justify-center">
                   <ProductThumb
                     product={p}
-                    size="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    fit="contain"
+                    size="h-full w-full"
+                    imgClassName="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300 drop-shadow-2xs"
+                    className="border-none bg-transparent rounded-none"
                   />
                   {/* Floating SKU Pill Badge */}
-                  <span className="absolute top-3 left-3 rounded-lg bg-[#09090b]/90 px-3 py-1 font-mono text-[11px] font-bold text-white shadow-md backdrop-blur-xs border border-white/10">
+                  <span className="absolute top-2.5 left-2.5 z-10 rounded-lg bg-[#09090b]/85 px-2.5 py-1 font-mono text-[11px] font-bold text-white shadow-xs backdrop-blur-xs border border-white/10">
                     {p.sku}
                   </span>
 
                   {/* Multi-Select Checkbox Overlay */}
                   <div
-                    className="absolute top-3 right-3 z-10 flex items-center justify-center rounded-lg bg-white/95 p-1.5 shadow-md backdrop-blur-xs border border-gray-200 transition-transform hover:scale-110 cursor-pointer"
+                    className="absolute top-2.5 right-2.5 z-10 flex items-center justify-center rounded-lg bg-white/90 p-1.5 shadow-xs backdrop-blur-xs border border-gray-200 transition-transform hover:scale-110 cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleToggleSelectProduct(p.id);
@@ -478,11 +481,6 @@ function ProductsListView({ modal }) {
                         {p.stock_quantity}
                       </span>
                       <span className="text-[10px] text-gray-400">/ {p.unit}</span>
-                      {p.location_aisle && (
-                        <span className="ml-auto flex items-center gap-1 font-mono text-[11px] text-gray-500 bg-gray-200/60 px-2 py-0.5 rounded-md">
-                          <MapPin size={10} /> {p.location_aisle}
-                        </span>
-                      )}
                     </div>
                   </div>
                 </div>
