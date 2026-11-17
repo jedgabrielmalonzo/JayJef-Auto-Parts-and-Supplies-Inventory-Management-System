@@ -17,7 +17,7 @@ export function AuthProvider({ children }) {
       const saved = localStorage.getItem('jayjef_auth_user');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed?.username === FIXED_ADMIN_CREDENTIALS.username || parsed?.username === 'admin') {
+        if (parsed?.username === FIXED_ADMIN_CREDENTIALS.username) {
           return parsed;
         }
       }
@@ -27,12 +27,12 @@ export function AuthProvider({ children }) {
     }
   });
 
-  const isAdmin = !!user && (user.username === FIXED_ADMIN_CREDENTIALS.username || user.username === 'admin');
+  const isAdmin = !!user && user.username === FIXED_ADMIN_CREDENTIALS.username;
 
   function login(usernameInput, passwordInput) {
     const clean = usernameInput.trim().toLowerCase();
-    const isValidUsername = clean === 'jayjef2014@gmail.com' || clean === 'admin';
-    const isValidPassword = passwordInput === 'jayjef2014' || passwordInput === 'admin123';
+    const isValidUsername = clean === FIXED_ADMIN_CREDENTIALS.username;
+    const isValidPassword = passwordInput === FIXED_ADMIN_CREDENTIALS.password;
 
     if (isValidUsername && isValidPassword) {
       const userData = {
