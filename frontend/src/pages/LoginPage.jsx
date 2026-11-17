@@ -99,21 +99,22 @@ export default function LoginPage() {
         initial={{ opacity: 0, x: -24 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.4, ease: 'easeOut' }}
-        className="w-full lg:w-1/2 flex flex-col justify-between px-8 sm:px-14 md:px-20 lg:px-24 py-10"
+        className="w-full lg:w-1/2 flex flex-col justify-between px-6 sm:px-12 lg:px-16 pt-6 sm:pt-8 md:pt-10 pb-8"
       >
-        {/* Logo top-left */}
-        <div>
-          <JayJefLogo variant="sidebar" className="border-none shadow-none p-0" />
-        </div>
-
-        {/* Form area — vertically centered */}
-        <div className="flex-1 flex flex-col justify-center max-w-md w-full mx-auto lg:mx-0">
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight mb-2">
-            Welcome back
-          </h1>
-          <p className="text-sm text-gray-500 mb-8">
-            Sign in to access JayJef Auto Parts &amp; Supplies Inventory.
-          </p>
+        {/* Form area — elevated upwards to reduce dead white space on top */}
+        <div className="flex-1 flex flex-col justify-center max-w-md w-full mx-auto -mt-10 sm:-mt-14 md:-mt-20">
+          <div className="text-center mb-7 sm:mb-8">
+            {/* Logo on top of Welcome back with clear breathing distance */}
+            <div className="flex justify-center mb-8 sm:mb-10 md:mb-12">
+              <JayJefLogo variant="login" className="border-none shadow-none p-0" />
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight mb-2">
+              Welcome back
+            </h1>
+            <p className="text-sm text-gray-500">
+              Sign in to access JayJef Auto Parts &amp; Supplies Inventory.
+            </p>
+          </div>
 
           {/* Error message */}
           {error && (
@@ -187,7 +188,7 @@ export default function LoginPage() {
         </div>
 
         {/* Footer disclaimer */}
-        <p className="text-[11px] text-gray-400 mt-6">
+        <p className="text-[11px] text-gray-400 mt-6 text-center">
           JayJef Auto Parts &amp; Supplies — Aircon parts inventory, always&nbsp;under&nbsp;control.
         </p>
       </motion.div>

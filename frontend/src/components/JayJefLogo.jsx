@@ -195,99 +195,54 @@ export function BrandLetterJ({ className = 'text-red-600', size = 'text-3xl' }) 
 }
 
 /**
- * The full JayJef Brand Logo component with 1940 Ford Coupe and signature typography.
+ * The official JayJef Auto Parts & Supplies Brand Logo.
+ * Uses the authentic official brand asset with classic 1940 Coupe,
+ * typography, and air conditioning parts lockup.
  */
-export function JayJefLogo({ variant = 'sidebar', className = '' }) {
+export function JayJefLogo({ variant = 'sidebar', className = '', imgClassName = '', ...props }) {
   if (variant === 'compact' || variant === 'icon') {
     return (
-      <div className={`relative flex items-center justify-center rounded-2xl bg-gradient-to-br from-red-600 to-red-700 p-2 text-white shadow-lg shadow-red-600/30 border border-red-500/30 ${className}`}>
-        <FordCoupe1940 className="w-10 h-7" />
-      </div>
+      <img
+        src="/jayjef-logo-transparent.png"
+        alt="JayJef Auto Parts & Supplies"
+        className={`h-8 w-auto object-contain select-none ${className}`}
+        {...props}
+      />
     );
   }
 
   if (variant === 'sidebar') {
     return (
-      <div className={`flex items-center gap-3.5 group select-none ${className}`}>
-        {/* Car Badge Emblem */}
-        <div className="relative flex h-11 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-b from-slate-900 via-slate-800 to-black p-1 shadow-md shadow-slate-900/20 border border-slate-700/50 group-hover:border-red-500/50 transition-all duration-300">
-          <FordCoupe1940 className="w-12 h-9 transform group-hover:scale-110 transition-transform duration-300" />
-          <div className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[9px] font-black text-white shadow-sm ring-2 ring-white">
-            J
-          </div>
-        </div>
-
-        {/* Brand Text */}
-        <div className="flex flex-col leading-none">
-          <div className="flex items-baseline gap-0.5">
-            {/* Jay */}
-            <span className="text-2xl font-black text-red-600 tracking-tight" style={{ fontFamily: '"Poppins", sans-serif' }}>
-              J
-            </span>
-            <span className="text-xl font-black text-gray-900 tracking-tight mr-1.5" style={{ fontFamily: '"Poppins", sans-serif' }}>
-              ay
-            </span>
-
-            {/* Jef */}
-            <span className="text-2xl font-black text-red-600 tracking-tight" style={{ fontFamily: '"Poppins", sans-serif' }}>
-              J
-            </span>
-            <span className="text-xl font-black text-gray-900 tracking-tight" style={{ fontFamily: '"Poppins", sans-serif' }}>
-              ef
-            </span>
-          </div>
-
-          {/* Subtitle with Underline Bar */}
-          <div className="mt-1 flex flex-col">
-            <span className="text-[9px] font-extrabold uppercase tracking-wider text-gray-800">
-              Auto Parts &amp; Supplies
-            </span>
-            <span className="h-[2px] w-full bg-gray-900 rounded-full mt-0.5" />
-          </div>
-        </div>
+      <div className={`flex items-center w-full select-none ${className}`} {...props}>
+        <img
+          src="/jayjef-logo-transparent.png"
+          alt="JayJef Auto Parts & Supplies"
+          className={`w-full max-w-[224px] h-auto object-contain select-none ${imgClassName}`}
+        />
       </div>
     );
   }
 
-  // Full Banner / Hero variant (for Splash, Login, Invoices)
-  return (
-    <div className={`flex items-center justify-center gap-5 p-4 rounded-3xl bg-white border border-gray-100 shadow-sm ${className}`}>
-      {/* 1940 Ford Coupe Vector */}
-      <FordCoupe1940 className="w-32 h-20 drop-shadow-md" />
-
-      {/* Brand Header */}
-      <div className="flex flex-col">
-        <div className="flex items-baseline">
-          <span className="text-4xl font-black text-red-600" style={{ fontFamily: '"Poppins", sans-serif' }}>J</span>
-          <span className="text-3xl font-black text-gray-900 mr-2" style={{ fontFamily: '"Poppins", sans-serif' }}>ay</span>
-          <span className="text-4xl font-black text-red-600" style={{ fontFamily: '"Poppins", sans-serif' }}>J</span>
-          <span className="text-3xl font-black text-gray-900" style={{ fontFamily: '"Poppins", sans-serif' }}>ef</span>
-        </div>
-
-        {/* 3 Auto Parts Thumbnails */}
-        <div className="flex items-center gap-2 my-1.5">
-          {/* Condenser Core */}
-          <div className="flex h-7 w-9 items-center justify-center rounded-md border border-gray-300 bg-gray-50 px-1 py-0.5 text-[8px] font-bold text-gray-500">
-            CORE
-          </div>
-          {/* Compressor */}
-          <div className="flex h-7 w-9 items-center justify-center rounded-md border border-gray-300 bg-gray-50 px-1 py-0.5 text-[8px] font-bold text-gray-500">
-            COMP
-          </div>
-          {/* Valve */}
-          <div className="flex h-7 w-9 items-center justify-center rounded-md border border-gray-300 bg-gray-50 px-1 py-0.5 text-[8px] font-bold text-gray-500">
-            TXV
-          </div>
-        </div>
-
-        {/* Auto Parts & Supplies */}
-        <div className="flex flex-col">
-          <span className="text-xs font-black uppercase tracking-widest text-gray-900">
-            Auto Parts &amp; Supplies
-          </span>
-          <span className="h-[2px] w-full bg-gray-900 mt-0.5" />
-        </div>
+  if (variant === 'login') {
+    return (
+      <div className={`flex items-center justify-center select-none ${className}`} {...props}>
+        <img
+          src="/jayjef-logo-transparent.png"
+          alt="JayJef Auto Parts & Supplies"
+          className={`w-64 sm:w-72 md:w-96 max-w-full h-auto object-contain select-none drop-shadow-xs ${imgClassName}`}
+        />
       </div>
+    );
+  }
+
+  // Full / Banner variant (default)
+  return (
+    <div className={`flex items-center justify-center select-none ${className}`} {...props}>
+      <img
+        src="/jayjef-logo-transparent.png"
+        alt="JayJef Auto Parts & Supplies"
+        className={`w-64 sm:w-72 md:w-80 max-w-full h-auto object-contain select-none drop-shadow-xs ${imgClassName}`}
+      />
     </div>
   );
 }

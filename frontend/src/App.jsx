@@ -203,14 +203,14 @@ function SidebarContent({ onCloseMobile }) {
     <div className="flex h-full flex-col justify-between p-4">
       <div>
         {/* Shop Brand Logo & Mobile Close */}
-        <div className="flex items-center justify-between px-1 py-2 mb-4 border-b border-gray-100 pb-4">
-          <NavLink to="/products" onClick={onCloseMobile} className="flex items-center">
-            <JayJefLogo variant="sidebar" />
+        <div className="flex items-center justify-between px-1 py-1 mb-4 border-b border-gray-100 pb-3">
+          <NavLink to="/products" onClick={onCloseMobile} className="flex items-center flex-1 min-w-0">
+            <JayJefLogo variant="sidebar" className="w-full" />
           </NavLink>
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={onCloseMobile}
-            className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 lg:hidden"
+            className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 lg:hidden shrink-0 ml-2"
           >
             <X size={20} />
           </motion.button>
