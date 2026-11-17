@@ -235,12 +235,15 @@ export default function LoginPage() {
           />
         </div>
 
-        {/* ── Bottom Headline with Gradient for 100% Contrast ── */}
-        <div className="relative z-20 p-10 sm:p-14 bg-gradient-to-t from-[#800010] via-[#B30018]/90 to-transparent pt-28">
+        {/* ── Bottom Headline & Tagline ── */}
+        <div className="relative z-20 p-10 sm:p-14 bg-gradient-to-t from-[#800010] via-[#B30018]/90 to-transparent pt-20">
           <h2 className="text-4xl xl:text-5xl font-extrabold text-white leading-[1.12] tracking-tight drop-shadow-md">
             Every auto part,<br />
             in plain sight.
           </h2>
+          <p className="mt-4 text-sm sm:text-base text-red-100/90 font-medium max-w-lg leading-relaxed drop-shadow-sm">
+            Real-time inventory tracking, stock movements, and catalog management for automotive air conditioning specialists.
+          </p>
         </div>
       </motion.div>
     </div>
