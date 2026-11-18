@@ -368,6 +368,7 @@ function ProductsListView({ modal }) {
                 <TableHead className="w-10 px-4"></TableHead>
                 <TableHead className="font-bold text-gray-700">Part Number</TableHead>
                 <TableHead className="font-bold text-gray-700">Name</TableHead>
+                <TableHead className="font-bold text-gray-700">Brand</TableHead>
                 <TableHead className="font-bold text-gray-700">Category</TableHead>
                 <TableHead className="font-bold text-gray-700">Stock</TableHead>
                 <TableHead className="font-bold text-gray-700">Price</TableHead>
@@ -381,6 +382,7 @@ function ProductsListView({ modal }) {
                   <TableCell className="w-10 px-4"><Skeleton className="h-4 w-4 rounded" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-24 rounded" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-48 rounded" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20 rounded" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
                   <TableCell><Skeleton className="h-7 w-20 rounded-lg" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-16 rounded" /></TableCell>
@@ -506,6 +508,7 @@ function ProductsListView({ modal }) {
                   </TableHead>
                   <TableHead className="font-semibold text-gray-700">Part Number</TableHead>
                   <TableHead className="font-semibold text-gray-700">Product Name</TableHead>
+                  <TableHead className="font-semibold text-gray-700">Brand</TableHead>
                   <TableHead className="font-semibold text-gray-700">Category</TableHead>
                   <TableHead className="font-semibold text-gray-700">Stock</TableHead>
                   <TableHead className="font-semibold text-gray-700">Price</TableHead>
@@ -538,6 +541,7 @@ function ProductsListView({ modal }) {
                       </TableCell>
                       <TableCell className="font-mono text-xs font-bold text-red-600">{p.sku}</TableCell>
                       <TableCell className="font-medium text-gray-900">{p.name}</TableCell>
+                      <TableCell className="text-xs font-semibold text-gray-700">{p.brand || '—'}</TableCell>
                       <TableCell><Badge variant="outline">{formatCategory(p.category)}</Badge></TableCell>
                       <TableCell className="tabular-nums font-semibold text-gray-900" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1.5">
