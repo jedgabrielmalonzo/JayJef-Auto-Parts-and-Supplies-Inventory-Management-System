@@ -15,6 +15,7 @@ export const CATEGORIES = [
 export function formatCategory(category) {
   if (!category) return '';
   if (category === 'cabin_filter' || category === 'filter') return 'Cabin Filter';
+  if (category === 'dryer_accumulator' || category === 'dryer' || category === 'drier') return 'Drier';
   return category
     .split('_')
     .map((word) => (word ? word[0].toUpperCase() + word.slice(1) : ''))

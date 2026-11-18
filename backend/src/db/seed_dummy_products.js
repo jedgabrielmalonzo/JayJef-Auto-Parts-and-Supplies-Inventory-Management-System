@@ -115,7 +115,7 @@ const DUMMY_PRODUCTS = [
   },
   {
     sku: 'CND-3090',
-    name: 'Sub-Cool Condenser with Dryer Tank',
+    name: 'Sub-Cool Condenser with Drier Tank',
     brand: 'Valeo',
     category: 'condenser',
     cost_price: 3400.00,
@@ -430,10 +430,10 @@ const DUMMY_PRODUCTS = [
     supplier_index: 0,
   },
 
-  // 8. DRYER_ACCUMULATOR
+  // 8. DRIER
   {
     sku: 'DRY-7010',
-    name: 'Aluminum Receiver Dryer Bottle with Sight Glass',
+    name: 'Aluminum Receiver Drier Bottle with Sight Glass',
     brand: 'Denso',
     category: 'dryer_accumulator',
     cost_price: 320.00,
