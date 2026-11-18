@@ -23,6 +23,15 @@ import {
 import ProductFormPage from './ProductFormPage.jsx';
 import ProductDetailPage from './ProductDetailPage.jsx';
 import ProductThumb from '../components/ProductThumb.jsx';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationPrevious,
+  PaginationNext,
+  PaginationEllipsis,
+} from '../components/ui/pagination.jsx';
 
 const sectionVariants = {
   hidden: { opacity: 0, y: 15 },
@@ -32,6 +41,21 @@ const sectionVariants = {
     transition: { delay: i * 0.08, duration: 0.35, ease: 'easeOut' },
   }),
 };
+
+const PAGE_SIZE = 25;
+
+function getPageNumbers(currentPage, totalPages) {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+  if (currentPage <= 4) {
+    return [1, 2, 3, 4, 5, '...', totalPages];
+  }
+  if (currentPage >= totalPages - 3) {
+    return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+  }
+  return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+}
 
 function ProductsListView({ modal }) {
   const location = useLocation();
@@ -43,6 +67,7 @@ function ProductsListView({ modal }) {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [lowStockOnly, setLowStockOnly] = useState(false);
+  const [page, setPage] = useState(1);
   const [view, setView] = useState('list'); // Default to table list view
   const [loading, setLoading] = useState(true);
   const [pendingDelete, setPendingDelete] = useState(null);
@@ -51,11 +76,25 @@ function ProductsListView({ modal }) {
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
 
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  function handlePageChange(newPage) {
+    setPage(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const [result, lowStockResult] = await Promise.all([
-        listProducts({ search, category, low_stock: lowStockOnly || undefined, is_active: true }),
+        listProducts({
+          search,
+          category,
+          low_stock: lowStockOnly || undefined,
+          is_active: true,
+          page,
+          page_size: PAGE_SIZE,
+        }),
         listProducts({ low_stock: true, is_active: true, page_size: 1 }),
       ]);
       setProducts(result.items);
@@ -66,7 +105,7 @@ function ProductsListView({ modal }) {
     } finally {
       setLoading(false);
     }
-  }, [search, category, lowStockOnly]);
+  }, [search, category, lowStockOnly, page]);
 
   useEffect(() => {
     const timeout = setTimeout(load, 250);
@@ -103,7 +142,11 @@ function ProductsListView({ modal }) {
       toast.success(`"${pendingDelete.name}" deleted`);
       setSelectedIds((prev) => prev.filter((id) => id !== pendingDelete.id));
       setPendingDelete(null);
-      load();
+      if (products.length === 1 && page > 1) {
+        setPage((p) => p - 1);
+      } else {
+        load();
+      }
     } catch (err) {
       toast.error(err.message);
       setPendingDelete(null);
@@ -118,7 +161,11 @@ function ProductsListView({ modal }) {
       toast.success(res.message || `Deleted ${selectedIds.length} products`);
       setSelectedIds([]);
       setBulkDeleteModalOpen(false);
-      load();
+      if (selectedIds.length === products.length && page > 1) {
+        setPage((p) => p - 1);
+      } else {
+        load();
+      }
       getOverview().then(setSummary).catch(() => { });
     } catch (err) {
       toast.error(err.message || 'Failed to delete selected products');
@@ -259,12 +306,18 @@ function ProductsListView({ modal }) {
               className="pl-9 pr-8 text-xs h-9 rounded-xl border-gray-200 bg-white"
               placeholder="Search by part number, product name, brand..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
             />
             {search && (
               <button
                 type="button"
-                onClick={() => setSearch('')}
+                onClick={() => {
+                  setSearch('');
+                  setPage(1);
+                }}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
                 <X size={13} />
@@ -275,7 +328,13 @@ function ProductsListView({ modal }) {
           <div className="flex flex-wrap items-center gap-2">
             {/* Category Dropdown */}
             <div className="w-full sm:w-56">
-              <Select value={category} onValueChange={(v) => setCategory(v === '_all' ? '' : v)}>
+              <Select
+                value={category}
+                onValueChange={(v) => {
+                  setCategory(v === '_all' ? '' : v);
+                  setPage(1);
+                }}
+              >
                 <SelectTrigger className="h-9 text-xs rounded-xl border-gray-200 bg-white">
                   <SelectValue placeholder="All categories">
                     {(v) => (!v || v === '_all') ? 'All categories' : formatCategory(v)}
@@ -292,7 +351,13 @@ function ProductsListView({ modal }) {
 
             {/* Low Stock Checkbox Toggle */}
             <Label className="flex items-center gap-2 text-xs font-semibold text-gray-700 cursor-pointer bg-gray-50/70 border border-gray-200 px-3 h-9 rounded-xl hover:bg-gray-100 transition-colors shrink-0">
-              <Checkbox checked={lowStockOnly} onCheckedChange={(v) => setLowStockOnly(!!v)} />
+              <Checkbox
+                checked={lowStockOnly}
+                onCheckedChange={(v) => {
+                  setLowStockOnly(!!v);
+                  setPage(1);
+                }}
+              />
               Low stock only
             </Label>
 
@@ -306,6 +371,7 @@ function ProductsListView({ modal }) {
                   setSearch('');
                   setCategory('');
                   setLowStockOnly(false);
+                  setPage(1);
                 }}
                 className="h-9 px-2.5 text-xs text-gray-500 hover:text-gray-900 rounded-xl shrink-0"
               >
@@ -612,6 +678,60 @@ function ProductsListView({ modal }) {
               </TableBody>
             </Table>
           </div>
+        </motion.div>
+      )}
+
+      {/* Pagination Controls */}
+      {!loading && products.length > 0 && (
+        <motion.div
+          custom={4}
+          variants={sectionVariants}
+          initial="hidden"
+          animate="visible"
+          className="flex flex-col sm:flex-row items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-white px-5 py-3.5 shadow-xs"
+        >
+          <div className="text-xs font-medium text-gray-500">
+            Showing <span className="font-bold text-gray-900">{(page - 1) * PAGE_SIZE + 1}</span> to{' '}
+            <span className="font-bold text-gray-900">{Math.min(page * PAGE_SIZE, total)}</span> of{' '}
+            <span className="font-bold text-gray-900">{total}</span> {total === 1 ? 'product' : 'products'}
+          </div>
+
+          {totalPages > 1 && (
+            <Pagination className="mx-0 w-auto justify-end">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    disabled={page <= 1}
+                    onClick={() => handlePageChange(Math.max(1, page - 1))}
+                  />
+                </PaginationItem>
+
+                {getPageNumbers(page, totalPages).map((pNum, idx) =>
+                  pNum === '...' ? (
+                    <PaginationItem key={`ellipsis-${idx}`}>
+                      <PaginationEllipsis />
+                    </PaginationItem>
+                  ) : (
+                    <PaginationItem key={pNum}>
+                      <PaginationLink
+                        isActive={pNum === page}
+                        onClick={() => handlePageChange(pNum)}
+                      >
+                        {pNum}
+                      </PaginationLink>
+                    </PaginationItem>
+                  )
+                )}
+
+                <PaginationItem>
+                  <PaginationNext
+                    disabled={page >= totalPages}
+                    onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
         </motion.div>
       )}
 
