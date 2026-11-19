@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { listMovements, createMovement, createBatchMovements } from '../api/inventory.js';
-import { MOVEMENT_REASON_LABELS } from '../constants.js';
+import { MOVEMENT_REASON_LABELS, formatCategory } from '../constants.js';
 import { Button } from '../components/ui/button.jsx';
 import { Input } from '../components/ui/input.jsx';
 import { Label } from '../components/ui/label.jsx';
@@ -155,6 +155,8 @@ function AdjustStockModal({ open, onClose, onSaved }) {
           product_id: prod.id,
           product_name: prod.name,
           product_sku: prod.sku,
+          brand: prod.brand,
+          category: prod.category,
           quantity: 1,
           direction: 'in',
         },
@@ -275,7 +277,7 @@ function AdjustStockModal({ open, onClose, onSaved }) {
               </div>
 
               <ModalSection title="Target Product">
-                <ModalField label="Auto Part / Product" required>
+                <ModalField label="Product" required>
                   <ProductPicker selected={product} onSelect={setProduct} onClear={() => setProduct(null)} />
                 </ModalField>
               </ModalSection>
@@ -285,11 +287,13 @@ function AdjustStockModal({ open, onClose, onSaved }) {
                   <ModalField label="Movement Direction" required>
                     <Select value={direction} onValueChange={setDirection}>
                       <SelectTrigger className="rounded-xl border-gray-300">
-                        <SelectValue />
+                        <SelectValue placeholder="Select direction">
+                          {(val) => (val === 'in' ? 'Stock In' : val === 'out' ? 'Stock Out' : '')}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="in">Stock In (+)</SelectItem>
-                        <SelectItem value="out">Stock Out (−)</SelectItem>
+                        <SelectItem value="in">Stock In</SelectItem>
+                        <SelectItem value="out">Stock Out</SelectItem>
                       </SelectContent>
                     </Select>
                   </ModalField>
@@ -312,11 +316,19 @@ function AdjustStockModal({ open, onClose, onSaved }) {
                   <ModalField label="Adjustment Reason" required>
                     <Select value={reason} onValueChange={setReason}>
                       <SelectTrigger className="rounded-xl border-gray-300">
-                        <SelectValue />
+                        <SelectValue placeholder="Select reason">
+                          {(val) => {
+                            if (val === 'manual_adjustment') return 'Manual Adjustment';
+                            if (val === 'correction') return 'Inventory Correction';
+                            if (val === 'initial_stock') return 'Initial Stock Take';
+                            return MOVEMENT_REASON_LABELS[val] || (val ? val.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()) : '');
+                          }}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="manual_adjustment">Manual Adjustment</SelectItem>
-                        <SelectItem value="correction">Correction</SelectItem>
+                        <SelectItem value="correction">Inventory Correction</SelectItem>
+                        <SelectItem value="initial_stock">Initial Stock Take</SelectItem>
                       </SelectContent>
                     </Select>
                   </ModalField>
@@ -412,16 +424,22 @@ function AdjustStockModal({ open, onClose, onSaved }) {
                             <TableRow key={`${item.product_id}_${idx}`} className="hover:bg-gray-50/60">
                               <TableCell className="py-2.5">
                                 <p className="font-bold text-gray-900">{item.product_name}</p>
-                                <p className="font-mono text-[11px] text-gray-500">{item.product_sku}</p>
+                                <p className="font-mono text-[11px] text-gray-500 flex items-center gap-1.5 mt-0.5">
+                                  <span className="text-red-600 font-bold">{item.product_sku}</span>
+                                  {item.brand && <span>• {item.brand}</span>}
+                                  {item.category && <span>• {formatCategory(item.category)}</span>}
+                                </p>
                               </TableCell>
                               <TableCell className="py-2.5">
                                 <Select value={item.direction} onValueChange={(val) => updateBundleItem(idx, 'direction', val)}>
                                   <SelectTrigger className="h-8 text-xs rounded-xl border-gray-300">
-                                    <SelectValue />
+                                    <SelectValue>
+                                      {(val) => (val === 'in' ? 'Stock In' : val === 'out' ? 'Stock Out' : val)}
+                                    </SelectValue>
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="in">In (+)</SelectItem>
-                                    <SelectItem value="out">Out (−)</SelectItem>
+                                    <SelectItem value="in">Stock In</SelectItem>
+                                    <SelectItem value="out">Stock Out</SelectItem>
                                   </SelectContent>
                                 </Select>
                               </TableCell>
@@ -453,7 +471,14 @@ function AdjustStockModal({ open, onClose, onSaved }) {
                   <ModalField label="Batch Adjustment Reason" required>
                     <Select value={bundleReason} onValueChange={setBundleReason}>
                       <SelectTrigger className="rounded-xl border-gray-300">
-                        <SelectValue />
+                        <SelectValue placeholder="Select reason">
+                          {(val) => {
+                            if (val === 'manual_adjustment') return 'Manual Adjustment';
+                            if (val === 'correction') return 'Inventory Correction';
+                            if (val === 'initial_stock') return 'Initial Stock Take';
+                            return MOVEMENT_REASON_LABELS[val] || (val ? val.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()) : '');
+                          }}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="manual_adjustment">Manual Adjustment</SelectItem>
